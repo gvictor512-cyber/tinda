@@ -1,0 +1,27 @@
+﻿Analyzing mobile...                                             
+
+warning - 'deprecated_member_use' isn't a recognized lint rule. Try using the name of a recognized lint rule - analysis_options.yaml:27:5 - undefined_lint
+warning - The value of the local variable 'retention' isn't used. Try removing the variable or using it - lib\features\admin\admin_dashboard.dart:134:11 - unused_local_variable
+warning - The value of the local variable 'csv' isn't used. Try removing the variable or using it - lib\features\admin\admin_dashboard.dart:440:13 - unused_local_variable
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\auth\register_screen.dart:150:29 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\auth\register_screen.dart:151:29 - deprecated_member_use
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\auth\register_screen.dart:163:29 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\auth\register_screen.dart:164:29 - deprecated_member_use
+warning - The value of the field '_isConnected' isn't used. Try removing the field, or using it - lib\features\chat\chat_screen.dart:28:14 - unused_field
+warning - The value of the field '_firestore' isn't used. Try removing the field, or using it - lib\features\profile\compatibility_settings.dart:12:9 - unused_field
+warning - The value of the local variable 'settings' isn't used. Try removing the variable or using it - lib\features\profile\compatibility_settings.dart:69:13 - unused_local_variable
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\profile\compatibility_settings.dart:340:13 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement - lib\features\profile\compatibility_settings.dart:341:13 - deprecated_member_use
+warning - The value of the field '_currentIndex' isn't used. Try removing the field, or using it - lib\features\swipe\swipe_screen.dart:18:7 - unused_field
+warning - The value of the field '_todaySwipes' isn't used. Try removing the field, or using it - lib\features\swipe\swipe_screen_simple.dart:22:7 - unused_field
+warning - The value of the field '_firestore' isn't used. Try removing the field, or using it - lib\features\verification\verification_screen.dart:14:9 - unused_field
+warning - The declaration '_get' isn't referenced. Try removing the declaration of '_get' - lib\services\stripe_payment_service.dart:53:25 - unused_element
+warning - The value of the local variable 'paymentMethodParams' isn't used. Try removing the variable or using it - lib\services\stripe_payment_service.dart:162:13 - unused_local_variable
+
+flutter : 17 issues found. (ran in 9.5s)
+En línea: 1 Carácter: 1
++ flutter analyze --no-pub 2>&1 | Out-File -Encoding utf8 analyze_final ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (17 issues found. (ran in 9.5s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

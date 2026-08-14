@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="180" fill="#4A90E2"/>
+  
+  <!-- Gradient overlay -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#50E3C2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="180" fill="url(#grad1)" opacity="0.3"/>
+  
+  <!-- House icon -->
+  <g transform="translate(150, 150)">
+    <!-- House base -->
+    <path d="M362 100 L662 100 L712 150 L712 650 L312 650 L312 150 Z" 
+          fill="white" opacity="0.9"/>
+    
+    <!-- Roof -->
+    <path d="M300 150 L512 0 L724 150" 
+          stroke="white" stroke-width="40" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Door -->
+    <rect x="430" y="400" width="164" height="250" rx="10" fill="#4A90E2"/>
+    
+    <!-- Door handle -->
+    <circle cx="560" cy="525" r="12" fill="white"/>
+    
+    <!-- Windows -->
+    <rect x="340" y="200" width="120" height="120" rx="10" fill="#50E3C2" opacity="0.8"/>
+    <rect x="564" y="200" width="120" height="120" rx="10" fill="#50E3C2" opacity="0.8"/>
+    
+    <!-- Window crosses -->
+    <line x1="400" y1="200" x2="400" y2="320" stroke="white" stroke-width="8"/>
+    <line x1="340" y1="260" x2="460" y2="260" stroke="white" stroke-width="8"/>
+    
+    <line x1="624" y1="200" x2="624" y2="320" stroke="white" stroke-width="8"/>
+    <line x1="564" y1="260" x2="684" y2="260" stroke="white" stroke-width="8"/>
+  </g>
+  
+  <!-- People icons (representing roommates) -->
+  <g transform="translate(200, 500)">
+    <!-- Person 1 -->
+    <circle cx="100" cy="80" r="40" fill="white"/>
+    <path d="M60 140 Q100 120 140 140 L140 220 L60 220 Z" fill="white"/>
+    
+    <!-- Person 2 -->
+    <circle cx="250" cy="80" r="40" fill="white"/>
+    <path d="M210 140 Q250 120 290 140 L290 220 L210 220 Z" fill="white"/>
+    
+    <!-- Person 3 -->
+    <circle cx="400" cy="80" r="40" fill="white"/>
+    <path d="M360 140 Q400 120 440 140 L440 220 L360 220 Z" fill="white"/>
+    
+    <!-- Connection lines (matching) -->
+    <line x1="140" y1="180" x2="210" y2="180" stroke="#50E3C2" stroke-width="8" stroke-linecap="round"/>
+    <line x1="290" y1="180" x2="360" y2="180" stroke="#50E3C2" stroke-width="8" stroke-linecap="round"/>
+    
+    <!-- Heart icon (matching) -->
+    <path d="M250 200 C230 180 200 180 200 210 C200 240 250 270 250 270 C250 270 300 240 300 210 C300 180 270 180 250 200" 
+          fill="#50E3C2" transform="translate(0, 100)"/>
+  </g>
+  
+  <!-- App name text (optional, for larger versions) -->
+  <text x="512" y="920" text-anchor="middle" font-family="Arial, sans-serif" 
+        font-size="48" font-weight="bold" fill="white">RoomMate Match</text>
+</svg>

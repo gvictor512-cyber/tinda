@@ -1,0 +1,34 @@
+# Este es un archivo de ejemplo para key.properties
+# Copia este archivo a key.properties y completa los valores después de generar el keystore
+
+# PASO 1: Instalar Java JDK (si no lo tienes)
+# - Descarga: https://www.oracle.com/java/technologies/downloads/
+# - Instala JDK 11 o superior
+# - Reinicia tu terminal
+
+# PASO 2: Generar keystore
+# Ejecuta este comando en la carpeta android/:
+# keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+# Te pedirá:
+# - Contraseña del keystore (guárdala)
+# - Contraseña de la key (guárdala)  
+# - Información del certificado (nombre, organización, etc.)
+
+# PASO 3: Completar este archivo
+# Reemplaza los valores abajo con los que usaste al generar el keystore
+
+storePassword=TU_CONTRASEÑA_KEystore
+keyPassword=TU_CONTRASEÑA_KEY
+keyAlias=upload
+storeFile=/ruta/absoluta/a/upload-keystore.jks
+
+# EJEMPLO (después de generar keystore):
+# storePassword=micontraseña123
+# keyPassword=micontraseña123
+# keyAlias=upload
+# storeFile=C:/Users/User/IdeaProjects/tinder piso1/mobile/android/upload-keystore.jks
+
+# IMPORTANTE:
+# - Guarda este archivo como key.properties (sin .example)
+# - NUNCA subas key.properties ni upload-keystore.jks a GitHub
+# - Guarda el keystore en un lugar seguro, si lo pierdes no podrás actualizar la app

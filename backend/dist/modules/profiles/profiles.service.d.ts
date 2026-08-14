@@ -1,0 +1,63 @@
+import { Repository } from 'typeorm';
+import { Profile } from './entities/profile.entity';
+import { CompatibilitySettings } from '../compatibility/entities/compatibility-settings.entity';
+import { User } from '../users/entities/user.entity';
+import { CreateProfileDto } from './dto/create-profile.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+export declare class ProfilesService {
+    private profilesRepository;
+    private compatibilitySettingsRepository;
+    private usersRepository;
+    constructor(profilesRepository: Repository<Profile>, compatibilitySettingsRepository: Repository<CompatibilitySettings>, usersRepository: Repository<User>);
+    create(firebaseUid: string, createProfileDto: CreateProfileDto): Promise<Profile>;
+    findByUserId(firebaseUid: string): Promise<{
+        compatibilitySettings: CompatibilitySettings;
+        id: string;
+        userId: string;
+        user: User;
+        firstName: string;
+        lastName: string;
+        age: number;
+        gender: string;
+        profession: string;
+        city: string;
+        bio: string;
+        profilePhotoUrl: string;
+        photos: string[];
+        budgetMin: number;
+        budgetMax: number;
+        preferredLocation: string;
+        languages: string[];
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    findOne(id: string): Promise<{
+        compatibilitySettings: CompatibilitySettings;
+        id: string;
+        userId: string;
+        user: User;
+        firstName: string;
+        lastName: string;
+        age: number;
+        gender: string;
+        profession: string;
+        city: string;
+        bio: string;
+        profilePhotoUrl: string;
+        photos: string[];
+        budgetMin: number;
+        budgetMax: number;
+        preferredLocation: string;
+        languages: string[];
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    update(firebaseUid: string, updateProfileDto: UpdateProfileDto): Promise<Profile>;
+    delete(firebaseUid: string): Promise<{
+        message: string;
+    }>;
+    addPhoto(firebaseUid: string, photoUrl: string): Promise<Profile>;
+    removePhoto(firebaseUid: string, index: number): Promise<Profile>;
+    findProfilesByCity(city: string, limit?: number): Promise<Profile[]>;
+    searchProfiles(filters: any): Promise<Profile[]>;
+}

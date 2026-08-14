@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isSizeUnder10MB() {
+      return request.resource.size <= 10 * 1024 * 1024;
+    }
+
+    // User profile images
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId)
+        && isImage()
+        && isSizeUnder10MB();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Verification documents (only owner and admin)
+    match /users/{userId}/verification/{fileName} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId)
+        && isImage()
+        && isSizeUnder10MB();
+      allow delete: if isAdmin();
+    }
+
+    // Listing images (only owner of listing can upload)
+    match /listings/{listingId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+        && (firestore.get(/databases/(default)/documents/listings/$(listingId)).data.ownerId == request.auth.uid
+          || isAdmin())
+        && isImage()
+        && isSizeUnder10MB();
+      allow delete: if isAuthenticated()
+        && (firestore.get(/databases/(default)/documents/listings/$(listingId)).data.ownerId == request.auth.uid
+          || isAdmin());
+    }
+
+    // Chat attachments (only conversation participants)
+    match /conversations/{conversationId}/{fileName} {
+      allow read: if isAuthenticated()
+        && firestore.get(/databases/(default)/documents/conversations/$(conversationId)).data.participants.hasAny([request.auth.uid]);
+      allow write: if isAuthenticated()
+        && firestore.get(/databases/(default)/documents/conversations/$(conversationId)).data.participants.hasAny([request.auth.uid])
+        && isImage()
+        && isSizeUnder10MB();
+      allow delete: if isAdmin();
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

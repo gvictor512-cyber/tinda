@@ -1,0 +1,337 @@
+﻿
+  error - Target of URI doesn't exist: 'core/auth/login_screen.dart'. Try creating the file referenced by the URI, or 
+try using a URI for a file that does exist - lib\config\routes.dart:2:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'core/auth/register_screen.dart'. Try creating the file referenced by the URI, 
+or try using a URI for a file that does exist - lib\config\routes.dart:3:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'app.dart'. Try creating the file referenced by the URI, or try using a URI for 
+a file that does exist - lib\config\routes.dart:4:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'features/profile/profile_screen.dart'. Try creating the file referenced by the 
+URI, or try using a URI for a file that does exist - lib\config\routes.dart:5:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'features/profile/compatibility_settings.dart'. Try creating the file 
+referenced by the URI, or try using a URI for a file that does exist - lib\config\routes.dart:6:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'features/swipe/swipe_screen.dart'. Try creating the file referenced by the 
+URI, or try using a URI for a file that does exist - lib\config\routes.dart:7:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'features/chat/chat_screen.dart'. Try creating the file referenced by the URI, 
+or try using a URI for a file that does exist - lib\config\routes.dart:8:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'features/chat/chat_list_screen.dart'. Try creating the file referenced by the 
+URI, or try using a URI for a file that does exist - lib\config\routes.dart:9:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'features/filters/filters_screen.dart'. Try creating the file referenced by the 
+URI, or try using a URI for a file that does exist - lib\config\routes.dart:10:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'features/premium/premium_screen.dart'. Try creating the file referenced by the 
+URI, or try using a URI for a file that does exist - lib\config\routes.dart:11:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'features/verification/verification_screen.dart'. Try creating the file 
+referenced by the URI, or try using a URI for a file that does exist - lib\config\routes.dart:12:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'features/group/group_creation_screen.dart'. Try creating the file referenced 
+by the URI, or try using a URI for a file that does exist - lib\config\routes.dart:13:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'features/group/group_screen.dart'. Try creating the file referenced by the 
+URI, or try using a URI for a file that does exist - lib\config\routes.dart:14:8 - uri_does_not_exist
+  error - The name 'LoginScreen' isn't a class. Try correcting the name to match an existing class - 
+lib\config\routes.dart:35:33 - creation_with_non_type
+  error - The name 'MainScreen' isn't a class. Try correcting the name to match an existing class - 
+lib\config\routes.dart:37:32 - creation_with_non_type
+  error - The name 'ProfileScreen' isn't a class. Try correcting the name to match an existing class - 
+lib\config\routes.dart:38:35 - creation_with_non_type
+  error - The name 'CompatibilitySettingsScreen' isn't a class. Try correcting the name to match an existing class - 
+lib\config\routes.dart:39:49 - creation_with_non_type
+  error - The name 'SwipeScreen' isn't a class. Try correcting the name to match an existing class - 
+lib\config\routes.dart:40:33 - creation_with_non_type
+  error - The method 'ChatScreen' isn't defined for the type 'AppRoutes'. Try correcting the name to the name of an 
+existing method, or defining a method named 'ChatScreen' - lib\config\routes.dart:43:16 - undefined_method
+  error - The name 'ChatListScreen' isn't a class. Try correcting the name to match an existing class - 
+lib\config\routes.dart:49:36 - creation_with_non_type
+  error - The name 'FiltersScreen' isn't a class. Try correcting the name to match an existing class - 
+lib\config\routes.dart:50:35 - creation_with_non_type
+  error - The name 'PremiumScreen' isn't a class. Try correcting the name to match an existing class - 
+lib\config\routes.dart:51:35 - creation_with_non_type
+  error - The name 'VerificationScreen' isn't a class. Try correcting the name to match an existing class - 
+lib\config\routes.dart:52:40 - creation_with_non_type
+  error - The name 'GroupCreationScreen' isn't a class. Try correcting the name to match an existing class - 
+lib\config\routes.dart:53:39 - creation_with_non_type
+  error - The method 'GroupScreen' isn't defined for the type 'AppRoutes'. Try correcting the name to the name of an 
+existing method, or defining a method named 'GroupScreen' - lib\config\routes.dart:56:16 - undefined_method
+  error - The named parameter 'iconColor' isn't defined. Try correcting the name to an existing named parameter's 
+name, or defining a named parameter with the name 'iconColor' - lib\features\admin\admin_dashboard.dart:91:7 - 
+undefined_named_parameter
+  error - The getter 'x' isn't defined for the type 'Offset'. Try importing the library that defines 'x', correcting 
+the name to the name of an existing getter, or defining a getter or field named 'x' - 
+lib\features\admin\admin_dashboard.dart:537:50 - undefined_getter
+  error - The getter 'y' isn't defined for the type 'Offset'. Try importing the library that defines 'y', correcting 
+the name to the name of an existing getter, or defining a getter or field named 'y' - 
+lib\features\admin\admin_dashboard.dart:537:66 - undefined_getter
+  error - The getter 'x' isn't defined for the type 'Offset'. Try importing the library that defines 'x', correcting 
+the name to the name of an existing getter, or defining a getter or field named 'x' - 
+lib\features\admin\admin_dashboard.dart:539:33 - undefined_getter
+  error - The getter 'y' isn't defined for the type 'Offset'. Try importing the library that defines 'y', correcting 
+the name to the name of an existing getter, or defining a getter or field named 'y' - 
+lib\features\admin\admin_dashboard.dart:539:46 - undefined_getter
+  error - The name 'Timestamp' isn't defined, so it can't be used in an 'is' expression. Try changing the name to the 
+name of an existing type, or creating a type with the name 'Timestamp' - 
+lib\features\apartment\listing_stats_screen.dart:447:24 - type_test_with_undefined_name
+  error - The getter 'radio_button_unrounded' isn't defined for the type 'Icons'. Try importing the library that 
+defines 'radio_button_unrounded', correcting the name to the name of an existing getter, or defining a getter or field 
+named 'radio_button_unrounded' - lib\features\filters\advanced_filters_screen.dart:523:30 - undefined_getter
+  error - Undefined name 'context'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\group\group_screen.dart:250:53 - undefined_identifier
+  error - Undefined name 'icon'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:66:9 - undefined_identifier
+  error - Undefined name 'title'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:67:9 - undefined_identifier
+  error - Undefined name 'description'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:68:9 - undefined_identifier
+  error - Undefined name 'icon'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:71:9 - undefined_identifier
+  error - Undefined name 'title'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:72:9 - undefined_identifier
+  error - Undefined name 'description'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:73:9 - undefined_identifier
+  error - Undefined name 'icon'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:76:9 - undefined_identifier
+  error - Undefined name 'title'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:77:9 - undefined_identifier
+  error - Undefined name 'description'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:78:9 - undefined_identifier
+  error - Undefined name 'icon'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:81:9 - undefined_identifier
+  error - Undefined name 'title'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:82:9 - undefined_identifier
+  error - Undefined name 'description'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:83:9 - undefined_identifier
+  error - Undefined name 'icon'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:86:9 - undefined_identifier
+  error - Undefined name 'title'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:87:9 - undefined_identifier
+  error - Undefined name 'description'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:88:9 - undefined_identifier
+  error - Undefined name 'icon'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:91:9 - undefined_identifier
+  error - Undefined name 'title'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:92:9 - undefined_identifier
+  error - Undefined name 'description'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:93:9 - undefined_identifier
+  error - Undefined name 'question'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:313:9 - undefined_identifier
+  error - Undefined name 'answer'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:314:9 - undefined_identifier
+  error - Undefined name 'question'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:317:9 - undefined_identifier
+  error - Undefined name 'answer'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:318:9 - undefined_identifier
+  error - Undefined name 'question'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:321:9 - undefined_identifier
+  error - Undefined name 'answer'. Try correcting the name to one that is defined, or defining the name - 
+lib\features\premium\premium_screen.dart:322:9 - undefined_identifier
+  error - Target of URI doesn't exist: 'debug_print.dart'. Try creating the file referenced by the URI, or try using a 
+URI for a file that does exist - lib\services\listing_service.dart:5:8 - uri_does_not_exist
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:54:7 - undefined_method
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:67:7 - undefined_method
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:80:7 - undefined_method
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:90:7 - undefined_method
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:113:7 - 
+undefined_method
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:137:7 - 
+undefined_method
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:154:7 - 
+undefined_method
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:166:7 - 
+undefined_method
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:193:7 - 
+undefined_method
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:226:7 - 
+undefined_method
+  error - A value of type 'List<Object?>' can't be returned from the method 'searchListings' because it has a return 
+type of 'Future<List<Map<String, dynamic>>>' - lib\services\listing_service.dart:286:14 - return_of_invalid_type
+  error - The method '[]' can't be unconditionally invoked because the receiver can be 'null'. Try making the call 
+conditional (using '?.') or adding a null check to the target ('!') - lib\services\listing_service.dart:288:13 - 
+unchecked_use_of_nullable_value
+  error - The method 'debugPrint' isn't defined for the type 'ListingService'. Try correcting the name to the name of 
+an existing method, or defining a method named 'debugPrint' - lib\services\listing_service.dart:292:7 - 
+undefined_method
+  error - The argument type 'double' can't be assigned to the parameter type 'int'.  - 
+lib\services\location_service.dart:53:25 - argument_type_not_assignable
+  error - The method 'placemarkFromCoordinates' isn't defined for the type 'Geolocator'. Try correcting the name to 
+the name of an existing method, or defining a method named 'placemarkFromCoordinates' - 
+lib\services\location_service.dart:228:43 - undefined_method
+  error - The name 'Location' isn't a type, so it can't be used as a type argument. Try correcting the name to an 
+existing type, or defining a type named 'Location' - lib\services\location_service.dart:240:10 - 
+non_type_as_type_argument
+  error - The method 'locationFromAddress' isn't defined for the type 'Geolocator'. Try correcting the name to the 
+name of an existing method, or defining a method named 'locationFromAddress' - 
+lib\services\location_service.dart:242:42 - undefined_method
+  error - The name 'Color' isn't a class. Try correcting the name to match an existing class - 
+lib\services\notification_service.dart:146:26 - creation_with_non_type
+  error - The name 'Color' isn't a class. Try correcting the name to match an existing class - 
+lib\services\notification_service.dart:211:24 - creation_with_non_type
+  error - Target of URI doesn't exist: 'debug_print.dart'. Try creating the file referenced by the URI, or try using a 
+URI for a file that does exist - lib\services\payment_service.dart:8:8 - uri_does_not_exist
+  error - A value of type 'PremiumPlan?' can't be returned from the method 'getSubscriptionPlan' because it has a 
+return type of 'Map<String, dynamic>?' - lib\services\payment_service.dart:135:12 - return_of_invalid_type
+  error - A value of type 'Map<String, PremiumPlan>' can't be returned from the method 'getAllSubscriptionPlans' 
+because it has a return type of 'Map<String, Map<String, dynamic>>' - lib\services\payment_service.dart:140:12 - 
+return_of_invalid_type
+  error - The name 'subscription' is already defined. Try renaming one of the declarations - 
+lib\services\payment_service.dart:249:13 - duplicate_definition
+  error - The operator '[]' isn't defined for the type 'PremiumPlan'. Try defining the operator '[]' - 
+lib\services\payment_service.dart:314:26 - undefined_operator
+  error - The method 'initApplePay' isn't defined for the type 'Stripe'. Try correcting the name to the name of an 
+existing method, or defining a method named 'initApplePay' - lib\services\stripe_payment_service.dart:234:29 - 
+undefined_method
+  error - The named parameter 'cartItems' is required, but there's no corresponding argument. Try adding the required 
+argument - lib\services\stripe_payment_service.dart:235:25 - missing_required_argument
+  error - The named parameter 'merchantCountryCode' is required, but there's no corresponding argument. Try adding the 
+required argument - lib\services\stripe_payment_service.dart:235:25 - missing_required_argument
+  error - The named parameter 'merchantIdentifier' isn't defined. Try correcting the name to an existing named 
+parameter's name, or defining a named parameter with the name 'merchantIdentifier' - 
+lib\services\stripe_payment_service.dart:236:11 - undefined_named_parameter
+  error - The named parameter 'countryCode' isn't defined. Try correcting the name to an existing named parameter's 
+name, or defining a named parameter with the name 'countryCode' - lib\services\stripe_payment_service.dart:237:11 - 
+undefined_named_parameter
+  error - The named parameter 'paymentSummaryItems' isn't defined. Try correcting the name to an existing named 
+parameter's name, or defining a named parameter with the name 'paymentSummaryItems' - 
+lib\services\stripe_payment_service.dart:239:11 - undefined_named_parameter
+  error - The method 'ApplePaySummaryItem' isn't defined for the type 'StripePaymentService'. Try correcting the name 
+to the name of an existing method, or defining a method named 'ApplePaySummaryItem' - 
+lib\services\stripe_payment_service.dart:240:13 - undefined_method
+  error - The method 'presentApplePay' isn't defined for the type 'Stripe'. Try correcting the name to the name of an 
+existing method, or defining a method named 'presentApplePay' - lib\services\stripe_payment_service.dart:249:44 - 
+undefined_method
+  error - The method 'ConfirmApplePayParams' isn't defined for the type 'StripePaymentService'. Try correcting the 
+name to the name of an existing method, or defining a method named 'ConfirmApplePayParams' - 
+lib\services\stripe_payment_service.dart:250:24 - undefined_method
+  error - The named parameter 'cartItems' is required, but there's no corresponding argument. Try adding the required 
+argument - lib\services\stripe_payment_service.dart:252:27 - missing_required_argument
+  error - The named parameter 'merchantCountryCode' is required, but there's no corresponding argument. Try adding the 
+required argument - lib\services\stripe_payment_service.dart:252:27 - missing_required_argument
+  error - The named parameter 'merchantIdentifier' isn't defined. Try correcting the name to an existing named 
+parameter's name, or defining a named parameter with the name 'merchantIdentifier' - 
+lib\services\stripe_payment_service.dart:253:13 - undefined_named_parameter
+  error - The named parameter 'countryCode' isn't defined. Try correcting the name to an existing named parameter's 
+name, or defining a named parameter with the name 'countryCode' - lib\services\stripe_payment_service.dart:254:13 - 
+undefined_named_parameter
+  error - The named parameter 'paymentSummaryItems' isn't defined. Try correcting the name to an existing named 
+parameter's name, or defining a named parameter with the name 'paymentSummaryItems' - 
+lib\services\stripe_payment_service.dart:256:13 - undefined_named_parameter
+  error - The method 'ApplePaySummaryItem' isn't defined for the type 'StripePaymentService'. Try correcting the name 
+to the name of an existing method, or defining a method named 'ApplePaySummaryItem' - 
+lib\services\stripe_payment_service.dart:257:15 - undefined_method
+  error - Undefined name 'ApplePaySheetStatus'. Try correcting the name to one that is defined, or defining the name - 
+lib\services\stripe_payment_service.dart:266:28 - undefined_identifier
+  error - 1 positional argument expected by 'initGooglePay', but 0 found. Try adding the missing argument - 
+lib\services\stripe_payment_service.dart:320:9 - not_enough_positional_arguments
+  error - The named parameter 'googlePayParams' isn't defined. Try correcting the name to an existing named 
+parameter's name, or defining a named parameter with the name 'googlePayParams' - 
+lib\services\stripe_payment_service.dart:320:9 - undefined_named_parameter
+  error - The named parameter 'merchantCountryCode' is required, but there's no corresponding argument. Try adding the 
+required argument - lib\services\stripe_payment_service.dart:320:26 - missing_required_argument
+  error - The named parameter 'merchantIdentifier' isn't defined. Try correcting the name to an existing named 
+parameter's name, or defining a named parameter with the name 'merchantIdentifier' - 
+lib\services\stripe_payment_service.dart:321:11 - undefined_named_parameter
+  error - The named parameter 'countryCode' isn't defined. Try correcting the name to an existing named parameter's 
+name, or defining a named parameter with the name 'countryCode' - lib\services\stripe_payment_service.dart:322:11 - 
+undefined_named_parameter
+  error - 1 positional argument expected by 'presentGooglePay', but 0 found. Try adding the missing argument - 
+lib\services\stripe_payment_service.dart:330:9 - not_enough_positional_arguments
+  error - The named parameter 'confirmParams' isn't defined. Try correcting the name to an existing named parameter's 
+name, or defining a named parameter with the name 'confirmParams' - lib\services\stripe_payment_service.dart:330:9 - 
+undefined_named_parameter
+  error - The method 'ConfirmGooglePayParams' isn't defined for the type 'StripePaymentService'. Try correcting the 
+name to the name of an existing method, or defining a method named 'ConfirmGooglePayParams' - 
+lib\services\stripe_payment_service.dart:330:24 - undefined_method
+  error - The named parameter 'merchantCountryCode' is required, but there's no corresponding argument. Try adding the 
+required argument - lib\services\stripe_payment_service.dart:332:28 - missing_required_argument
+  error - The named parameter 'merchantIdentifier' isn't defined. Try correcting the name to an existing named 
+parameter's name, or defining a named parameter with the name 'merchantIdentifier' - 
+lib\services\stripe_payment_service.dart:333:13 - undefined_named_parameter
+  error - The named parameter 'countryCode' isn't defined. Try correcting the name to an existing named parameter's 
+name, or defining a named parameter with the name 'countryCode' - lib\services\stripe_payment_service.dart:334:13 - 
+undefined_named_parameter
+  error - This expression has a type of 'void' so its value can't be used. Try checking to see if you're using the 
+correct API; there might be a function or call that returns void you didn't expect. Also check type parameters and 
+variables which might also be void - lib\services\stripe_payment_service.dart:341:18 - use_of_void_result
+  error - Undefined name 'GooglePaySheetStatus'. Try correcting the name to one that is defined, or defining the name 
+- lib\services\stripe_payment_service.dart:341:28 - undefined_identifier
+  error - This expression has a type of 'void' so its value can't be used. Try checking to see if you're using the 
+correct API; there might be a function or call that returns void you didn't expect. Also check type parameters and 
+variables which might also be void - lib\services\stripe_payment_service.dart:364:54 - use_of_void_result
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\services\verification_service.dart:46:81 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\services\verification_service.dart:62:57 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\cache_service.dart:28:42 - undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\cache_service.dart:33:61 - undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\cache_service.dart:55:45 - undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\cache_service.dart:61:39 - undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\cache_service.dart:68:66 - undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\cache_service.dart:108:43 - undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\cache_service.dart:161:50 - undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\cache_service.dart:213:54 - undefined_named_parameter
+  error - The method 'timeout' isn't defined for the type 'Query'. Try correcting the name to the name of an existing 
+method, or defining a method named 'timeout' - lib\utils\firestore_optimizer.dart:85:34 - undefined_method
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\firestore_optimizer.dart:136:59 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\firestore_optimizer.dart:202:50 - 
+undefined_named_parameter
+  error - The name 'ListenOptions' isn't a class. Try correcting the name to match an existing class - 
+lib\utils\firestore_optimizer.dart:255:19 - creation_with_non_type
+  error - The name 'ListenOptions' isn't a class. Try correcting the name to match an existing class - 
+lib\utils\firestore_optimizer.dart:256:19 - creation_with_non_type
+  error - Too many positional arguments: 0 expected, but 1 found. Try removing the extra positional arguments, or 
+specifying the name for named arguments - lib\utils\firestore_optimizer.dart:258:30 - 
+extra_positional_arguments_could_be_named
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\firestore_optimizer.dart:331:57 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:30:13 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:53:9 - undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:63:9 - undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:100:13 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:115:11 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:160:9 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:170:9 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:201:11 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:274:52 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:289:53 - 
+undefined_named_parameter
+  error - The named parameter 'context' isn't defined. Try correcting the name to an existing named parameter's name, 
+or defining a named parameter with the name 'context' - lib\utils\network_timeout.dart:302:54 - 
+undefined_named_parameter
+
+
