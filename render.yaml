@@ -2,8 +2,8 @@ services:
   - type: web
     name: roommatematch-api
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    rootDir: .
+    dockerfilePath: ./Dockerfile
+    rootDir: ./backend
     plan: starter
     branch: main
     envVars:
@@ -47,7 +47,7 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
-    healthCheckPath: /
+    healthCheckPath: /api
 
 databases:
   - name: roommatematch-db
