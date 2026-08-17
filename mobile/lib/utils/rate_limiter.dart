@@ -1,5 +1,5 @@
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'secure_storage_service.dart';
 
 class RateLimiter {
   // Rate limit configurations
@@ -14,11 +14,11 @@ class RateLimiter {
 
   /// Check if user can attempt login
   static Future<RateLimitResult> canAttemptLogin(String email) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Almacenamiento seguro
     final key = 'login_attempts_$email';
     
-    final attempts = prefs.getInt(key) ?? 0;
-    final lockoutTime = prefs.getInt('${key}_lockout') ?? 0;
+    final attempts = await SecureStorageService.getInt(key) ?? 0;
+    final lockoutTime = await SecureStorageService.getInt('${key}_lockout') ?? 0;
     final now = DateTime.now().millisecondsSinceEpoch;
     
     // Check if currently locked out
@@ -34,8 +34,8 @@ class RateLimiter {
     // Check if attempts exceeded limit
     if (attempts >= MAX_LOGIN_ATTEMPTS) {
       final lockoutEnd = now + (LOGIN_LOCKOUT_MINUTES * 60000);
-      await prefs.setInt('${key}_lockout', lockoutEnd);
-      await prefs.setInt(key, 0); // Reset attempts after lockout
+      await SecureStorageService.setInt('${key}_lockout', lockoutEnd);
+      await SecureStorageService.setInt(key, 0); // Reset attempts after lockout
       
       return RateLimitResult(
         allowed: false,
@@ -52,17 +52,17 @@ class RateLimiter {
 
   /// Record a login attempt
   static Future<void> recordLoginAttempt(String email, bool success) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Almacenamiento seguro
     final key = 'login_attempts_$email';
     
     if (success) {
       // Reset attempts on successful login
-      await prefs.remove(key);
-      await prefs.remove('${key}_lockout');
+      await SecureStorageService.remove(key);
+      await SecureStorageService.remove('${key}_lockout');
     } else {
       // Increment failed attempts
-      final attempts = (prefs.getInt(key) ?? 0) + 1;
-      await prefs.setInt(key, attempts);
+      final attempts = (await SecureStorageService.getInt(key) ?? 0) + 1;
+      await SecureStorageService.setInt(key, attempts);
       
       debugPrint('Login attempt failed. Total attempts: $attempts/$MAX_LOGIN_ATTEMPTS');
     }
@@ -70,11 +70,11 @@ class RateLimiter {
 
   /// Check if user can attempt OTP verification
   static Future<RateLimitResult> canAttemptOTP(String phoneNumber) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Almacenamiento seguro
     final key = 'otp_attempts_$phoneNumber';
     
-    final attempts = prefs.getInt(key) ?? 0;
-    final lockoutTime = prefs.getInt('${key}_lockout') ?? 0;
+    final attempts = await SecureStorageService.getInt(key) ?? 0;
+    final lockoutTime = await SecureStorageService.getInt('${key}_lockout') ?? 0;
     final now = DateTime.now().millisecondsSinceEpoch;
     
     // Check if currently locked out
@@ -90,8 +90,8 @@ class RateLimiter {
     // Check if attempts exceeded limit
     if (attempts >= MAX_OTP_ATTEMPTS) {
       final lockoutEnd = now + (OTP_LOCKOUT_MINUTES * 60000);
-      await prefs.setInt('${key}_lockout', lockoutEnd);
-      await prefs.setInt(key, 0);
+      await SecureStorageService.setInt('${key}_lockout', lockoutEnd);
+      await SecureStorageService.setInt(key, 0);
       
       return RateLimitResult(
         allowed: false,
@@ -108,15 +108,15 @@ class RateLimiter {
 
   /// Record an OTP attempt
   static Future<void> recordOTPAttempt(String phoneNumber, bool success) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Almacenamiento seguro
     final key = 'otp_attempts_$phoneNumber';
     
     if (success) {
-      await prefs.remove(key);
-      await prefs.remove('${key}_lockout');
+      await SecureStorageService.remove(key);
+      await SecureStorageService.remove('${key}_lockout');
     } else {
-      final attempts = (prefs.getInt(key) ?? 0) + 1;
-      await prefs.setInt(key, attempts);
+      final attempts = (await SecureStorageService.getInt(key) ?? 0) + 1;
+      await SecureStorageService.setInt(key, attempts);
       
       debugPrint('OTP attempt failed. Total attempts: $attempts/$MAX_OTP_ATTEMPTS');
     }
@@ -124,13 +124,13 @@ class RateLimiter {
 
   /// Check if user can make API request
   static Future<RateLimitResult> canMakeAPIRequest(String endpoint) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Almacenamiento seguro
     final key = 'api_requests_$endpoint';
     final now = DateTime.now().millisecondsSinceEpoch;
     final oneMinuteAgo = now - 60000;
     
     // Get recent requests
-    final requests = prefs.getStringList(key) ?? [];
+    final requests = await SecureStorageService.getStringList(key) ?? [];
     final recentRequests = requests
         .map((t) => int.tryParse(t))
         .whereType<int>()
@@ -146,7 +146,7 @@ class RateLimiter {
     
     // Add current request
     recentRequests.add(now);
-    await prefs.setStringList(key, recentRequests.map((t) => t.toString()).toList());
+    await SecureStorageService.setStringList(key, recentRequests.map((t) => t.toString()).toList());
     
     return RateLimitResult(
       allowed: true,
@@ -156,12 +156,12 @@ class RateLimiter {
 
   /// Check if user can swipe
   static Future<RateLimitResult> canSwipe(String userId) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Almacenamiento seguro
     final key = 'swipes_$userId';
     final now = DateTime.now().millisecondsSinceEpoch;
     final oneHourAgo = now - 3600000;
     
-    final swipes = prefs.getStringList(key) ?? [];
+    final swipes = await SecureStorageService.getStringList(key) ?? [];
     final recentSwipes = swipes
         .map((t) => int.tryParse(t))
         .whereType<int>()
@@ -176,7 +176,7 @@ class RateLimiter {
     }
     
     recentSwipes.add(now);
-    await prefs.setStringList(key, recentSwipes.map((t) => t.toString()).toList());
+    await SecureStorageService.setStringList(key, recentSwipes.map((t) => t.toString()).toList());
     
     return RateLimitResult(
       allowed: true,
@@ -186,12 +186,12 @@ class RateLimiter {
 
   /// Check if user can send message
   static Future<RateLimitResult> canSendMessage(String userId) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Almacenamiento seguro
     final key = 'messages_$userId';
     final now = DateTime.now().millisecondsSinceEpoch;
     final oneMinuteAgo = now - 60000;
     
-    final messages = prefs.getStringList(key) ?? [];
+    final messages = await SecureStorageService.getStringList(key) ?? [];
     final recentMessages = messages
         .map((t) => int.tryParse(t))
         .whereType<int>()
@@ -206,7 +206,7 @@ class RateLimiter {
     }
     
     recentMessages.add(now);
-    await prefs.setStringList(key, recentMessages.map((t) => t.toString()).toList());
+    await SecureStorageService.setStringList(key, recentMessages.map((t) => t.toString()).toList());
     
     return RateLimitResult(
       allowed: true,
@@ -216,12 +216,12 @@ class RateLimiter {
 
   /// Check if user can report
   static Future<RateLimitResult> canReport(String userId) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Almacenamiento seguro
     final key = 'reports_$userId';
     final now = DateTime.now().millisecondsSinceEpoch;
     final oneDayAgo = now - 86400000;
     
-    final reports = prefs.getStringList(key) ?? [];
+    final reports = await SecureStorageService.getStringList(key) ?? [];
     final recentReports = reports
         .map((t) => int.tryParse(t))
         .whereType<int>()
@@ -236,7 +236,7 @@ class RateLimiter {
     }
     
     recentReports.add(now);
-    await prefs.setStringList(key, recentReports.map((t) => t.toString()).toList());
+    await SecureStorageService.setStringList(key, recentReports.map((t) => t.toString()).toList());
     
     return RateLimitResult(
       allowed: true,
@@ -246,7 +246,7 @@ class RateLimiter {
 
   /// Reset rate limits for a user (admin function)
   static Future<void> resetRateLimits(String userId) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Almacenamiento seguro
     final keys = [
       'login_attempts_$userId',
       'login_attempts_${userId}_lockout',
@@ -258,7 +258,7 @@ class RateLimiter {
     ];
     
     for (final key in keys) {
-      await prefs.remove(key);
+      await SecureStorageService.remove(key);
     }
     
     debugPrint('Rate limits reset for user: $userId');
@@ -266,21 +266,21 @@ class RateLimiter {
 
   /// Get rate limit status for a user
   static Future<Map<String, dynamic>> getRateLimitStatus(String userId) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Almacenamiento seguro
     final now = DateTime.now().millisecondsSinceEpoch;
     
-    final loginAttempts = prefs.getInt('login_attempts_$userId') ?? 0;
-    final loginLockout = prefs.getInt('login_attempts_${userId}_lockout') ?? 0;
-    final otpAttempts = prefs.getInt('otp_attempts_$userId') ?? 0;
+    final loginAttempts = await SecureStorageService.getInt('login_attempts_$userId') ?? 0;
+    final loginLockout = await SecureStorageService.getInt('login_attempts_${userId}_lockout') ?? 0;
+    final otpAttempts = await SecureStorageService.getInt('otp_attempts_$userId') ?? 0;
     
-    final swipes = prefs.getStringList('swipes_$userId') ?? [];
+    final swipes = await SecureStorageService.getStringList('swipes_$userId') ?? [];
     final recentSwipes = swipes
         .map((t) => int.tryParse(t))
         .whereType<int>()
         .where((t) => t > now - 3600000)
         .toList();
     
-    final messages = prefs.getStringList('messages_$userId') ?? [];
+    final messages = await SecureStorageService.getStringList('messages_$userId') ?? [];
     final recentMessages = messages
         .map((t) => int.tryParse(t))
         .whereType<int>()

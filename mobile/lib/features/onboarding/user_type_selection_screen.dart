@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../utils/secure_storage_service.dart';
 import '../../config/theme.dart';
 
 class UserTypeSelectionScreen extends StatelessWidget {
   const UserTypeSelectionScreen({super.key});
 
   Future<void> _selectUserType(BuildContext context, String userType) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_type', userType);
+    await SecureStorageService.setString('user_type', userType);
     
     if (context.mounted) {
       Navigator.pushReplacementNamed(context, '/main');

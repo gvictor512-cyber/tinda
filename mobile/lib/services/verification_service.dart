@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import '../utils/secure_storage_service.dart';
 import '../utils/phone_validator.dart';
 import '../utils/input_sanitizer.dart';
 import '../utils/rate_limiter.dart';
@@ -53,10 +53,10 @@ class VerificationService {
       final verificationCode = _generateVerificationCode();
       
       // Store verification code temporarily
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('phone_verification_code', verificationCode);
-      await prefs.setString('phone_number', sanitizedPhone);
-      await prefs.setInt('phone_code_timestamp', DateTime.now().millisecondsSinceEpoch);
+      // Almacenamiento seguro
+      await SecureStorageService.setString('phone_verification_code', verificationCode);
+      await SecureStorageService.setString('phone_number', sanitizedPhone);
+      await SecureStorageService.setInt('phone_code_timestamp', DateTime.now().millisecondsSinceEpoch);
 
       // In production, send SMS with the code
       SecureLogger.debug('Verification code generated', data: {
@@ -80,15 +80,15 @@ class VerificationService {
       }
 
       // Check rate limiting for OTP attempts
-      final prefs = await SharedPreferences.getInstance();
-      final phoneNumber = prefs.getString('phone_number') ?? '';
+      // Almacenamiento seguro
+      final phoneNumber = await SecureStorageService.getString('phone_number') ?? '';
       final rateLimitResult = await RateLimiter.canAttemptOTP(phoneNumber);
       if (!rateLimitResult.allowed) {
         throw Exception(rateLimitResult.message);
       }
 
-      final storedCode = prefs.getString('phone_verification_code');
-      final timestamp = prefs.getInt('phone_code_timestamp') ?? 0;
+      final storedCode = await SecureStorageService.getString('phone_verification_code');
+      final timestamp = await SecureStorageService.getInt('phone_code_timestamp') ?? 0;
 
       // Check if code is expired
       final codeAge = DateTime.now().millisecondsSinceEpoch - timestamp;
@@ -117,8 +117,8 @@ class VerificationService {
       });
 
       // Clear temporary data
-      await prefs.remove('phone_verification_code');
-      await prefs.remove('phone_code_timestamp');
+      await SecureStorageService.remove('phone_verification_code');
+      await SecureStorageService.remove('phone_code_timestamp');
 
       await RateLimiter.recordOTPAttempt(phoneNumber, true);
 
@@ -461,8 +461,8 @@ class VerificationService {
 
   // Resend phone verification code
   Future<bool> resendPhoneVerification() async {
-    final prefs = await SharedPreferences.getInstance();
-    final phoneNumber = prefs.getString('phone_number');
+    // Almacenamiento seguro
+    final phoneNumber = await SecureStorageService.getString('phone_number');
 
     if (phoneNumber == null) {
       throw Exception('No phone number found');

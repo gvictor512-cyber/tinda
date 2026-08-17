@@ -25,6 +25,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({ description: 'Currency code (ISO 4217)', example: 'eur' }),
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^[A-Z]{3}$/, { message: 'currency must be a 3-letter ISO 4217 code' }),
     __metadata("design:type", String)
 ], CreatePaymentIntentDto.prototype, "currency", void 0);
 __decorate([

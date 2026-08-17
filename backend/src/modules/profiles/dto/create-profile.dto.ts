@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsArray, IsEnum, Min, Max, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsArray, IsEnum, Min, Max, IsBoolean, IsUrl } from 'class-validator';
 
 export class CompatibilitySettingsDto {
   @ApiProperty({ example: 'madrugador', required: false })
@@ -99,6 +99,7 @@ export class CreateProfileDto {
   @ApiProperty({ example: ['https://example.com/photo1.jpg'], required: false })
   @IsArray()
   @IsString({ each: true })
+  @IsUrl({}, { each: true })
   @IsOptional()
   photos?: string[];
 

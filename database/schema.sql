@@ -16,9 +16,7 @@ CREATE TABLE users (
     is_premium BOOLEAN DEFAULT false,
     premium_expires_at TIMESTAMP,
     last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    device_token VARCHAR(500),
-    INDEX idx_firebase_uid (firebase_uid),
-    INDEX idx_email (email)
+    device_token VARCHAR(500)
 );
 
 -- Profiles Table
@@ -39,10 +37,7 @@ CREATE TABLE profiles (
     preferred_location VARCHAR(255),
     languages JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_city (city),
-    INDEX idx_budget (budget_min, budget_max)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Compatibility Settings Table
@@ -60,8 +55,7 @@ CREATE TABLE compatibility_settings (
     work_from_home BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id),
-    INDEX idx_user_id (user_id)
+    UNIQUE(user_id)
 );
 
 -- Swipes Table
@@ -71,10 +65,7 @@ CREATE TABLE swipes (
     swiped_id UUID REFERENCES users(id) ON DELETE CASCADE,
     swipe_type VARCHAR(20) CHECK (swipe_type IN ('like', 'dislike', 'super_like')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(swiper_id, swiped_id),
-    INDEX idx_swiper_id (swiper_id),
-    INDEX idx_swiped_id (swiped_id),
-    INDEX idx_created_at (created_at)
+    UNIQUE(swiper_id, swiped_id)
 );
 
 -- Matches Table
@@ -87,10 +78,7 @@ CREATE TABLE matches (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT true,
     UNIQUE(user1_id, user2_id),
-    CHECK (user1_id < user2_id),
-    INDEX idx_user1_id (user1_id),
-    INDEX idx_user2_id (user2_id),
-    INDEX idx_compatibility_score (compatibility_score)
+    CHECK (user1_id < user2_id)
 );
 
 -- Messages Table
@@ -104,10 +92,7 @@ CREATE TABLE messages (
     media_url VARCHAR(500),
     location_data JSONB,
     is_read BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_match_id (match_id),
-    INDEX idx_sender_id (sender_id),
-    INDEX idx_created_at (created_at)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Housing Listings Table
@@ -128,10 +113,7 @@ CREATE TABLE housing_listings (
     url VARCHAR(500),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_city (city),
-    INDEX idx_price (price),
-    INDEX idx_bedrooms (bedrooms)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Favorite Housing Table
@@ -141,9 +123,7 @@ CREATE TABLE favorite_housing (
     housing_id UUID REFERENCES housing_listings(id) ON DELETE CASCADE,
     match_id UUID REFERENCES matches(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, housing_id),
-    INDEX idx_user_id (user_id),
-    INDEX idx_housing_id (housing_id)
+    UNIQUE(user_id, housing_id)
 );
 
 -- Groups Table
@@ -156,8 +136,7 @@ CREATE TABLE groups (
     compatibility_score INTEGER CHECK (compatibility_score >= 0 AND compatibility_score <= 100),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_creator_id (creator_id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Group Members Table
@@ -167,9 +146,7 @@ CREATE TABLE group_members (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     role VARCHAR(20) CHECK (role IN ('creator', 'admin', 'member')),
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(group_id, user_id),
-    INDEX idx_group_id (group_id),
-    INDEX idx_user_id (user_id)
+    UNIQUE(group_id, user_id)
 );
 
 -- Subscriptions Table
@@ -181,9 +158,7 @@ CREATE TABLE subscriptions (
     end_date TIMESTAMP,
     is_active BOOLEAN DEFAULT true,
     auto_renew BOOLEAN DEFAULT false,
-    payment_method VARCHAR(50),
-    INDEX idx_user_id (user_id),
-    INDEX idx_is_active (is_active)
+    payment_method VARCHAR(50)
 );
 
 -- Verification Table
@@ -203,9 +178,7 @@ CREATE TABLE verification (
     verification_level VARCHAR(20) CHECK (verification_level IN ('basic', 'standard', 'advanced')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id),
-    INDEX idx_user_id (user_id),
-    INDEX idx_is_verified (is_verified)
+    UNIQUE(user_id)
 );
 
 -- Badges Table
@@ -226,9 +199,7 @@ CREATE TABLE user_badges (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     badge_id UUID REFERENCES badges(id) ON DELETE CASCADE,
     earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, badge_id),
-    INDEX idx_user_id (user_id),
-    INDEX idx_badge_id (badge_id)
+    UNIQUE(user_id, badge_id)
 );
 
 -- User Filters Table
@@ -248,8 +219,7 @@ CREATE TABLE user_filters (
     user_types JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id),
-    INDEX idx_user_id (user_id)
+    UNIQUE(user_id)
 );
 
 -- Daily Limits Table
@@ -260,9 +230,7 @@ CREATE TABLE daily_limits (
     likes_used INTEGER DEFAULT 0,
     super_likes_used INTEGER DEFAULT 0,
     boosts_used INTEGER DEFAULT 0,
-    UNIQUE(user_id, date),
-    INDEX idx_user_id (user_id),
-    INDEX idx_date (date)
+    UNIQUE(user_id, date)
 );
 
 -- Reports Table
@@ -274,10 +242,7 @@ CREATE TABLE reports (
     description TEXT,
     status VARCHAR(20) CHECK (status IN ('pending', 'reviewed', 'resolved', 'dismissed')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    resolved_at TIMESTAMP,
-    INDEX idx_reporter_id (reporter_id),
-    INDEX idx_reported_id (reported_id),
-    INDEX idx_status (status)
+    resolved_at TIMESTAMP
 );
 
 -- Blocks Table
@@ -287,9 +252,7 @@ CREATE TABLE blocks (
     blocked_id UUID REFERENCES users(id) ON DELETE CASCADE,
     reason VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(blocker_id, blocked_id),
-    INDEX idx_blocker_id (blocker_id),
-    INDEX idx_blocked_id (blocked_id)
+    UNIQUE(blocker_id, blocked_id)
 );
 
 -- Notifications Table
@@ -301,10 +264,7 @@ CREATE TABLE notifications (
     body TEXT,
     data JSONB,
     is_read BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_is_read (is_read),
-    INDEX idx_created_at (created_at)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Admin Users Table
@@ -314,8 +274,7 @@ CREATE TABLE admin_users (
     role VARCHAR(20) CHECK (role IN ('super_admin', 'admin', 'moderator')),
     permissions JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id),
-    INDEX idx_user_id (user_id)
+    UNIQUE(user_id)
 );
 
 -- Analytics Events Table
@@ -325,10 +284,7 @@ CREATE TABLE analytics_events (
     event_type VARCHAR(100),
     event_data JSONB,
     session_id VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_event_type (event_type),
-    INDEX idx_created_at (created_at)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for performance
@@ -382,10 +338,7 @@ CREATE TABLE payments (
     plan_type VARCHAR(50) CHECK (plan_type IN ('free', 'premium_monthly', 'premium_yearly')),
     metadata JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_status (status),
-    INDEX idx_created_at (created_at DESC)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
@@ -399,11 +352,9 @@ CREATE TABLE user_cancellations (
     reason TEXT,
     metadata JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_cancellation_type (cancellation_type),
-    INDEX idx_created_at (created_at DESC)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TRIGGER update_user_cancellations_updated_at BEFORE UPDATE ON user_cancellations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+

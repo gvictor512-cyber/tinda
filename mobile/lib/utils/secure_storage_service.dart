@@ -53,6 +53,30 @@ class SecureStorageService {
     return value.toLowerCase() == 'true';
   }
 
+  static Future<void> setInt(String key, int? value) async {
+    if (value == null) {
+      await delete(key);
+    } else {
+      await write(key, value.toString());
+    }
+  }
+
+  static Future<int> getInt(String key, {int defaultValue = 0}) async {
+    final value = await read(key);
+    if (value == null) return defaultValue;
+    return int.tryParse(value) ?? defaultValue;
+  }
+
+  static Future<void> setStringList(String key, List<String> value) async {
+    await write(key, value.join(','));
+  }
+
+  static Future<List<String>> getStringList(String key) async {
+    final value = await read(key);
+    if (value == null || value.isEmpty) return [];
+    return value.split(',');
+  }
+
   static Future<void> remove(String key) async => delete(key);
 
   /// Almacenar credenciales de sesión (no guardar password en texto plano)

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../utils/secure_storage_service.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../auth/login_screen.dart';
 
@@ -48,8 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _completeOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_completed', true);
+    await SecureStorageService.setBool('onboarding_completed', true);
     
     if (mounted) {
       Navigator.of(context).pushReplacement(
@@ -59,8 +58,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _skipOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_completed', true);
+    await SecureStorageService.setBool('onboarding_completed', true);
     
     if (mounted) {
       Navigator.of(context).pushReplacement(

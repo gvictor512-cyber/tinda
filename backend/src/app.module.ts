@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { SetFirebaseUidInterceptor } from './common/interceptors/set-firebase-uid.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
@@ -37,8 +38,15 @@ import { AdminModule } from './modules/admin/admin.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE || 'roommatematch',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: process.env.NODE_ENV === 'development',
+      // synchronize solo para superusuario (postgres) en dev; con app_user se desactiva
+      synchronize:
+        process.env.DB_USERNAME === 'postgres' &&
+        process.env.NODE_ENV === 'development',
       logging: process.env.NODE_ENV === 'development',
+      ssl:
+        process.env.NODE_ENV === 'production'
+          ? { rejectUnauthorized: true }
+          : false,
     }),
     AuthModule,
     UsersModule,
@@ -59,6 +67,10 @@ import { AdminModule } from './modules/admin/admin.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SetFirebaseUidInterceptor,
     },
   ],
 })

@@ -8,8 +8,11 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
 const typeorm_1 = require("@nestjs/typeorm");
 const config_1 = require("@nestjs/config");
+const throttler_1 = require("@nestjs/throttler");
+const set_firebase_uid_interceptor_1 = require("./common/interceptors/set-firebase-uid.interceptor");
 const auth_module_1 = require("./modules/auth/auth.module");
 const users_module_1 = require("./modules/users/users.module");
 const profiles_module_1 = require("./modules/profiles/profiles.module");
@@ -33,6 +36,12 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
             }),
+            throttler_1.ThrottlerModule.forRoot([
+                {
+                    ttl: 60_000,
+                    limit: 60,
+                },
+            ]),
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'postgres',
                 host: process.env.DB_HOST || 'localhost',
@@ -41,8 +50,12 @@ exports.AppModule = AppModule = __decorate([
                 password: process.env.DB_PASSWORD,
                 database: process.env.DB_DATABASE || 'roommatematch',
                 entities: [__dirname + '/**/*.entity{.ts,.js}'],
-                synchronize: process.env.NODE_ENV === 'development',
+                synchronize: process.env.DB_USERNAME === 'postgres' &&
+                    process.env.NODE_ENV === 'development',
                 logging: process.env.NODE_ENV === 'development',
+                ssl: process.env.NODE_ENV === 'production'
+                    ? { rejectUnauthorized: true }
+                    : false,
             }),
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
@@ -58,6 +71,16 @@ exports.AppModule = AppModule = __decorate([
             groups_module_1.GroupsModule,
             payments_module_1.PaymentsModule,
             admin_module_1.AdminModule,
+        ],
+        providers: [
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
+            },
+            {
+                provide: core_1.APP_INTERCEPTOR,
+                useClass: set_firebase_uid_interceptor_1.SetFirebaseUidInterceptor,
+            },
         ],
     })
 ], AppModule);

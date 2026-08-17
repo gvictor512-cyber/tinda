@@ -130,6 +130,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({ example: ['https://example.com/photo1.jpg'], required: false }),
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.IsString)({ each: true }),
+    (0, class_validator_1.IsUrl)({}, { each: true }),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Array)
 ], CreateProfileDto.prototype, "photos", void 0);

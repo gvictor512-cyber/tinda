@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
 
 export class VerifySelfieDto {
   @ApiProperty({
@@ -7,6 +7,7 @@ export class VerifySelfieDto {
     example: 'https://storage.example.com/selfies/abc123.jpg',
   })
   @IsNotEmpty()
+  @IsUrl()
   @IsString()
   selfieUrl: string;
 }

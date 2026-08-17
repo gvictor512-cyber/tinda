@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../utils/secure_storage_service.dart';
 import '../../services/auth_service.dart';
 import '../../config/theme.dart';
 import '../onboarding/user_type_selection_screen.dart';
@@ -66,8 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       // First get user type (in real app, this would be determined differently)
-      final prefs = await SharedPreferences.getInstance();
-      final userType = prefs.getString('user_type') ?? 'roommate_seeker';
+      final userType = await SecureStorageService.getString('user_type') ?? 'roommate_seeker';
 
       await _authService.signInWithGoogle(userType: userType);
 
@@ -91,8 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final userType = prefs.getString('user_type') ?? 'roommate_seeker';
+      final userType = await SecureStorageService.getString('user_type') ?? 'roommate_seeker';
 
       await _authService.signInWithApple(userType: userType);
 

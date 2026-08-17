@@ -21,6 +21,7 @@ __decorate([
         example: 'https://storage.example.com/selfies/abc123.jpg',
     }),
     (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsUrl)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], VerifySelfieDto.prototype, "selfieUrl", void 0);
