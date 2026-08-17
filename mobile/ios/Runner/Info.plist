@@ -56,6 +56,14 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>RoomMate Match necesita acceso a la cámara para que puedas añadir fotos de perfil y verificar tu identidad.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>RoomMate Match accede a tu galería para que puedas seleccionar fotos de perfil.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Usamos tu ubicación para mostrarte compañeros y pisos cercanos según tus preferencias.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Tu actividad se rastrea solo para mejorar la experiencia y ofrecer recomendaciones. Puedes rechazarlo.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

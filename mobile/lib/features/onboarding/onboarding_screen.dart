@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../utils/secure_storage_service.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../auth/login_screen.dart';
+import 'cookie_consent_dialog.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -48,8 +49,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _completeOnboarding() async {
+    await CookieConsentDialog.showIfNeeded(context);
     await SecureStorageService.setBool('onboarding_completed', true);
-    
+
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const LoginScreen()),

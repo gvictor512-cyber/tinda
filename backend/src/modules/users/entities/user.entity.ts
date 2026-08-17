@@ -17,6 +17,12 @@ export class User {
   @Column({ nullable: true })
   phone: string;
 
+  @Column({ type: 'date', nullable: true })
+  birthDate: Date;
+
+  @Column({ type: 'jsonb', default: {} })
+  consent: Record<string, unknown>;
+
   @Column({ default: true })
   isActive: boolean;
 
@@ -28,6 +34,18 @@ export class User {
 
   @Column({ default: false })
   isVerified: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deletedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  acceptedTermsAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  acceptedPrivacyAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  acceptedCookiesAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -43,6 +43,7 @@ class AuthService {
     required String password,
     required String name,
     required String userType,
+    required DateTime birthDate,
   }) async {
     try {
       // Validate email
@@ -66,6 +67,20 @@ class AuthService {
       final sanitizedName = InputSanitizer.sanitizeUsername(name);
       final sanitizedUserType = InputSanitizer.sanitizeString(userType);
 
+      // Verify age (18+)
+      final now = DateTime.now();
+      var age = now.year - birthDate.year;
+      if (now.month < birthDate.month ||
+          (now.month == birthDate.month && now.day < birthDate.day)) {
+        age--;
+      }
+      if (age < 18) {
+        throw Exception('Debes ser mayor de 18 años para registrarte');
+      }
+
+      final cookiesAccepted =
+          await SecureStorageService.read('cookies_accepted') == 'true';
+
       SecureLogger.logAuth('Sign up attempt', method: 'email', userId: sanitizedEmail);
 
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
@@ -79,8 +94,15 @@ class AuthService {
         'email': sanitizedEmail,
         'name': sanitizedName,
         'userType': sanitizedUserType,
+        'birthDate': birthDate,
         'createdAt': FieldValue.serverTimestamp(),
         'emailVerified': false,
+        'consent': {
+          'acceptedTermsAt': FieldValue.serverTimestamp(),
+          'acceptedPrivacyAt': FieldValue.serverTimestamp(),
+          'acceptedCookiesAt':
+              cookiesAccepted ? FieldValue.serverTimestamp() : null,
+        },
         'preferences': {
           'ageRange': DEFAULT_AGE_RANGE,
           'gender': DEFAULT_GENDER,

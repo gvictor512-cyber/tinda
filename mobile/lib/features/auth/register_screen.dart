@@ -5,6 +5,7 @@ import '../../services/auth_service.dart';
 import '../../app.dart';
 import 'login_screen.dart';
 import '../../config/theme.dart';
+import '../settings/legal_document_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -19,7 +20,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _birthDateController = TextEditingController();
   final _authService = AuthService();
+  DateTime? _selectedBirthDate;
 
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -34,6 +37,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _birthDateController.dispose();
     super.dispose();
   }
 
@@ -44,11 +48,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  void _openLegalDocument(BuildContext context, String title, String assetPath) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => LegalDocumentScreen(
+          title: title,
+          assetPath: assetPath,
+        ),
+      ),
+    );
+  }
+
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_agreeToTerms) {
       setState(() {
-        _errorMessage = 'Debes aceptar los términos y condiciones';
+        _errorMessage = 'Debes aceptar los términos, la privacidad y ser mayor de 18 años';
       });
       return;
     }
@@ -64,6 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
         name: _nameController.text.trim(),
         userType: _userType,
+        birthDate: _selectedBirthDate!,
       );
 
       if (mounted) {
@@ -281,6 +297,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 
                 const SizedBox(height: 16),
                 
+                // Birth date field
+                TextFormField(
+                  controller: _birthDateController,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Fecha de nacimiento',
+                    hintText: 'DD/MM/AAAA',
+                    prefixIcon: Icon(Icons.calendar_today, color: AppTheme.primaryBlue),
+                  ),
+                  onTap: () async {
+                    final now = DateTime.now();
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime(now.year - 18, now.month, now.day),
+                      firstDate: DateTime(now.year - 120),
+                      lastDate: DateTime(now.year - 18, now.month, now.day),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _selectedBirthDate = picked;
+                        _birthDateController.text =
+                            '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+                      });
+                    }
+                  },
+                  validator: (value) {
+                    if (_selectedBirthDate == null) {
+                      return 'Por favor introduce tu fecha de nacimiento';
+                    }
+                    final age = DateTime.now().year - _selectedBirthDate!.year;
+                    if (age < 18) {
+                      return 'Debes ser mayor de 18 años';
+                    }
+                    return null;
+                  },
+                ),
+                
+                const SizedBox(height: 16),
+                
                 // Terms and conditions
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,7 +373,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   decoration: TextDecoration.none,
                                 ),
                                 recognizer: TapGestureRecognizer()
-                                  ..onTap = () => _launchLegalUrl('https://roommatematch.com/terms'),
+                                  ..onTap = () => _openLegalDocument(
+                                        context,
+                                        'Términos de Servicio',
+                                        'assets/legal/terms_of_service.md',
+                                      ),
                               ),
                               const TextSpan(text: ' y la '),
                               TextSpan(
@@ -329,7 +388,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   decoration: TextDecoration.none,
                                 ),
                                 recognizer: TapGestureRecognizer()
-                                  ..onTap = () => _launchLegalUrl('https://roommatematch.com/privacy'),
+                                  ..onTap = () => _openLegalDocument(
+                                        context,
+                                        'Política de Privacidad',
+                                        'assets/legal/privacy_policy.md',
+                                      ),
                               ),
                             ],
                           ),
