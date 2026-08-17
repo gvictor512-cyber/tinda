@@ -10,3 +10,8 @@
 # Keep Stripe classes
 -keep class com.stripe.** { *; }
 -dontwarn com.reactnativestripesdk.**
+# Keep flutter_secure_storage and related classes
+-keep class com.it_nomads.fluttersecurestorage.** { *; }
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes Exceptions

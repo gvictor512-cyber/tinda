@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 
@@ -15,6 +16,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _bioController = TextEditingController();
   final _cityController = TextEditingController();
   final _authService = AuthService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool _isLoading = false;
 
   @override
@@ -25,15 +27,72 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      setState(() => _isLoading = true);
+      final data = await _authService.getUserData();
+      if (data != null) {
+        final profile = data['profile'] as Map<String, dynamic>?;
+        _nameController.text = data['name']?.toString() ?? '';
+        _bioController.text = profile?['bio']?.toString() ?? '';
+        _cityController.text = profile?['city']?.toString() ?? '';
+      } else {
+        _nameController.text = _authService.currentUser?.displayName ?? '';
+      }
+    } catch (e) {
+      debugPrint('Error loading profile: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final name = _nameController.text.trim();
+    final bio = _bioController.text.trim();
+    final city = _cityController.text.trim();
+    final uid = _authService.currentUser?.uid;
+
+    if (uid == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No estás autenticado')),
+        );
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Perfil guardado')),
-      );
-      setState(() => _isLoading = false);
+
+    try {
+      await _authService.updateUserProfile(displayName: name);
+      await _firestore.collection('users').doc(uid).update({
+        'name': name,
+        'profile.bio': bio,
+        'profile.city': city,
+        'profile.updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Perfil guardado correctamente')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

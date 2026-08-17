@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 class EmailService {
   static const String privacyEmail = 'privacy@roommatematch.com';
-  static const String supportEmail = 'support@roommatematch.com';
+  static const String supportEmail = 'support@roommatematchapp.com';
   static const String legalEmail = 'legal@roommatematch.com';
   
   static const String privacyOfficerName = 'Victor Garcia Caballero';

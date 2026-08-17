@@ -56,6 +56,8 @@ dependencies:
   # flutter_email_sender: ^6.0.1  # Removed due to compatibility issues
   # mailer: ^6.0.0  # Removed due to compatibility issues
 
+  flutter_markdown: ^0.6.23
+
   http: any
 dev_dependencies:
   flutter_test:
@@ -67,9 +69,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   
-  # assets:
-  #   - assets/images/
-  #   - assets/icons/
+  assets:
+    - assets/legal/
   
   # fonts:
   #   - family: SF Pro Display

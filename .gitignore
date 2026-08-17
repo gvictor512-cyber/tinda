@@ -33,3 +33,15 @@ bin/
 **/.env
 .env.*
 !**/.env.example
+
+# Firebase / Cloud service account keys
+**/*firebase-adminsdk*.json
+**/*service-account*.json
+
+# Android/iOS signing and config
+**/key.properties
+**/local.properties
+**/*.jks
+**/*.keystore
+**/google-services.json
+**/GoogleService-Info.plist

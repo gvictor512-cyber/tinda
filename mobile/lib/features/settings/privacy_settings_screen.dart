@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'legal_document_screen.dart';
 import '../../services/email_service.dart';
 
 class PrivacySettingsScreen extends StatelessWidget {
@@ -71,28 +71,32 @@ class PrivacySettingsScreen extends StatelessWidget {
           _LegalDocument(
             icon: Icons.description,
             title: 'Política de Privacidad',
-            onTap: () => _launchLegalUrl('https://roommatematch.com/privacy'),
+            onTap: () => _openDocument(context, 'Política de Privacidad', 'assets/legal/privacy_policy.md'),
           ),
           _LegalDocument(
             icon: Icons.gavel,
             title: 'Términos de Servicio',
-            onTap: () => _launchLegalUrl('https://roommatematch.com/terms'),
+            onTap: () => _openDocument(context, 'Términos de Servicio', 'assets/legal/terms_of_service.md'),
           ),
           _LegalDocument(
             icon: Icons.cookie,
             title: 'Política de Cookies',
-            onTap: () => _launchLegalUrl('https://roommatematch.com/cookies'),
+            onTap: () => _openDocument(context, 'Política de Cookies', 'assets/legal/cookie_policy.md'),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _launchLegalUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+  void _openDocument(BuildContext context, String title, String assetPath) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => LegalDocumentScreen(
+          title: title,
+          assetPath: assetPath,
+        ),
+      ),
+    );
   }
 
   void _showDataAccessDialog(BuildContext context) {

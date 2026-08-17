@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'utils/secure_storage_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'config/theme.dart';
@@ -23,12 +23,12 @@ void main() async {
       if (kIsWeb) {
         await Firebase.initializeApp(
           options: const FirebaseOptions(
-            apiKey: 'AIzaSyDemoKeyForTesting',
-            appId: '1:123456789:web:abcdef',
-            messagingSenderId: '123456789',
-            projectId: 'demo-project',
-            authDomain: 'demo-project.firebaseapp.com',
-            storageBucket: 'demo-project.appspot.com',
+            apiKey: String.fromEnvironment('FIREBASE_WEB_API_KEY'),
+            appId: String.fromEnvironment('FIREBASE_WEB_APP_ID'),
+            messagingSenderId: String.fromEnvironment('FIREBASE_WEB_MESSAGING_SENDER_ID'),
+            projectId: String.fromEnvironment('FIREBASE_WEB_PROJECT_ID'),
+            authDomain: String.fromEnvironment('FIREBASE_WEB_AUTH_DOMAIN'),
+            storageBucket: String.fromEnvironment('FIREBASE_WEB_STORAGE_BUCKET'),
           ),
         );
       } else {
@@ -112,8 +112,7 @@ class _SplashScreenState extends State<SplashScreen> {
         );
       } else {
         // User is not logged in, check if they selected user type
-        final prefs = await SharedPreferences.getInstance();
-        final userType = prefs.getString('user_type');
+        final userType = await SecureStorageService.getString('user_type');
         
         if (userType == null) {
           Navigator.of(context).pushReplacement(

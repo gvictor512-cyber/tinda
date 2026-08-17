@@ -84,6 +84,31 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _signInWithApple() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userType = prefs.getString('user_type') ?? 'roommate_seeker';
+
+      await _authService.signInWithApple(userType: userType);
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainScreen()),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -341,6 +366,39 @@ class _LoginScreenState extends State<LoginScreen> {
                       backgroundColor: Colors.transparent,
                       foregroundColor: isDarkMode ? AppTheme.textLight : AppTheme.textDark,
                       side: BorderSide.none,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Apple sign in
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _signInWithApple,
+                    icon: Icon(
+                      Icons.phone_iphone,
+                      color: isDarkMode ? Colors.black : Colors.white,
+                    ),
+                    label: Text(
+                      'Continuar con Apple',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.black : Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),

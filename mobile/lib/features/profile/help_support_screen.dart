@@ -19,7 +19,7 @@ class HelpSupportScreen extends StatelessWidget {
     },
     {
       'question': '¿Cómo contacto con soporte?',
-      'answer': 'Escríbenos a soporte@roommatematch.com.',
+      'answer': 'Escríbenos a support@roommatematchapp.com.',
     },
   ];
 

@@ -434,3 +434,323 @@ If a privacy issue cannot be resolved within standard timeframes:
 2. Provide estimated resolution time
 3. Offer alternative contact methods if needed
 4. Document the escalation for compliance purposes
+
+---
+
+## Lifecycle Emails (Transactional)
+
+### Template 11: Welcome / Alta de usuario
+
+**Subject:** Bienvenido/a a RoomMate Match - Encuentra tu compañero/a ideal
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+¡Bienvenido/a a RoomMate Match! Tu cuenta ya está activa y puedes empezar a usar la app.
+
+**Próximos pasos:**
+1. Completa tu perfil y añade tus preferencias de convivencia.
+2. Explora perfiles de compañeros/as de piso compatibles.
+3. Activa Premium para destacar y acceder a filtros avanzados.
+
+Si tienes cualquier duda, escríbenos a support@roommatematchapp.com.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 12: Baja / Cancelación de cuenta
+
+**Subject:** Confirmación de baja - RoomMate Match
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Hemos procesado tu solicitud de baja en RoomMate Match.
+
+**Qué ocurre ahora:**
+- Tu cuenta quedará desactivada inmediatamente.
+- Tus datos personales se eliminarán de nuestros sistemas según lo indicado en nuestra Política de Privacidad.
+- Algunos datos pueden permanecer en backups seguros durante el periodo legal establecido.
+
+Lamentamos que te vayas. Si cambias de opinión o crees que ha sido un error, contáctanos en support@roommatematchapp.com dentro de las próximas 48 horas.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 13: Upgrade a Premium
+
+**Subject:** ¡Ya eres Premium en RoomMate Match!
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Gracias por hacerte Premium. Tu suscripción está activa y ya puedes disfrutar de todas las ventajas.
+
+**Beneficios activados:**
+- Perfil destacado en búsquedas.
+- Filtros avanzados de compatibilidad.
+- Likes y mensajes ilimitados.
+- Acceso prioritario a nuevas funciones.
+
+**Detalles de la suscripción:**
+- Plan: [Nombre del plan]
+- Importe: [Importe]
+- Fecha de renovación: [Fecha]
+
+Puedes gestionar tu suscripción desde la app en Configuración > Premium.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 14: Cancelación de suscripción Premium
+
+**Subject:** Has cancelado tu suscripción Premium - RoomMate Match
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Tu suscripción Premium ha sido cancelada y no se renovará automáticamente.
+
+**Detalles:**
+- Seguirás teniendo acceso a Premium hasta el [Fecha de finalización].
+- Después de esa fecha, tu cuenta pasará al plan gratuito.
+- No se realizarán más cargos en tu método de pago.
+
+Si tienes cualquier duda sobre la cancelación o quieres reactivar tu suscripción, escríbenos a support@roommatematchapp.com.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 15: Verificación de cuenta
+
+**Subject:** Verifica tu email en RoomMate Match
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Gracias por registrarte en RoomMate Match. Para activar tu cuenta, introduce el siguiente código de verificación en la app:
+
+**Código:** [Código de 6 dígitos]
+
+Este código expira en [Minutos] minutos. Si no has creado una cuenta, ignora este email.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 16: Restablecimiento de contraseña
+
+**Subject:** Restablece tu contraseña de RoomMate Match
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Pulsa el siguiente enlace para crear una nueva contraseña:
+
+[Enlace de restablecimiento]
+
+El enlace expira en 24 horas. Si no has solicitado este cambio, por favor contacta con nosotros en support@roommatematchapp.com.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 17: Confirmación de pago / Recibo
+
+**Subject:** Confirmación de pago - RoomMate Match
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Gracias por tu pago. Hemos procesado correctamente el cargo de tu suscripción Premium.
+
+**Detalles del pago:**
+- Plan: [Nombre del plan]
+- Importe: [Importe]
+- Fecha: [Fecha]
+- Método de pago: [Método]
+- ID de transacción: [ID]
+
+Puedes descargar tu factura desde la app en Configuración > Pagos.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 18: Pago fallido
+
+**Subject:** Problema con tu método de pago - RoomMate Match
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+No hemos podido procesar el pago de tu suscripción Premium. Es posible que tu tarjeta haya caducado o que no haya fondos suficientes.
+
+**Qué debes hacer:**
+1. Abre la app y ve a Configuración > Pagos.
+2. Actualiza o añade un nuevo método de pago.
+3. Vuelve a intentar el pago.
+
+Si no actualizas el pago antes del [Fecha], tu suscripción Premium se cancelará automáticamente y perderás los beneficios asociados.
+
+¿Necesitas ayuda? Escríbenos a support@roommatematchapp.com.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 19: Recordatorio de renovación
+
+**Subject:** Tu suscripción Premium se renueva pronto - RoomMate Match
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Te recordamos que tu suscripción Premium se renovará automáticamente el [Fecha].
+
+**Detalles de la renovación:**
+- Plan: [Nombre del plan]
+- Importe: [Importe]
+- Método de pago: [Método]
+
+Si deseas modificar o cancelar la renovación, puedes hacerlo en cualquier momento desde Configuración > Premium.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 20: Fin del período de prueba gratuita
+
+**Subject:** Tu prueba gratuita finaliza pronto - RoomMate Match
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Tu período de prueba gratuita de Premium finaliza el [Fecha].
+
+**Opciones disponibles:**
+- Activa una suscripción Premium para seguir disfrutando de todos los beneficios.
+- Continúa con el plan gratuito con funciones limitadas.
+
+Elige el plan que mejor se adapte a ti desde Configuración > Premium.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 21: Nuevo mensaje recibido
+
+**Subject:** Tienes un nuevo mensaje en RoomMate Match
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Has recibido un nuevo mensaje de [Nombre del remitente].
+
+**Vista previa:**
+"[Texto del mensaje]"
+
+Abre la app para responder. No respondas directamente a este email, ya que no se reenviará al remitente.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 22: Nuevo match
+
+**Subject:** ¡Tienes un nuevo match en RoomMate Match!
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+¡Buenas noticias! Tú y [Nombre del match] habéis dado like mutuo y ahora sois un match.
+
+**Próximo paso:**
+Abre la app y empieza a chatear para conoceros mejor.
+
+¡Mucha suerte!
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 23: Perfil incompleto
+
+**Subject:** Completa tu perfil para encontrar tu compañero/a ideal
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Vemos que aún no has completado tu perfil en RoomMate Match. Cuanto más completo esté, más fácil será encontrar compañeros/as de piso compatibles.
+
+**Datos pendientes:**
+- [Dato 1]
+- [Dato 2]
+- [Dato 3]
+
+Completa tu perfil ahora y empieza a descubrir matches.
+
+Atentamente,
+
+El equipo de RoomMate Match
+
+---
+
+### Template 24: Cuenta suspendida
+
+**Subject:** Tu cuenta de RoomMate Match ha sido suspendida
+
+**Body:**
+
+Hola [Nombre del usuario],
+
+Tu cuenta ha sido suspendida temporalmente por el siguiente motivo:
+
+**Motivo:** [Motivo de la suspensión]
+
+Si crees que ha sido un error o deseas más información, escríbenos a support@roommatematchapp.com. Responderemos en un plazo máximo de 48 horas.
+
+Atentamente,
+
+El equipo de RoomMate Match

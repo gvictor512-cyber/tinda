@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/secure_storage_service.dart';
 import '../models/premium_plan.dart';
 import 'analytics_service.dart';
 
@@ -188,10 +188,9 @@ class PaymentService {
       });
 
       // Save subscription status locally
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_premium', true);
-      await prefs.setString('subscription_plan', planId);
-      await prefs.setString('subscription_end_date', endDate.toIso8601String());
+      await SecureStorageService.setBool('is_premium', true);
+      await SecureStorageService.setString('subscription_plan', planId);
+      await SecureStorageService.setString('subscription_end_date', endDate.toIso8601String());
 
       final txId = transactionId ?? 'simulated_${DateTime.now().millisecondsSinceEpoch}';
 
@@ -241,8 +240,7 @@ class PaymentService {
       });
 
       // Update local preferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('auto_renew', false);
+      await SecureStorageService.setBool('auto_renew', false);
 
       // Track subscription cancellation in analytics
       final subDetails = await getSubscriptionDetails();
@@ -281,10 +279,9 @@ class PaymentService {
       
       if (isActive) {
         // Update local preferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_premium', true);
-        await prefs.setString('subscription_plan', subscription['planId'] as String);
-        await prefs.setString('subscription_end_date', endDate.toIso8601String());
+        await SecureStorageService.setBool('is_premium', true);
+        await SecureStorageService.setString('subscription_plan', subscription['planId'] as String);
+        await SecureStorageService.setString('subscription_end_date', endDate.toIso8601String());
         
         return true;
       }
@@ -388,10 +385,9 @@ class PaymentService {
       });
 
       // Save locally
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_premium', true);
-      await prefs.setBool('has_used_free_trial', true);
-      await prefs.setString('subscription_end_date', endDate.toIso8601String());
+      await SecureStorageService.setBool('is_premium', true);
+      await SecureStorageService.setBool('has_used_free_trial', true);
+      await SecureStorageService.setString('subscription_end_date', endDate.toIso8601String());
 
       return true;
     } catch (e) {

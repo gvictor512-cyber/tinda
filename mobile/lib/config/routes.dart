@@ -3,7 +3,7 @@ import 'package:roommatematch/core/auth/login_screen.dart';
 import 'package:roommatematch/app.dart';
 import 'package:roommatematch/features/profile/profile_screen.dart';
 import 'package:roommatematch/features/profile/compatibility_settings.dart';
-import 'package:roommatematch/features/swipe/swipe_screen.dart';
+import 'package:roommatematch/features/swipe/swipe_screen_simple.dart';
 import 'package:roommatematch/features/chat/chat_screen.dart';
 import 'package:roommatematch/features/chat/chat_list_screen.dart';
 import 'package:roommatematch/features/filters/filters_screen.dart';

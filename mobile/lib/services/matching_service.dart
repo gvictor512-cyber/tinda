@@ -158,9 +158,9 @@ class MatchingService {
       }
 
       // Query potential candidates
-      final candidatesQuery = _firestore.collection('users')
-          .where('uid', isNotEqualTo: currentUser.uid)
-          .where('userType', isNotEqualTo: userType); // Match opposite types
+      final candidatesQuery = _firestore
+          .collection('users')
+          .limit(100);
 
       final candidatesSnapshot = await candidatesQuery.get();
 
@@ -171,6 +171,8 @@ class MatchingService {
         final candidateId = candidateData['uid'] as String?;
 
         if (candidateId == null) continue;
+        if (candidateId == currentUser.uid) continue;
+        if (userType != null && candidateData['userType'] == userType) continue;
 
         // Skip if already swiped or matched
         if (swipedUserIds.contains(candidateId) || matchedUserIds.contains(candidateId)) {
@@ -198,8 +200,8 @@ class MatchingService {
     }
   }
 
-  // Record a swipe action
-  Future<void> recordSwipe({
+  // Record a swipe action. Returns true if the swipe resulted in a new match.
+  Future<bool> recordSwipe({
     required String swipedId,
     required bool isLike,
   }) async {
@@ -236,16 +238,17 @@ class MatchingService {
 
       // If it's a like, check if there's a mutual like
       if (isLike) {
-        await _checkForMatch(swiperId: currentUser.uid, swipedId: swipedId);
+        return await _checkForMatch(swiperId: currentUser.uid, swipedId: swipedId);
       }
+      return false;
     } catch (e) {
       SecureLogger.error('Failed to record swipe', error: e);
       rethrow;
     }
   }
 
-  // Check if there's a mutual match
-  Future<void> _checkForMatch({required String swiperId, required String swipedId}) async {
+  // Check if there's a mutual match. Returns true if a new match was created.
+  Future<bool> _checkForMatch({required String swiperId, required String swipedId}) async {
     try {
       // Check if the other user has also liked this user
       final mutualSwipeQuery = await _firestore
@@ -274,7 +277,10 @@ class MatchingService {
           'lastMessageTimestamp': null,
           'createdAt': FieldValue.serverTimestamp(),
         });
+
+        return true;
       }
+      return false;
     } catch (e) {
       debugPrint('Error checking for match: $e');
       rethrow;
@@ -399,8 +405,8 @@ class MatchingService {
     }
   }
 
-  // Send a Super Like (special notification)
-  Future<void> sendSuperLike(String swipedId) async {
+  // Send a Super Like (special notification). Returns true if a new match was created.
+  Future<bool> sendSuperLike(String swipedId) async {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser == null) {
@@ -433,7 +439,7 @@ class MatchingService {
       });
 
       // Check if there's a mutual like
-      await _checkForMatch(swiperId: currentUser.uid, swipedId: swipedId);
+      return await _checkForMatch(swiperId: currentUser.uid, swipedId: swipedId);
     } catch (e) {
       SecureLogger.error('Failed to send super like', error: e);
       rethrow;

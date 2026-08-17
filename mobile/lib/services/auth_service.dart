@@ -1,7 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/secure_storage_service.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/password_validator.dart';
 import '../utils/email_validator.dart';
@@ -97,8 +98,7 @@ class AuthService {
       await userCredential.user!.sendEmailVerification();
 
       // Save user type locally
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_type', sanitizedUserType);
+      await SecureStorageService.setString('user_type', sanitizedUserType);
 
       SecureLogger.logAuth('Sign up successful', method: 'email', userId: userCredential.user!.uid);
 
@@ -152,8 +152,7 @@ class AuthService {
       if (userDoc.exists) {
         final userType = userDoc.data()?['userType'];
         if (userType != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('user_type', userType);
+          await SecureStorageService.setString('user_type', userType);
         }
       } else {
         SecureLogger.warning('User document not found', userId: userCredential.user!.uid);
@@ -231,8 +230,79 @@ class AuthService {
       }
 
       // Save user type locally
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_type', userType);
+      await SecureStorageService.setString('user_type', userType);
+
+      return userCredential;
+    } catch (e) {
+      throw _handleAuthError(e);
+    }
+  }
+
+  /// Sign in with Apple ID
+  /// Creates a new user document in Firestore if first sign in
+  /// Returns UserCredential containing the user information
+  /// Throws Exception if sign in fails or is cancelled
+  Future<UserCredential> signInWithApple({required String userType}) async {
+    try {
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+
+      UserCredential userCredential = await _auth.signInWithCredential(oauthCredential);
+
+      // Check if user exists in Firestore
+      final userDoc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
+
+      if (!userDoc.exists) {
+        final givenName = appleCredential.givenName;
+        final familyName = appleCredential.familyName;
+        final displayName = [givenName, familyName]
+            .where((n) => n != null && n.isNotEmpty)
+            .join(' ');
+
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'uid': userCredential.user!.uid,
+          'email': appleCredential.email ?? userCredential.user!.email ?? '',
+          'name': displayName.isNotEmpty ? displayName : 'User',
+          'userType': userType,
+          'photoURL': userCredential.user!.photoURL,
+          'createdAt': FieldValue.serverTimestamp(),
+          'emailVerified': true,
+          'preferences': {
+            'ageRange': DEFAULT_AGE_RANGE,
+            'gender': DEFAULT_GENDER,
+            'location': null,
+            'maxDistance': DEFAULT_MAX_DISTANCE,
+          },
+          'profile': {
+            'bio': '',
+            'photos': userCredential.user!.photoURL != null
+                ? [userCredential.user!.photoURL]
+                : [],
+            'interests': [],
+          },
+        });
+
+        // Track sign up event for new Apple users
+        await _analytics.logSignUp(
+          method: 'apple',
+          userType: userType,
+        );
+      } else {
+        // Track login event for existing Apple users
+        await _analytics.logLogin('apple');
+      }
+
+      // Save user type locally
+      await SecureStorageService.setString('user_type', userType);
 
       return userCredential;
     } catch (e) {
@@ -249,8 +319,7 @@ class AuthService {
       await _auth.signOut();
       
       // Clear local preferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('user_type');
+      await SecureStorageService.remove('user_type');
       
       // Reset analytics data
       await _analytics.resetAnalyticsData();

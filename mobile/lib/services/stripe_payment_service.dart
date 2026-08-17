@@ -10,8 +10,12 @@ import 'analytics_service.dart';
 /// All secret operations (customer creation, PaymentIntent, subscriptions)
 /// live in `backend/src/modules/payments`. This file never stores `sk_`.
 class StripePaymentService {
-  // Stripe publishable key (visible en el cliente)
-  static const String _publishableKey = 'pk_live_51TybJH1mIjwfcgktbEXXiteOTw67yI0rXyzp6otpuLmpCavkwWurJFZz8ToQoCxCb5tOgrDFsPepXbdy6BE3Jo5000uZ86kAET';
+  // Stripe publishable key: se inyecta en build con --dart-define o .env
+  // nunca se sube al repositorio
+  static const String _publishableKey = String.fromEnvironment(
+    'STRIPE_PUBLISHABLE_KEY',
+    defaultValue: '',
+  );
 
   // Backend API URL. Cambia según entorno:
   // Android emulator: 10.0.2.2:3000
@@ -26,6 +30,9 @@ class StripePaymentService {
   /// Inicializar Stripe
   /// Debe llamarse al inicio de la app
   static Future<void> initialize() async {
+    if (_publishableKey.isEmpty) {
+      throw Exception('STRIPE_PUBLISHABLE_KEY no está definida. Usa --dart-define en build.');
+    }
     Stripe.publishableKey = _publishableKey;
     await Stripe.instance.applySettings();
   }
