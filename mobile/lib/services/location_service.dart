@@ -264,4 +264,14 @@ class LocationService {
   Future<bool> openAppSettings() async {
     return await Geolocator.openAppSettings();
   }
+
+  // Get current position and save it to Firestore
+  Future<void> updateAndSaveCurrentLocation() async {
+    try {
+      final position = await getCurrentPosition();
+      await saveUserLocation(position);
+    } catch (e) {
+      debugPrint('Could not update current location: $e');
+    }
+  }
 }

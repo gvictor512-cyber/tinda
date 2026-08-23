@@ -15,6 +15,7 @@ import '../utils/rate_limiter.dart';
 import '../utils/secure_logger.dart';
 import 'analytics_service.dart';
 import 'auth_api_service.dart';
+import 'location_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -23,6 +24,7 @@ class AuthService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final AnalyticsService _analytics = AnalyticsService();
   final AuthApiService _authApi = AuthApiService();
+  final LocationService _locationService = LocationService();
 
   // Default age range for new users
   static const List<int> DEFAULT_AGE_RANGE = [18, 35];
@@ -154,6 +156,9 @@ class AuthService {
       // Save user type locally
       await SecureStorageService.setString('user_type', sanitizedUserType);
 
+      // Update current location
+      await _locationService.updateAndSaveCurrentLocation();
+
       // Sync user with backend
       try {
         final firebaseToken = await userCredential.user?.getIdToken() ?? '';
@@ -225,6 +230,9 @@ class AuthService {
 
       await RateLimiter.recordLoginAttempt(sanitizedEmail, true);
       SecureLogger.logAuth('Sign in successful', method: 'email', userId: userCredential.user!.uid);
+
+      // Update current location
+      await _locationService.updateAndSaveCurrentLocation();
 
       // Track login event
       await _analytics.logLogin('email');
