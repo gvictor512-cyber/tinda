@@ -6,9 +6,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'analytics_service.dart';
 
-/// Stripe payments orchestrated by the backend.
-/// All secret operations (customer creation, PaymentIntent, subscriptions)
-/// live in `backend/src/modules/payments`. This file never stores `sk_`.
+/// Web-only payment service.
+/// Mobile uses [IapService] (`in_app_purchase`) with Google Play Billing / StoreKit.
+/// This service is kept for card/Apple Pay/Google Pay on the web build.
 class StripePaymentService {
   // Stripe publishable key: se inyecta en build con --dart-define o .env
   // nunca se sube al repositorio
@@ -20,8 +20,8 @@ class StripePaymentService {
   // Backend API URL. Cambia según entorno:
   // Android emulator: 10.0.2.2:3000
   // iOS simulator / web: localhost:3000
-  // Producción: https://api.roommatematch.com
-  static const String _backendBaseUrl = 'http://10.0.2.2:3000';
+  // Producción: https://roommatematch-api.onrender.com
+  static const String _backendBaseUrl = 'https://roommatematch-api.onrender.com';
   
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
