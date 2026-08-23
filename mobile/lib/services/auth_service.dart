@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,12 +14,15 @@ import '../utils/input_sanitizer.dart';
 import '../utils/rate_limiter.dart';
 import '../utils/secure_logger.dart';
 import 'analytics_service.dart';
+import 'auth_api_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   final AnalyticsService _analytics = AnalyticsService();
+  final AuthApiService _authApi = AuthApiService();
 
   // Default age range for new users
   static const List<int> DEFAULT_AGE_RANGE = [18, 35];
@@ -44,6 +51,9 @@ class AuthService {
     required String name,
     required String userType,
     required DateTime birthDate,
+    List<XFile> profilePhotos = const [],
+    List<XFile> propertyPhotos = const [],
+    Map<String, dynamic>? apartment,
   }) async {
     try {
       // Validate email
@@ -88,9 +98,30 @@ class AuthService {
         password: password,
       );
 
+      // Upload photos
+      final uid = userCredential.user!.uid;
+      final profilePhotoUrls = <String>[];
+      for (var i = 0; i < profilePhotos.length; i++) {
+        final ref = _storage.ref().child('users/$uid/profile/$i.jpg');
+        await ref.putFile(File(profilePhotos[i].path));
+        profilePhotoUrls.add(await ref.getDownloadURL());
+      }
+
+      final propertyPhotoUrls = <String>[];
+      for (var i = 0; i < propertyPhotos.length; i++) {
+        final ref = _storage.ref().child('users/$uid/apartment/$i.jpg');
+        await ref.putFile(File(propertyPhotos[i].path));
+        propertyPhotoUrls.add(await ref.getDownloadURL());
+      }
+
+      final apartmentData = apartment != null ? Map<String, dynamic>.from(apartment) : null;
+      if (apartmentData != null && propertyPhotoUrls.isNotEmpty) {
+        apartmentData['photos'] = propertyPhotoUrls;
+      }
+
       // Create user document in Firestore
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'uid': userCredential.user!.uid,
+      await _firestore.collection('users').doc(uid).set({
+        'uid': uid,
         'email': sanitizedEmail,
         'name': sanitizedName,
         'userType': sanitizedUserType,
@@ -111,9 +142,10 @@ class AuthService {
         },
         'profile': {
           'bio': '',
-          'photos': [],
+          'photos': profilePhotoUrls,
           'interests': [],
         },
+        if (apartmentData != null) 'apartment': apartmentData,
       });
 
       // Send email verification
@@ -121,6 +153,17 @@ class AuthService {
 
       // Save user type locally
       await SecureStorageService.setString('user_type', sanitizedUserType);
+
+      // Sync user with backend
+      try {
+        final firebaseToken = await userCredential.user?.getIdToken() ?? '';
+        await _authApi.register(
+          email: sanitizedEmail,
+          firebaseToken: firebaseToken,
+        );
+      } catch (apiError) {
+        SecureLogger.warning('Backend sync failed on sign up', error: apiError);
+      }
 
       SecureLogger.logAuth('Sign up successful', method: 'email', userId: userCredential.user!.uid);
 
@@ -185,6 +228,17 @@ class AuthService {
 
       // Track login event
       await _analytics.logLogin('email');
+
+      // Sync login with backend
+      try {
+        final firebaseToken = await userCredential.user?.getIdToken() ?? '';
+        await _authApi.login(
+          email: sanitizedEmail,
+          firebaseToken: firebaseToken,
+        );
+      } catch (apiError) {
+        SecureLogger.warning('Backend sync failed on login', error: apiError);
+      }
 
       return userCredential;
     } catch (e) {
