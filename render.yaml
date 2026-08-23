@@ -6,6 +6,7 @@ services:
     rootDir: ./backend
     plan: starter
     branch: main
+    region: frankfurt
     envVars:
       - key: NODE_ENV
         value: production
