@@ -45,7 +45,7 @@ import { AdminModule } from './modules/admin/admin.module';
       logging: process.env.NODE_ENV === 'development',
       ssl:
         process.env.NODE_ENV === 'production'
-          ? { rejectUnauthorized: true }
+          ? { rejectUnauthorized: false }
           : false,
     }),
     AuthModule,
