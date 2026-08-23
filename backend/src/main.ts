@@ -35,7 +35,7 @@ async function bootstrap() {
   );
 
   // Health check endpoint for Render and load balancers
-  app.get('/health', (req: any, res: any) => {
+  app.use('/health', (req: any, res: any) => {
     res.status(200).json({ status: 'ok' });
   });
 
