@@ -34,6 +34,11 @@ async function bootstrap() {
     }),
   );
 
+  // Health check endpoint for Render and load balancers
+  app.get('/health', (req: any, res: any) => {
+    res.status(200).json({ status: 'ok' });
+  });
+
   // Swagger documentation (disabled in production)
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()

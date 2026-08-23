@@ -47,7 +47,7 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
-    healthCheckPath: /api
+    healthCheckPath: /health
 
 databases:
   - name: roommatematch-db
