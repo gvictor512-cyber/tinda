@@ -38,10 +38,11 @@ import { AdminModule } from './modules/admin/admin.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE || 'roommatematch',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      // synchronize solo para superusuario (postgres) en dev; con app_user se desactiva
+      // synchronize solo para superusuario (postgres) en dev o si DB_SYNC=true
       synchronize:
-        process.env.DB_USERNAME === 'postgres' &&
-        process.env.NODE_ENV === 'development',
+        process.env.DB_SYNC === 'true' ||
+        (process.env.DB_USERNAME === 'postgres' &&
+          process.env.NODE_ENV === 'development'),
       logging: process.env.NODE_ENV === 'development',
       ssl:
         process.env.NODE_ENV === 'production'
