@@ -35,6 +35,12 @@ export class Verification {
   @Column({ name: 'document_url', nullable: true })
   documentUrl: string;
 
+  @Column({ name: 'selfie_url', nullable: true })
+  selfieUrl: string;
+
+  @Column({ name: 'selfie_submitted_at', type: 'timestamp', nullable: true })
+  selfieSubmittedAt: Date;
+
   @Column({ name: 'is_verified', default: false })
   isVerified: boolean;
 

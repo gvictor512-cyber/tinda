@@ -38,4 +38,10 @@ export class VerificationController {
   async verifyDocument(@Request() req, @Body('documentUrl') documentUrl: string) {
     return this.verificationService.verifyDocument(req.user.uid, documentUrl);
   }
+
+  @Post('approve')
+  @HttpCode(HttpStatus.OK)
+  async approveVerification(@Body('firebaseUid') firebaseUid: string) {
+    return this.verificationService.approveVerification(firebaseUid);
+  }
 }

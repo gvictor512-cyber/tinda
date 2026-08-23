@@ -6,7 +6,6 @@ import { User } from '../users/entities/user.entity';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { VerifySelfieDto } from './dto/verify-selfie.dto';
-import { VeriffService } from '../../common/services/veriff.service';
 
 @Injectable()
 export class VerificationService {
@@ -15,7 +14,6 @@ export class VerificationService {
     private verificationRepository: Repository<Verification>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-    private veriffService: VeriffService,
   ) {}
 
   async getVerificationStatus(firebaseUid: string) {
@@ -137,11 +135,6 @@ export class VerificationService {
       throw new NotFoundException('User not found');
     }
 
-    const session = await this.veriffService.createSession(
-      firebaseUid,
-      user.email,
-    );
-
     let verification = await this.verificationRepository.findOne({
       where: { userId: user.id },
     });
@@ -152,16 +145,17 @@ export class VerificationService {
       });
     }
 
-    verification.selfieVerified = true;
-    verification.selfieVerifiedAt = new Date();
-    verification.verificationLevel = 'advanced';
+    verification.selfieUrl = verifySelfieDto.selfieUrl;
+    verification.selfieSubmittedAt = new Date();
+    verification.selfieVerified = false;
+    verification.verificationLevel = 'pending_review';
     
     await this.verificationRepository.save(verification);
 
     // Update overall verification status
     await this.updateOverallVerification(verification);
 
-    return { success: true, message: 'Selfie verification started', veriffSession: session };
+    return { success: true, message: 'Selfie submitted for manual review' };
   }
 
   async verifyDocument(firebaseUid: string, documentUrl: string) {
@@ -173,11 +167,6 @@ export class VerificationService {
       throw new NotFoundException('User not found');
     }
 
-    const session = await this.veriffService.createSession(
-      firebaseUid,
-      user.email,
-    );
-
     let verification = await this.verificationRepository.findOne({
       where: { userId: user.id },
     });
@@ -188,17 +177,46 @@ export class VerificationService {
       });
     }
 
-    verification.documentVerified = true;
-    verification.documentVerifiedAt = new Date();
+    verification.documentVerified = false;
     verification.documentUrl = documentUrl;
-    verification.verificationLevel = 'advanced';
+    verification.verificationLevel = 'pending_review';
     
     await this.verificationRepository.save(verification);
 
     // Update overall verification status
     await this.updateOverallVerification(verification);
 
-    return { success: true, message: 'Document verification started', veriffSession: session };
+    return { success: true, message: 'Document submitted for manual review' };
+  }
+
+  async approveVerification(firebaseUid: string) {
+    const user = await this.usersRepository.findOne({
+      where: { firebaseUid },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    let verification = await this.verificationRepository.findOne({
+      where: { userId: user.id },
+    });
+
+    if (!verification) {
+      throw new NotFoundException('Verification not found');
+    }
+
+    verification.selfieVerified = true;
+    verification.selfieVerifiedAt = new Date();
+    verification.documentVerified = true;
+    verification.documentVerifiedAt = new Date();
+
+    await this.verificationRepository.save(verification);
+
+    // Update overall verification status
+    await this.updateOverallVerification(verification);
+
+    return { success: true, message: 'Verification approved manually' };
   }
 
   private async updateOverallVerification(verification: Verification) {
