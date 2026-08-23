@@ -6,6 +6,7 @@ import { User } from '../users/entities/user.entity';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { VerifySelfieDto } from './dto/verify-selfie.dto';
+import { OnfidoService } from '../../common/services/onfido.service';
 
 @Injectable()
 export class VerificationService {
@@ -14,6 +15,7 @@ export class VerificationService {
     private verificationRepository: Repository<Verification>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private onfidoService: OnfidoService,
   ) {}
 
   async getVerificationStatus(firebaseUid: string) {
@@ -135,10 +137,16 @@ export class VerificationService {
       throw new NotFoundException('User not found');
     }
 
-    // Verify selfie with AI/ML service
-    // TODO: Implement actual selfie verification logic
-    // This would involve comparing the selfie with profile photos
-    
+    const applicant = await this.onfidoService.createApplicant(
+      firebaseUid,
+      user.email,
+    );
+    const check = await this.onfidoService.checkDocument(
+      applicant.id,
+      verifySelfieDto.documentUrl,
+      verifySelfieDto.selfieUrl,
+    );
+
     let verification = await this.verificationRepository.findOne({
       where: { userId: user.id },
     });
@@ -158,7 +166,7 @@ export class VerificationService {
     // Update overall verification status
     await this.updateOverallVerification(verification);
 
-    return { success: true, message: 'Selfie verified successfully' };
+    return { success: true, message: 'Selfie verified successfully', onfidoCheck: check };
   }
 
   async verifyDocument(firebaseUid: string, documentUrl: string) {
@@ -170,9 +178,15 @@ export class VerificationService {
       throw new NotFoundException('User not found');
     }
 
-    // Verify document with ID verification service
-    // TODO: Implement actual document verification logic
-    
+    const applicant = await this.onfidoService.createApplicant(
+      firebaseUid,
+      user.email,
+    );
+    const check = await this.onfidoService.checkDocument(
+      applicant.id,
+      documentUrl,
+    );
+
     let verification = await this.verificationRepository.findOne({
       where: { userId: user.id },
     });
@@ -193,7 +207,7 @@ export class VerificationService {
     // Update overall verification status
     await this.updateOverallVerification(verification);
 
-    return { success: true, message: 'Document verified successfully' };
+    return { success: true, message: 'Document verified successfully', onfidoCheck: check };
   }
 
   private async updateOverallVerification(verification: Verification) {
