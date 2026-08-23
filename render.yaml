@@ -14,7 +14,9 @@ services:
         value: 10000
       - key: DB_SYNC
         value: 'false'
-      - key: ONFIDO_API_TOKEN
+      - key: VERIFF_API_KEY
+        value: ''
+      - key: VERIFF_CLIENT_ID
         value: ''
       - key: DB_HOST
         fromDatabase:
