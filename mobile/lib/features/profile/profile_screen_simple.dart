@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'edit_profile_screen.dart';
-import 'verification_screen.dart';
 import 'help_support_screen.dart';
 import 'about_screen.dart';
 import 'settings_screen.dart';
@@ -17,6 +20,77 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final AuthService _authService = AuthService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+  String? _photoUrl;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPhoto();
+  }
+
+  Future<void> _loadPhoto() async {
+    try {
+      final data = await _authService.getUserData();
+      if (data != null) {
+        final profile = data['profile'] as Map<String, dynamic>?;
+        final photos = profile?['photos'] as List<dynamic>?;
+        if (photos != null && photos.isNotEmpty) {
+          setState(() => _photoUrl = photos.first.toString());
+        } else if (_authService.currentUser?.photoURL != null) {
+          setState(() => _photoUrl = _authService.currentUser!.photoURL);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading photo: $e');
+    }
+  }
+
+  Future<void> _pickAndUploadPhoto() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    final uid = _authService.currentUser?.uid;
+    if (uid == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No estás autenticado')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final ref = _storage.ref().child('users/$uid/profile/0.jpg');
+      await ref.putFile(File(picked.path));
+      final url = await ref.getDownloadURL();
+
+      await _firestore.collection('users').doc(uid).update({
+        'profile.photos': [url],
+        'profile.updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        setState(() => _photoUrl = url);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto actualizada correctamente')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al subir foto: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,30 +152,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: Column(
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        width: 3,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      backgroundImage: user?.photoURL != null
-                          ? NetworkImage(user!.photoURL!)
-                          : null,
-                      child: user?.photoURL == null
-                          ? Text(
-                              user?.displayName?.substring(0, 1).toUpperCase() ?? 'U',
-                              style: const TextStyle(
-                                fontSize: 40,
-                                fontWeight: FontWeight.w700,
+                  GestureDetector(
+                    onTap: _isLoading ? null : _pickAndUploadPhoto,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              width: 3,
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Colors.white.withValues(alpha: 0.2),
+                            backgroundImage: _photoUrl != null
+                                ? NetworkImage(_photoUrl!)
+                                : null,
+                            child: _photoUrl == null
+                                ? Text(
+                                    user?.displayName?.substring(0, 1).toUpperCase() ?? 'U',
+                                    style: const TextStyle(
+                                      fontSize: 40,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                        ),
+                        if (_isLoading)
+                          const CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        if (!_isLoading)
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
                                 color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppTheme.primaryBlue,
+                                  width: 2,
+                                ),
                               ),
-                            )
-                          : null,
+                              child: const Icon(
+                                Icons.camera_alt,
+                                size: 16,
+                                color: AppTheme.primaryBlue,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -136,19 +244,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const EditProfileScreen(),
-                  ),
-                );
-              },
-              isDarkMode: isDarkMode,
-            ),
-            _buildMenuItem(
-              icon: Icons.verified_user_rounded,
-              title: 'Verificación',
-              subtitle: 'Verifica tu identidad',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const VerificationScreen(),
                   ),
                 );
               },
