@@ -167,7 +167,7 @@ class AuthService {
           firebaseToken: firebaseToken,
         );
       } catch (apiError) {
-        SecureLogger.warning('Backend sync failed on sign up', error: apiError);
+        SecureLogger.warning('Backend sync failed on sign up', data: {'error': apiError.toString()});
       }
 
       SecureLogger.logAuth('Sign up successful', method: 'email', userId: userCredential.user!.uid);
@@ -245,7 +245,7 @@ class AuthService {
           firebaseToken: firebaseToken,
         );
       } catch (apiError) {
-        SecureLogger.warning('Backend sync failed on login', error: apiError);
+        SecureLogger.warning('Backend sync failed on login', data: {'error': apiError.toString()});
       }
 
       return userCredential;
