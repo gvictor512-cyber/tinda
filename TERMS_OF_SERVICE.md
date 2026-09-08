@@ -1,4 +1,4 @@
-# Términos de Servicio - RoomMate Match
+﻿# Términos de Servicio - RoomMate Match
 
 **Última actualización:** Julio 2026
 
@@ -178,7 +178,7 @@ Estos Términos se rigen por las leyes de España. Cualquier disputa se resolver
 ## 14. Contacto
 
 Para preguntas sobre estos Términos:
-- **Email:** legal@roommatematch.com
+- **Email:** support@roommatematchapp.com
 - **Dirección:** Carrer Llunas, Barcelona, España
 - **Teléfono:** +34 616 438 869
 
@@ -189,3 +189,5 @@ Estos Términos constituyen el acuerdo completo entre usted y RoomMate Match, re
 ---
 
 Al utilizar RoomMate Match, acepta estos Términos de Servicio.
+
+© 2026 RoomMate Match. All rights reserved.

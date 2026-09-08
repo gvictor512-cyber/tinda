@@ -245,16 +245,23 @@ export class ProfilesService {
     return this.profilesRepository.save(profile);
   }
 
-  async findProfilesByCity(city: string, limit: number = 20) {
+  async findProfilesByCity(city: string, page: number = 1, limit: number = 20) {
+    const safeLimit = Math.min(limit, 100);
+    const skip = (Math.max(page, 1) - 1) * safeLimit;
+
     return this.profilesRepository.find({
       where: { city },
       relations: ['user'],
-      take: limit,
+      take: safeLimit,
+      skip,
       order: { createdAt: 'DESC' },
     });
   }
 
-  async searchProfiles(filters: any) {
+  async searchProfiles(filters: any, page: number = 1, limit: number = 20) {
+    const safeLimit = Math.min(limit, 100);
+    const skip = (Math.max(page, 1) - 1) * safeLimit;
+
     const queryBuilder = this.profilesRepository.createQueryBuilder('profile')
       .leftJoinAndSelect('profile.user', 'user')
       .where('user.isActive = :isActive', { isActive: true });
@@ -282,7 +289,8 @@ export class ProfilesService {
     }
 
     queryBuilder.orderBy('profile.createdAt', 'DESC')
-      .take(filters.limit || 20);
+      .skip(skip)
+      .take(safeLimit);
 
     return queryBuilder.getMany();
   }

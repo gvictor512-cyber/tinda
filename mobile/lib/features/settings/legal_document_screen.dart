@@ -42,7 +42,7 @@ class _LegalDocumentScreenState extends State<LegalDocumentScreen> {
             return const Center(child: Text('No se pudo cargar el documento.'));
           }
           return Markdown(
-            data: snapshot.data ?? '',
+            data: '${snapshot.data ?? ''}\n\n---\n\n© 2026 RoomMate Match. All rights reserved.',
             selectable: true,
           );
         },

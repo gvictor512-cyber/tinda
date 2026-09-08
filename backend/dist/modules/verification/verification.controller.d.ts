@@ -17,15 +17,16 @@ export declare class VerificationController {
         success: boolean;
         message: string;
     }>;
-    verifyPhone(req: any, verifyPhoneDto: VerifyPhoneDto): Promise<{
-        success: boolean;
-        message: string;
-    }>;
+    verifyPhone(req: any, verifyPhoneDto: VerifyPhoneDto): Promise<void>;
     verifySelfie(req: any, verifySelfieDto: VerifySelfieDto): Promise<{
         success: boolean;
         message: string;
     }>;
     verifyDocument(req: any, documentUrl: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    approveVerification(firebaseUid: string): Promise<{
         success: boolean;
         message: string;
     }>;

@@ -1,4 +1,4 @@
-# Política de Privacidad - RoomMate Match
+﻿# Política de Privacidad - RoomMate Match
 
 **Última actualización:** Julio 2026
 
@@ -100,7 +100,7 @@ Nos reservamos el derecho de modificar esta política. Le notificaremos cualquie
 ## 10. Contacto
 
 Para preguntas sobre esta política o sus datos personales:
-- **Email:** privacy@roommatematch.com
+- **Email:** support@roommatematchapp.com
 - **Dirección:** Carrer Llunas, Barcelona, España
 - **Teléfono:** +34 616 438 869
 
@@ -114,3 +114,5 @@ Esta política se rige por las leyes de:
 ---
 
 Al utilizar RoomMate Match, acepta esta Política de Privacidad.
+
+© 2026 RoomMate Match. All rights reserved.

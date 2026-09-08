@@ -1,15 +1,24 @@
+import 'dart:async';
+import 'dart:io' show File;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:roommatematch/services/chat_service.dart';
 import 'message_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
   final String matchId;
+  final String otherUserId;
   final String otherUserName;
   final String otherUserPhoto;
 
   const ChatScreen({
     super.key,
     required this.matchId,
+    required this.otherUserId,
     required this.otherUserName,
     this.otherUserPhoto = '',
   });
@@ -22,100 +31,70 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _imagePicker = ImagePicker();
-  
+  final ChatService _chatService = ChatService();
+  StreamSubscription? _messagesSub;
+
   List<Map<String, dynamic>> _messages = [];
   final bool _isTyping = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeSocket();
     _loadMessages();
   }
 
-  void _initializeSocket() {
-    // TODO: Initialize socket connection with backend
-    // _socket = IO.io('YOUR_BACKEND_URL', <String, dynamic>{
-    //   'transports': ['websocket'],
-    //   'autoConnect': false,
-    // });
-    
-    // _socket.auth = {'userId': 'CURRENT_USER_ID'};
-    // _socket.connect();
-    
-    // _socket.onConnect((_) {
-    //   setState(() => _isConnected = true);
-    //   _socket.emit('joinMatch', {'matchId': widget.matchId});
-    // });
-    
-    // _socket.on('newMessage', (data) {
-    //   setState(() {
-    //     _messages.add(data);
-    //   });
-    //   _scrollToBottom();
-    // });
-    
-    // _socket.on('userTyping', (data) {
-    //   if (data['userId'] != 'CURRENT_USER_ID') {
-    //     setState(() => _isTyping = data['isTyping']);
-    //   }
-    // });
+  void _listenToMessages() {
+    _messagesSub = _chatService.getMessages(widget.otherUserId).listen((snapshot) {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final messages = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final senderId = data['senderId'] as String? ?? '';
+        final isMe = senderId == currentUserId;
+        final timestamp = data['timestamp'] as Timestamp?;
+        return {
+          'id': doc.id,
+          'senderId': isMe ? 'me' : 'other',
+          'content': data['message'] as String? ?? '',
+          'messageType': data['imageUrl'] != null ? 'image' : 'text',
+          'mediaUrl': data['imageUrl'] as String?,
+          'createdAt': timestamp?.toDate(),
+          'isRead': data['read'] as bool? ?? false,
+        };
+      }).toList();
+      if (mounted) {
+        setState(() {
+          _messages = messages.reversed.toList();
+        });
+        _scrollToBottom();
+      }
+    });
   }
 
   Future<void> _loadMessages() async {
-    // TODO: Load messages from API
-    setState(() {
-      _messages = _getMockMessages();
-    });
+    _listenToMessages();
+    await _chatService.markMessagesAsRead(widget.otherUserId);
+    setState(() => _messages = []);
   }
 
-  List<Map<String, dynamic>> _getMockMessages() {
-    return [
-      {
-        'id': '1',
-        'senderId': 'other',
-        'content': '¡Hola! Me parece que tenemos un 92% de compatibilidad',
-        'messageType': 'text',
-        'createdAt': DateTime.now().subtract(const Duration(minutes: 10)),
-        'isRead': true,
-      },
-      {
-        'id': '2',
-        'senderId': 'me',
-        'content': '¡Sí! Es genial. Me encanta que ambos teletrabajemos',
-        'messageType': 'text',
-        'createdAt': DateTime.now().subtract(const Duration(minutes: 5)),
-        'isRead': true,
-      },
-    ];
-  }
-
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    final message = {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'senderId': 'me',
-      'content': text,
-      'messageType': 'text',
-      'createdAt': DateTime.now(),
-      'isRead': false,
-    };
-
-    setState(() {
-      _messages.add(message);
-      _messageController.clear();
-    });
-
+    _messageController.clear();
     _scrollToBottom();
 
-    // TODO: Send via socket
-    // _socket.emit('sendMessage', {
-    //   'matchId': widget.matchId,
-    //   'messageType': 'text',
-    //   'content': text,
-    // });
+    try {
+      await _chatService.sendMessage(
+        receiverId: widget.otherUserId,
+        message: text,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo enviar: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _sendImage() async {
@@ -125,27 +104,47 @@ class _ChatScreenState extends State<ChatScreen> {
       imageQuality: 85,
     );
 
-    if (image != null) {
-      // TODO: Upload image and send via socket
-      final message = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'senderId': 'me',
-        'mediaUrl': image.path,
-        'messageType': 'image',
-        'createdAt': DateTime.now(),
-        'isRead': false,
-      };
+    if (image == null || !mounted) return;
 
-      setState(() {
-        _messages.add(message);
-      });
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
 
-      _scrollToBottom();
+    final fileName = 'chat_${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final ref = FirebaseStorage.instance.ref().child('chat_images').child(fileName);
+
+    try {
+      final upload = await ref.putFile(File(image.path));
+      final url = await upload.ref.getDownloadURL();
+      await _chatService.sendImageMessage(
+        receiverId: widget.otherUserId,
+        imageUrl: url,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo enviar la imagen: $e')),
+        );
+      }
     }
   }
 
   Future<void> _sendLocation() async {
-    // TODO: Implement location sharing
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      );
+      final mapsUrl = 'https://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}';
+      await _chatService.sendMessage(
+        receiverId: widget.otherUserId,
+        message: mapsUrl,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo obtener la ubicación. Comprueba los permisos.')),
+        );
+      }
+    }
   }
 
   void _scrollToBottom() {
@@ -162,6 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _messagesSub?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -284,7 +284,7 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.send),
-            onPressed: _sendMessage,
+            onPressed: () => _sendMessage(),
             color: const Color(0xFF4A90E2),
           ),
         ],

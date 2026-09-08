@@ -26,6 +26,8 @@ export declare class ProfilesController {
         createdAt: Date;
         updatedAt: Date;
     }>;
+    search(city?: string, ageMin?: string, ageMax?: string, budgetMin?: string, budgetMax?: string, gender?: string, page?: number, limit?: number): Promise<import("./entities/profile.entity").Profile[]>;
+    findByCity(city: string, page?: number, limit?: number): Promise<import("./entities/profile.entity").Profile[]>;
     findOne(id: string): Promise<{
         compatibilitySettings: import("../compatibility/entities/compatibility-settings.entity").CompatibilitySettings;
         id: string;

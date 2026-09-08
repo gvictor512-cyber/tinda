@@ -60,6 +60,52 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _forgotPassword() async {
+    final emailController = TextEditingController();
+    final email = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Recuperar contraseña'),
+        content: TextField(
+          controller: emailController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'Email',
+            hintText: 'tu@email.com',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, emailController.text.trim()),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+    emailController.dispose();
+
+    if (email == null || email.isEmpty || !mounted) return;
+
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.resetPassword(email);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Revisa tu correo para restablecer la contraseña'
+                : (authProvider.errorMessage ?? 'No se pudo enviar el email'),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,20 +124,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 60),
                   // Logo
                   Center(
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF4A90E2), Color(0xFF50E3C2)],
-                        ),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: const Icon(
-                        Icons.home_outlined,
-                        size: 60,
-                        color: Colors.white,
-                      ),
+                    child: Image.asset(
+                      'assets/images/logo_symbol.png',
+                      height: 160,
+                      fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -177,9 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () {
-                              // TODO: Implement forgot password
-                            },
+                            onPressed: _forgotPassword,
                             child: const Text('¿Olvidaste tu contraseña?'),
                           ),
                         ),

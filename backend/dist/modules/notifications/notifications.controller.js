@@ -16,6 +16,8 @@ exports.NotificationsController = void 0;
 const common_1 = require("@nestjs/common");
 const notifications_service_1 = require("./notifications.service");
 const auth_guard_1 = require("../../common/guards/auth.guard");
+class SendNotificationDto {
+}
 let NotificationsController = class NotificationsController {
     constructor(notificationsService) {
         this.notificationsService = notificationsService;
@@ -30,6 +32,11 @@ let NotificationsController = class NotificationsController {
     async markAllAsRead(req) {
         const user = req.user;
         return this.notificationsService.markAllAsRead(user.uid);
+    }
+    async send(req, dto) {
+        const senderId = req.user?.uid ?? '';
+        const notificationType = dto.data?.type || 'custom';
+        return this.notificationsService.sendToUser(senderId, dto.userId, notificationType, dto.title, dto.body, dto.data ?? {});
     }
 };
 exports.NotificationsController = NotificationsController;
@@ -56,6 +63,15 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], NotificationsController.prototype, "markAllAsRead", null);
+__decorate([
+    (0, common_1.Post)('send'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, SendNotificationDto]),
+    __metadata("design:returntype", Promise)
+], NotificationsController.prototype, "send", null);
 exports.NotificationsController = NotificationsController = __decorate([
     (0, common_1.Controller)('notifications'),
     (0, common_1.UseGuards)(auth_guard_1.FirebaseAuthGuard),

@@ -58,6 +58,6 @@ export declare class ProfilesService {
     }>;
     addPhoto(firebaseUid: string, photoUrl: string): Promise<Profile>;
     removePhoto(firebaseUid: string, index: number): Promise<Profile>;
-    findProfilesByCity(city: string, limit?: number): Promise<Profile[]>;
-    searchProfiles(filters: any): Promise<Profile[]>;
+    findProfilesByCity(city: string, page?: number, limit?: number): Promise<Profile[]>;
+    searchProfiles(filters: any, page?: number, limit?: number): Promise<Profile[]>;
 }

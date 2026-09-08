@@ -35,6 +35,9 @@ export class User {
   @Column({ default: false })
   isVerified: boolean;
 
+  @Column({ default: 'user' })
+  role: string;
+
   @Column({ type: 'timestamp', nullable: true })
   deletedAt: Date;
 

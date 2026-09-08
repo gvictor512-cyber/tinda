@@ -1,0 +1,13 @@
+{
+  "@@locale": "en",
+  "permissionLocationTitle": "Location",
+  "permissionLocationDescription": "We use your location to show you nearby roommates and flats.",
+  "permissionCameraTitle": "Camera",
+  "permissionCameraDescription": "RoomMate Match needs camera access so you can add profile photos and verify your identity.",
+  "permissionNotificationsTitle": "Notifications",
+  "permissionNotificationsDescription": "We notify you of matches, messages and important updates.",
+  "permissionPhotosTitle": "Gallery",
+  "permissionPhotosDescription": "We access your gallery so you can select profile photos.",
+  "cancel": "Cancel",
+  "allow": "Allow"
+}

@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../utils/secure_storage_service.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import '../auth/login_screen.dart';
+import '../auth/welcome_screen.dart';
+import '../../services/analytics_service.dart';
 import 'cookie_consent_dialog.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -43,28 +45,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    unawaited(AnalyticsService().logOnboardingBegin());
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
   }
 
   Future<void> _completeOnboarding() async {
+    unawaited(AnalyticsService().logOnboardingComplete());
     await CookieConsentDialog.showIfNeeded(context);
     await SecureStorageService.setBool('onboarding_completed', true);
 
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
       );
     }
   }
 
   Future<void> _skipOnboarding() async {
+    unawaited(AnalyticsService().logOnboardingSkipped());
     await SecureStorageService.setBool('onboarding_completed', true);
     
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
       );
     }
   }
@@ -121,6 +131,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   controller: _pageController,
                   onPageChanged: (index) {
                     setState(() => _currentPage = index);
+                    unawaited(AnalyticsService().logOnboardingStep(index));
                   },
                   itemCount: _pages.length,
                   itemBuilder: (context, index) {

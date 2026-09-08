@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'config/theme.dart';
+import 'services/permission_service.dart';
+import 'services/referral_service.dart';
 import 'features/swipe/swipe_screen_simple.dart';
 import 'features/chat/chat_list_screen_simple.dart';
 import 'features/profile/profile_screen_simple.dart';
+import 'features/likes/likes_screen.dart';
+import 'features/tools/more_screen.dart';
+import 'services/rating_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -15,10 +20,23 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final PageController _pageController = PageController();
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await RatingService.showIfNeeded(context);
+      await ReferralService.checkAndApply();
+      await PermissionService.requestNotifications(context);
+      await PermissionService.requestLocation(context);
+    });
+  }
+
   final List<Widget> _screens = [
     const SwipeScreen(),
+    const LikesScreen(),
     const ChatListScreen(),
     const ProfileScreen(),
+    MoreScreen(),
   ];
 
   @override
@@ -64,24 +82,44 @@ class _MainScreenState extends State<MainScreen> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(
-                  icon: Icons.explore,
-                  label: 'Descubrir',
-                  index: 0,
+                Expanded(
+                  child: _buildNavItem(
+                    icon: Icons.explore,
+                    label: 'Descubrir',
+                    index: 0,
+                  ),
                 ),
-                _buildNavItem(
-                  icon: Icons.chat_bubble_outline,
-                  label: 'Mensajes',
-                  index: 1,
+                Expanded(
+                  child: _buildNavItem(
+                    icon: Icons.favorite_outline,
+                    label: 'Likes',
+                    index: 1,
+                  ),
                 ),
-                _buildNavItem(
-                  icon: Icons.person_outline,
-                  label: 'Perfil',
-                  index: 2,
+                Expanded(
+                  child: _buildNavItem(
+                    icon: Icons.chat_bubble_outline,
+                    label: 'Mensajes',
+                    index: 2,
+                  ),
+                ),
+                Expanded(
+                  child: _buildNavItem(
+                    icon: Icons.person_outline,
+                    label: 'Perfil',
+                    index: 3,
+                  ),
+                ),
+                Expanded(
+                  child: _buildNavItem(
+                    icon: Icons.grid_view,
+                    label: 'Más',
+                    index: 4,
+                  ),
                 ),
               ],
             ),
@@ -109,7 +147,7 @@ class _MainScreenState extends State<MainScreen> {
         splashColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
         highlightColor: AppTheme.primaryBlue.withValues(alpha: 0.05),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: isSelected
@@ -126,14 +164,16 @@ class _MainScreenState extends State<MainScreen> {
                 child: Icon(
                   icon,
                   color: isSelected ? AppTheme.primaryBlue : (isDarkMode ? AppTheme.textLightSecondary : AppTheme.textDarkSecondary),
-                  size: 26,
+                  size: 22,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   color: isSelected ? AppTheme.primaryBlue : (isDarkMode ? AppTheme.textLightSecondary : AppTheme.textDarkSecondary),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   letterSpacing: 0.2,

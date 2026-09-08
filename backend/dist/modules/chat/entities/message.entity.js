@@ -55,6 +55,8 @@ __decorate([
     __metadata("design:type", Date)
 ], Message.prototype, "createdAt", void 0);
 exports.Message = Message = __decorate([
-    (0, typeorm_1.Entity)('messages')
+    (0, typeorm_1.Entity)('messages'),
+    (0, typeorm_1.Index)(['matchId', 'createdAt']),
+    (0, typeorm_1.Index)(['receiverId', 'isRead'])
 ], Message);
 //# sourceMappingURL=message.entity.js.map

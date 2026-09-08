@@ -1,4 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:roommatematch/services/chat_service.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -11,55 +15,60 @@ class ChatListScreen extends StatefulWidget {
 class _ChatListScreenState extends State<ChatListScreen> {
   List<Map<String, dynamic>> _conversations = [];
   bool _isLoading = true;
+  final ChatService _chatService = ChatService();
+  StreamSubscription? _chatsSub;
 
   @override
   void initState() {
     super.initState();
-    _loadConversations();
+    _listenToConversations();
   }
 
-  Future<void> _loadConversations() async {
-    setState(() => _isLoading = true);
-    try {
-      // TODO: Load conversations from API
-      await Future.delayed(const Duration(seconds: 1));
-      
+  @override
+  void dispose() {
+    _chatsSub?.cancel();
+    super.dispose();
+  }
+
+  void _listenToConversations() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+    _chatsSub = _chatService.getUserChats().listen((chats) async {
+      final conversations = <Map<String, dynamic>>[];
+      for (final chat in chats) {
+        final data = chat.data() as Map<String, dynamic>? ?? {};
+        final participants = (data['participants'] as List<dynamic>?) ?? [];
+        final otherUserId = participants
+          .cast<String?>()
+          .firstWhere((id) => id != currentUser.uid, orElse: () => null);
+        if (otherUserId == null) continue;
+        final otherUser = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(otherUserId)
+            .get();
+        final otherData = otherUser.data() ?? {};
+        final profile = otherData['profile'] as Map<String, dynamic>? ?? {};
+        final timestamp = data['lastMessageTimestamp'] as Timestamp?;
+        conversations.add({
+          'matchId': chat.id,
+          'otherUserId': otherUserId,
+          'otherUserName': profile['name'] ?? otherData['displayName'] ?? 'Usuario',
+          'otherUserPhoto': (profile['photos'] as List<dynamic>?)?.firstOrNull ??
+              otherData['photoURL'] as String? ??
+              '',
+          'lastMessage': data['lastMessage'] as String? ?? '',
+          'lastMessageTime': timestamp?.toDate(),
+          'unreadCount': 0,
+          'compatibilityScore': (otherData['compatibility'] as num?)?.toInt() ?? 0,
+        });
+      }
       if (mounted) {
         setState(() {
-          _conversations = _getMockConversations();
+          _conversations = conversations;
           _isLoading = false;
         });
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  List<Map<String, dynamic>> _getMockConversations() {
-    return [
-      {
-        'matchId': '1',
-        'otherUserId': 'user1',
-        'otherUserName': 'María García',
-        'otherUserPhoto': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
-        'lastMessage': '¡Sí! Es genial. Me encanta que ambos teletrabajemos',
-        'lastMessageTime': DateTime.now().subtract(const Duration(minutes: 5)),
-        'unreadCount': 0,
-        'compatibilityScore': 92,
-      },
-      {
-        'matchId': '2',
-        'otherUserId': 'user2',
-        'otherUserName': 'Carlos López',
-        'otherUserPhoto': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-        'lastMessage': '¿Te gustaría ver algún piso juntos?',
-        'lastMessageTime': DateTime.now().subtract(const Duration(hours: 2)),
-        'unreadCount': 2,
-        'compatibilityScore': 85,
-      },
-    ];
+    });
   }
 
   void _openChat(Map<String, dynamic> conversation) {
@@ -68,6 +77,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       MaterialPageRoute(
         builder: (context) => ChatScreen(
           matchId: conversation['matchId'],
+          otherUserId: conversation['otherUserId'],
           otherUserName: conversation['otherUserName'],
           otherUserPhoto: conversation['otherUserPhoto'],
         ),

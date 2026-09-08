@@ -147,3 +147,7 @@
 - Facilitates finding compatible living situations
 - Reduces conflicts through matching algorithm
 - Promotes community building
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/secure_storage_service.dart';
 import '../models/premium_plan.dart';
 import 'analytics_service.dart';
+import 'limits_service.dart';
 
 class PaymentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -150,9 +151,13 @@ class PaymentService {
     if (plan == null) throw Exception('Invalid plan ID');
 
     try {
-      // In production, this would integrate with actual in-app purchase
-      // For now, we'll simulate a successful purchase
-      
+      if (transactionId == null || transactionId.isEmpty) {
+        throw Exception('Se requiere un transactionId real de la tienda');
+      }
+      if (transactionId.startsWith('simulated_')) {
+        throw Exception('No se permiten transacciones simuladas en producción');
+      }
+
       final startDate = DateTime.now();
       final duration = planId == 'premium_annual' ? 365 : 30;
       final endDate = startDate.add(Duration(days: duration));
@@ -192,14 +197,12 @@ class PaymentService {
       await SecureStorageService.setString('subscription_plan', planId);
       await SecureStorageService.setString('subscription_end_date', endDate.toIso8601String());
 
-      final txId = transactionId ?? 'simulated_${DateTime.now().millisecondsSinceEpoch}';
-
       // Record purchase
       await recordPurchase(
         planId: planId,
         amount: plan.monthlyPrice,
         currency: 'EUR',
-        transactionId: txId,
+        transactionId: transactionId,
       );
 
       // Track subscription purchase in analytics
@@ -207,7 +210,7 @@ class PaymentService {
         planId: planId,
         price: plan.monthlyPrice,
         currency: 'EUR',
-        transactionId: txId,
+        transactionId: transactionId,
         isRenewal: false,
       );
 
@@ -479,7 +482,7 @@ class PaymentService {
   /// Currently simulates a successful purchase
   /// Returns true if purchase succeeds
   /// Throws Exception if purchase fails
-  Future<bool> purchaseIndividualItem(String itemId) async {
+  Future<bool> purchaseIndividualItem(String itemId, {String? transactionId}) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) throw Exception('User not authenticated');
 
@@ -487,15 +490,19 @@ class PaymentService {
     if (item == null) throw Exception('Invalid item ID');
 
     try {
-      // In production, this would integrate with actual in-app purchase
-      // For now, we'll simulate a successful purchase
-      
+      if (transactionId == null || transactionId.isEmpty) {
+        throw Exception('Se requiere un transactionId real de la tienda');
+      }
+      if (transactionId.startsWith('simulated_')) {
+        throw Exception('No se permiten transacciones simuladas en producción');
+      }
+
       // Record purchase
       await recordPurchase(
         planId: itemId,
         amount: item['price'] as double,
         currency: item['currency'] as String,
-        transactionId: 'simulated_${DateTime.now().millisecondsSinceEpoch}',
+        transactionId: transactionId,
       );
 
       // Track individual purchase in analytics
@@ -503,23 +510,23 @@ class PaymentService {
         planId: itemId,
         price: item['price'] as double,
         currency: item['currency'] as String,
-        transactionId: 'simulated_${DateTime.now().millisecondsSinceEpoch}',
+        transactionId: transactionId,
         isRenewal: false,
       );
 
       // Grant the item based on type
       switch (itemId) {
         case 'boost':
-          // Boost is handled by LimitsService.recordBoost
+          await LimitsService().recordBoost(durationMinutes: 30);
           break;
         case 'super_like':
-          // Super Like is handled by MatchingService.sendSuperLike
+          await _grantSuperLike();
           break;
         case 'premium_verification':
-          // Premium verification is handled by VerificationService.requestPremiumVerification
+          await _grantPremiumVerification();
           break;
         case 'highlight_listing':
-          // Highlight listing is handled by ListingService.boostListing
+          await _grantHighlightedListing();
           break;
       }
 
@@ -556,5 +563,51 @@ class PaymentService {
     final monthlyAnnualEquivalent = monthlyPrice * 12;
     
     return ((monthlyAnnualEquivalent - annualPrice) / monthlyAnnualEquivalent) * 100;
+  }
+
+  /// Añade un Super Like disponible al usuario
+  Future<void> _grantSuperLike() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) return;
+
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'superLikesAvailable': FieldValue.increment(1),
+      });
+    } catch (e) {
+      debugPrint('Error concediendo Super Like: $e');
+    }
+  }
+
+  /// Activa la verificación Premium en el perfil del usuario
+  Future<void> _grantPremiumVerification() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) return;
+
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'verification.isPremiumVerified': true,
+        'verification.premiumVerifiedAt': FieldValue.serverTimestamp(),
+        'isVerified': true,
+      });
+    } catch (e) {
+      debugPrint('Error concediendo verificación premium: $e');
+    }
+  }
+
+  /// Destaca el anuncio del usuario durante 24 horas
+  Future<void> _grantHighlightedListing() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) return;
+
+      final until = DateTime.now().add(const Duration(hours: 24));
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'isListingHighlighted': true,
+        'listingHighlightedUntil': Timestamp.fromDate(until),
+      });
+    } catch (e) {
+      debugPrint('Error destacando anuncio: $e');
+    }
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FiltersScreen extends StatefulWidget {
   const FiltersScreen({super.key});
@@ -8,21 +10,19 @@ class FiltersScreen extends StatefulWidget {
 }
 
 class _FiltersScreenState extends State<FiltersScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   // Age range
   RangeValues _ageRange = const RangeValues(18, 40);
+
+  // Max distance (km)
+  double _maxDistance = 50;
 
   // Budget range
   RangeValues _budgetRange = const RangeValues(300, 1000);
 
   // Gender
   String? _selectedGender;
-
-  // City
-  String? _selectedCity;
-  final List<String> _cities = [
-    'Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza',
-    'Málaga', 'Murcia', 'Palma de Mallorca', 'Las Palmas', 'Bilbao',
-  ];
 
   // Smoking
   final List<String> _smokingPreferences = [];
@@ -65,11 +65,11 @@ class _FiltersScreenState extends State<FiltersScreen> {
         children: [
           _buildAgeFilter(),
           const SizedBox(height: 24),
+          _buildDistanceFilter(),
+          const SizedBox(height: 24),
           _buildBudgetFilter(),
           const SizedBox(height: 24),
           _buildGenderFilter(),
-          const SizedBox(height: 24),
-          _buildCityFilter(),
           const SizedBox(height: 24),
           _buildSmokingFilter(),
           const SizedBox(height: 24),
@@ -106,14 +106,38 @@ class _FiltersScreenState extends State<FiltersScreen> {
         RangeSlider(
           values: _ageRange,
           min: 18,
-          max: 40,
-          divisions: 22,
+          max: 99,
+          divisions: 81,
           labels: RangeLabels(
             '${_ageRange.start.round()}',
             '${_ageRange.end.round()}',
           ),
           onChanged: (values) {
             setState(() => _ageRange = values);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDistanceFilter() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Distancia máxima',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Text('${_maxDistance.round()} km'),
+        Slider(
+          value: _maxDistance,
+          min: 1,
+          max: 200,
+          divisions: 199,
+          label: '${_maxDistance.round()} km',
+          onChanged: (value) {
+            setState(() => _maxDistance = value);
           },
         ),
       ],
@@ -138,9 +162,9 @@ class _FiltersScreenState extends State<FiltersScreen> {
         ),
         RangeSlider(
           values: _budgetRange,
-          min: 300,
-          max: 1000,
-          divisions: 14,
+          min: 0,
+          max: 10000,
+          divisions: 100,
           labels: RangeLabels(
             '${_budgetRange.start.round()}€',
             '${_budgetRange.end.round()}€',
@@ -179,32 +203,6 @@ class _FiltersScreenState extends State<FiltersScreen> {
               checkmarkColor: const Color(0xFF4A90E2),
             );
           }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCityFilter() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Ciudad',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedCity,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            hintText: 'Selecciona una ciudad',
-          ),
-          items: _cities.map((city) {
-            return DropdownMenuItem(value: city, child: Text(city));
-          }).toList(),
-          onChanged: (value) {
-            setState(() => _selectedCity = value);
-          },
         ),
       ],
     );
@@ -411,9 +409,9 @@ class _FiltersScreenState extends State<FiltersScreen> {
   void _resetFilters() {
     setState(() {
       _ageRange = const RangeValues(18, 40);
-      _budgetRange = const RangeValues(300, 1000);
+      _maxDistance = 50;
+      _budgetRange = const RangeValues(0, 10000);
       _selectedGender = null;
-      _selectedCity = null;
       _smokingPreferences.clear();
       _petsPreferences.clear();
       _workFromHome = null;
@@ -422,22 +420,24 @@ class _FiltersScreenState extends State<FiltersScreen> {
     });
   }
 
-  void _applyFilters() {
-    final filters = {
-      'ageMin': _ageRange.start.round(),
-      'ageMax': _ageRange.end.round(),
-      'budgetMin': _budgetRange.start.round(),
-      'budgetMax': _budgetRange.end.round(),
-      'gender': _selectedGender,
-      'city': _selectedCity,
-      'smokingPreferences': _smokingPreferences,
-      'petsPreferences': _petsPreferences,
-      'workFromHome': _workFromHome,
-      'languages': _selectedLanguages,
-      'userTypes': _userTypes,
-    };
+  Future<void> _applyFilters() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      await _firestore.collection('users').doc(uid).update({
+        'preferences.ageRange': [_ageRange.start.round(), _ageRange.end.round()],
+        'preferences.maxDistance': _maxDistance.round(),
+        'preferences.gender': _selectedGender,
+        'preferences.budgetMin': _budgetRange.start.round(),
+        'preferences.budgetMax': _budgetRange.end.round(),
+        'preferences.smokingPreferences': _smokingPreferences,
+        'preferences.petsPreferences': _petsPreferences,
+        'preferences.workFromHome': _workFromHome,
+        'preferences.languages': _selectedLanguages,
+        'preferences.userTypes': _userTypes,
+      });
+    }
 
-    Navigator.pop(context, filters);
+    if (mounted) Navigator.pop(context);
   }
 }
 

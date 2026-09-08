@@ -97,8 +97,8 @@ let MatchesService = class MatchesService {
             compatibilityExplanation: compatibility.explanation,
         });
         const savedMatch = await this.matchesRepository.save(match);
-        await this.notificationsService.sendMatchNotification(user1Id, user2Id, savedMatch.id);
-        await this.notificationsService.sendMatchNotification(user2Id, user1Id, savedMatch.id);
+        await this.notificationsService.sendMatchNotification(user1Id, user2Id, user2Id, savedMatch.id);
+        await this.notificationsService.sendMatchNotification(user2Id, user1Id, user1Id, savedMatch.id);
         return {
             success: true,
             matched: true,
@@ -107,13 +107,15 @@ let MatchesService = class MatchesService {
             explanation: compatibility.explanation,
         };
     }
-    async getUserMatches(firebaseUid) {
+    async getUserMatches(firebaseUid, page = 1, limit = 20) {
         const user = await this.usersRepository.findOne({
             where: { firebaseUid },
         });
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
+        const safeLimit = Math.min(limit, 100);
+        const skip = (Math.max(page, 1) - 1) * safeLimit;
         const matches = await this.matchesRepository
             .createQueryBuilder('match')
             .leftJoinAndSelect('match.user1', 'user1')
@@ -121,18 +123,22 @@ let MatchesService = class MatchesService {
             .where('(match.user1Id = :userId OR match.user2Id = :userId)', { userId: user.id })
             .andWhere('match.isActive = :isActive', { isActive: true })
             .orderBy('match.createdAt', 'DESC')
+            .skip(skip)
+            .take(safeLimit)
             .getMany();
-        const enrichedMatches = await Promise.all(matches.map(async (match) => {
+        const otherUserIds = matches.map((match) => match.user1Id === user.id ? match.user2Id : match.user1Id);
+        const profiles = await this.profilesRepository.find({
+            where: otherUserIds.map((id) => ({ userId: id })),
+            relations: ['user'],
+        });
+        const profileByUserId = new Map(profiles.map((p) => [p.userId, p]));
+        const enrichedMatches = matches.map((match) => {
             const otherUserId = match.user1Id === user.id ? match.user2Id : match.user1Id;
-            const otherProfile = await this.profilesRepository.findOne({
-                where: { userId: otherUserId },
-                relations: ['user'],
-            });
             return {
                 ...match,
-                otherUser: otherProfile,
+                otherUser: profileByUserId.get(otherUserId) || null,
             };
-        }));
+        });
         return enrichedMatches;
     }
     async getMatch(firebaseUid, matchId) {
@@ -182,41 +188,52 @@ let MatchesService = class MatchesService {
         await this.matchesRepository.save(match);
         return { message: 'Unmatched successfully' };
     }
-    async getPendingLikes(firebaseUid) {
+    async getPendingLikes(firebaseUid, page = 1, limit = 20) {
         const user = await this.usersRepository.findOne({
             where: { firebaseUid },
         });
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
+        const safeLimit = Math.min(limit, 100);
+        const skip = (Math.max(page, 1) - 1) * safeLimit;
         const swipes = await this.swipesRepository
             .createQueryBuilder('swipe')
             .leftJoinAndSelect('swipe.swiper', 'swiper')
             .where('swipe.swipedId = :userId', { userId: user.id })
             .andWhere('swipe.swipeType IN (:...types)', { types: ['like', 'super_like'] })
+            .orderBy('swipe.createdAt', 'DESC')
+            .skip(skip)
+            .take(safeLimit)
             .getMany();
-        const pendingLikes = [];
-        for (const swipe of swipes) {
-            const existingSwipe = await this.swipesRepository.findOne({
-                where: {
-                    swiperId: user.id,
-                    swipedId: swipe.swiperId,
-                },
-            });
-            if (!existingSwipe) {
-                const profile = await this.profilesRepository.findOne({
-                    where: { userId: swipe.swiperId },
-                    relations: ['user'],
-                });
-                if (profile) {
-                    pendingLikes.push({
-                        profile,
-                        swipeType: swipe.swipeType,
-                        swipedAt: swipe.createdAt,
-                    });
+        const swiperIds = swipes.map((s) => s.swiperId);
+        const existingSwipes = await this.swipesRepository
+            .createQueryBuilder('swipe')
+            .where('swipe.swiperId = :userId', { userId: user.id })
+            .andWhere('swipe.swipedId IN (:...swiperIds)', { swiperIds })
+            .getMany();
+        const alreadySwipedIds = new Set(existingSwipes.map((s) => s.swipedId));
+        const pendingSwiperIds = swipes
+            .filter((s) => !alreadySwipedIds.has(s.swiperId))
+            .map((s) => s.swiperId);
+        const profiles = await this.profilesRepository.find({
+            where: pendingSwiperIds.map((id) => ({ userId: id })),
+            relations: ['user'],
+        });
+        const profileByUserId = new Map(profiles.map((p) => [p.userId, p]));
+        const pendingLikes = swipes
+            .filter((s) => !alreadySwipedIds.has(s.swiperId))
+            .map((swipe) => {
+            const profile = profileByUserId.get(swipe.swiperId);
+            return profile
+                ? {
+                    profile,
+                    swipeType: swipe.swipeType,
+                    swipedAt: swipe.createdAt,
                 }
-            }
-        }
+                : null;
+        })
+            .filter(Boolean);
         return pendingLikes;
     }
 };

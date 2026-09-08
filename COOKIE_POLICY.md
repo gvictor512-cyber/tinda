@@ -1,4 +1,4 @@
-# Política de Cookies - RoomMate Match
+﻿# Política de Cookies - RoomMate Match
 
 **Última actualización:** Julio 2026
 
@@ -104,7 +104,7 @@ Nos reservamos el derecho de modificar esta política. Le notificaremos cualquie
 ## 9. Contacto
 
 Para preguntas sobre esta política:
-- **Email:** privacy@roommatematch.com
+- **Email:** support@roommatematchapp.com
 - **Dirección:** Carrer Llunas, Barcelona, España
 - **Teléfono:** +34 616 438 869
 
@@ -118,3 +118,5 @@ Esta política se rige por:
 ---
 
 Al utilizar RoomMate Match, acepta esta Política de Cookies.
+
+© 2026 RoomMate Match. All rights reserved.

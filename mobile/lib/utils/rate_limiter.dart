@@ -17,8 +17,8 @@ class RateLimiter {
     // Almacenamiento seguro
     final key = 'login_attempts_$email';
     
-    final attempts = await SecureStorageService.getInt(key) ?? 0;
-    final lockoutTime = await SecureStorageService.getInt('${key}_lockout') ?? 0;
+    final attempts = await SecureStorageService.getInt(key);
+    final lockoutTime = await SecureStorageService.getInt('${key}_lockout');
     final now = DateTime.now().millisecondsSinceEpoch;
     
     // Check if currently locked out
@@ -61,7 +61,7 @@ class RateLimiter {
       await SecureStorageService.remove('${key}_lockout');
     } else {
       // Increment failed attempts
-      final attempts = (await SecureStorageService.getInt(key) ?? 0) + 1;
+      final attempts = (await SecureStorageService.getInt(key)) + 1;
       await SecureStorageService.setInt(key, attempts);
       
       debugPrint('Login attempt failed. Total attempts: $attempts/$MAX_LOGIN_ATTEMPTS');
@@ -73,8 +73,8 @@ class RateLimiter {
     // Almacenamiento seguro
     final key = 'otp_attempts_$phoneNumber';
     
-    final attempts = await SecureStorageService.getInt(key) ?? 0;
-    final lockoutTime = await SecureStorageService.getInt('${key}_lockout') ?? 0;
+    final attempts = await SecureStorageService.getInt(key);
+    final lockoutTime = await SecureStorageService.getInt('${key}_lockout');
     final now = DateTime.now().millisecondsSinceEpoch;
     
     // Check if currently locked out
@@ -115,7 +115,7 @@ class RateLimiter {
       await SecureStorageService.remove(key);
       await SecureStorageService.remove('${key}_lockout');
     } else {
-      final attempts = (await SecureStorageService.getInt(key) ?? 0) + 1;
+      final attempts = (await SecureStorageService.getInt(key)) + 1;
       await SecureStorageService.setInt(key, attempts);
       
       debugPrint('OTP attempt failed. Total attempts: $attempts/$MAX_OTP_ATTEMPTS');
@@ -130,7 +130,7 @@ class RateLimiter {
     final oneMinuteAgo = now - 60000;
     
     // Get recent requests
-    final requests = await SecureStorageService.getStringList(key) ?? [];
+    final requests = await SecureStorageService.getStringList(key);
     final recentRequests = requests
         .map((t) => int.tryParse(t))
         .whereType<int>()
@@ -161,7 +161,7 @@ class RateLimiter {
     final now = DateTime.now().millisecondsSinceEpoch;
     final oneHourAgo = now - 3600000;
     
-    final swipes = await SecureStorageService.getStringList(key) ?? [];
+    final swipes = await SecureStorageService.getStringList(key);
     final recentSwipes = swipes
         .map((t) => int.tryParse(t))
         .whereType<int>()
@@ -191,7 +191,7 @@ class RateLimiter {
     final now = DateTime.now().millisecondsSinceEpoch;
     final oneMinuteAgo = now - 60000;
     
-    final messages = await SecureStorageService.getStringList(key) ?? [];
+    final messages = await SecureStorageService.getStringList(key);
     final recentMessages = messages
         .map((t) => int.tryParse(t))
         .whereType<int>()
@@ -221,7 +221,7 @@ class RateLimiter {
     final now = DateTime.now().millisecondsSinceEpoch;
     final oneDayAgo = now - 86400000;
     
-    final reports = await SecureStorageService.getStringList(key) ?? [];
+    final reports = await SecureStorageService.getStringList(key);
     final recentReports = reports
         .map((t) => int.tryParse(t))
         .whereType<int>()
@@ -269,18 +269,18 @@ class RateLimiter {
     // Almacenamiento seguro
     final now = DateTime.now().millisecondsSinceEpoch;
     
-    final loginAttempts = await SecureStorageService.getInt('login_attempts_$userId') ?? 0;
-    final loginLockout = await SecureStorageService.getInt('login_attempts_${userId}_lockout') ?? 0;
-    final otpAttempts = await SecureStorageService.getInt('otp_attempts_$userId') ?? 0;
+    final loginAttempts = await SecureStorageService.getInt('login_attempts_$userId');
+    final loginLockout = await SecureStorageService.getInt('login_attempts_${userId}_lockout');
+    final otpAttempts = await SecureStorageService.getInt('otp_attempts_$userId');
     
-    final swipes = await SecureStorageService.getStringList('swipes_$userId') ?? [];
+    final swipes = await SecureStorageService.getStringList('swipes_$userId');
     final recentSwipes = swipes
         .map((t) => int.tryParse(t))
         .whereType<int>()
         .where((t) => t > now - 3600000)
         .toList();
     
-    final messages = await SecureStorageService.getStringList('messages_$userId') ?? [];
+    final messages = await SecureStorageService.getStringList('messages_$userId');
     final recentMessages = messages
         .map((t) => int.tryParse(t))
         .whereType<int>()

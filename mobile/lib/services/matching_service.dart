@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'notification_service.dart';
 import '../utils/input_sanitizer.dart';
 import '../utils/rate_limiter.dart';
 import '../utils/secure_logger.dart';
@@ -254,11 +255,15 @@ class MatchingService {
       final mutualSwipeQuery = await _firestore
           .collection('swipes')
           .where('swiperId', isEqualTo: swipedId)
-          .where('swipedId', isEqualTo: swiperId)
-          .where('isLike', isEqualTo: true)
+          .limit(50)
           .get();
 
-      if (mutualSwipeQuery.docs.isNotEmpty) {
+      final hasMutualLike = mutualSwipeQuery.docs.any((d) {
+        final data = d.data();
+        return data['swipedId'] == swiperId && data['isLike'] == true;
+      });
+
+      if (hasMutualLike) {
         // It's a match! Create match document
         await _firestore.collection('matches').add({
           'users': [swiperId, swipedId],
@@ -277,6 +282,9 @@ class MatchingService {
           'lastMessageTimestamp': null,
           'createdAt': FieldValue.serverTimestamp(),
         });
+
+        // Notify the other user about the new match
+        await NotificationService().sendMatchNotification(swipedId);
 
         return true;
       }
@@ -345,15 +353,24 @@ class MatchingService {
       // Get all swipes where the current user was swiped and it was a like
       final likesSnapshot = await _firestore
           .collection('swipes')
-          .where('swipedId', isEqualTo: currentUser.uid)
-          .where('isLike', isEqualTo: true)
-          .orderBy('timestamp', descending: true)
+          .limit(500)
           .get();
+
+      final likesDocs = likesSnapshot.docs.where((d) {
+        final data = d.data();
+        return data['swipedId'] == currentUser.uid && data['isLike'] == true;
+      }).toList();
+      likesDocs.sort((a, b) {
+        final t1 = a.data()['timestamp'] as Timestamp?;
+        final t2 = b.data()['timestamp'] as Timestamp?;
+        if (t1 == null || t2 == null) return 0;
+        return t2.compareTo(t1);
+      });
 
       List<Map<String, dynamic>> likedByUsers = [];
       Set<String> processedUserIds = {};
 
-      for (var doc in likesSnapshot.docs) {
+      for (var doc in likesDocs) {
         final swipeData = doc.data();
         final swiperId = swipeData['swiperId'] as String?;
         
@@ -392,12 +409,19 @@ class MatchingService {
       final lastSwipeQuery = await _firestore
           .collection('swipes')
           .where('swiperId', isEqualTo: currentUser.uid)
-          .orderBy('timestamp', descending: true)
-          .limit(1)
+          .limit(50)
           .get();
 
-      if (lastSwipeQuery.docs.isNotEmpty) {
-        await _firestore.collection('swipes').doc(lastSwipeQuery.docs.first.id).delete();
+      final docs = lastSwipeQuery.docs.toList();
+      docs.sort((a, b) {
+        final t1 = a.data()['timestamp'] as Timestamp?;
+        final t2 = b.data()['timestamp'] as Timestamp?;
+        if (t1 == null || t2 == null) return 0;
+        return t2.compareTo(t1);
+      });
+
+      if (docs.isNotEmpty) {
+        await _firestore.collection('swipes').doc(docs.first.id).delete();
       }
     } catch (e) {
       debugPrint('Error undoing swipe: $e');

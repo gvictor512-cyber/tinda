@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../payment/payment_screen.dart';
+import '../../config/theme.dart';
+import '../../services/iap_service.dart';
+import '../../services/payment_service.dart';
 
 class PremiumScreen extends StatelessWidget {
   const PremiumScreen({super.key});
@@ -15,6 +17,7 @@ class PremiumScreen extends StatelessWidget {
           children: [
             _buildHeader(context),
             _buildFeatures(),
+            _buildIndividualPurchases(context),
             _buildPricing(context),
             _buildFAQ(context),
           ],
@@ -29,7 +32,7 @@ class PremiumScreen extends StatelessWidget {
       padding: const EdgeInsets.all(32),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF4A90E2), Color(0xFF50E3C2)],
+          colors: [AppTheme.primaryBlue, AppTheme.primaryGreen],
         ),
       ),
       child: Column(
@@ -122,12 +125,12 @@ class PremiumScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               feature['icon'],
-              color: const Color(0xFF4A90E2),
+              color: AppTheme.primaryBlue,
               size: 24,
             ),
           ),
@@ -146,8 +149,8 @@ class PremiumScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   feature['description'],
-                  style: TextStyle(
-                    color: Colors.grey[600],
+                  style: const TextStyle(
+                    color: AppTheme.textLightSecondary,
                     fontSize: 14,
                   ),
                 ),
@@ -159,10 +162,170 @@ class PremiumScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildIndividualPurchases(BuildContext context) {
+    final items = PaymentService().getAllIndividualPurchases().entries.toList();
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      color: Colors.transparent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Comprar extras',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...items.map((entry) => _buildIndividualCard(context, entry.key, entry.value)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIndividualCard(
+    BuildContext context,
+    String id,
+    Map<String, dynamic> item,
+  ) {
+    final icon = _getIconForIndividual(id);
+    final name = item['name'] as String;
+    final description = item['description'] as String;
+    final price = item['price'] as double;
+    final currency = item['currency'] as String;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: AppTheme.primaryBlue,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        color: AppTheme.textLightSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton(
+                onPressed: () => _buyIndividual(context, id, price, currency),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(80, 36),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  '${price.toStringAsFixed(2)}$currency',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _getIconForIndividual(String id) {
+    switch (id) {
+      case 'boost':
+        return Icons.rocket_launch;
+      case 'super_like':
+        return Icons.star;
+      case 'premium_verification':
+        return Icons.verified;
+      case 'highlight_listing':
+        return Icons.push_pin;
+      default:
+        return Icons.shopping_bag;
+    }
+  }
+
+  void _buyIndividual(BuildContext context, String itemId, double price, String currency) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+    try {
+      await IapService().purchase(itemId);
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Compra realizada con éxito'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      final message = e.toString().replaceAll('Exception: ', '');
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('No se pudo completar la compra'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Aceptar'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   Widget _buildPricing(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
-      color: Colors.grey[50],
+      color: AppTheme.darkBackground,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -218,10 +381,10 @@ class PremiumScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.darkSurface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isPopular ? const Color(0xFF4A90E2) : Colors.grey[300]!,
+            color: isPopular ? AppTheme.primaryBlue : AppTheme.textLightSecondary.withValues(alpha: 0.3),
             width: isPopular ? 2 : 1,
           ),
           boxShadow: [
@@ -238,7 +401,7 @@ class PremiumScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2),
+                  color: AppTheme.primaryBlue,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
@@ -267,25 +430,25 @@ class PremiumScreen extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF4A90E2),
+                    color: AppTheme.primaryBlue,
                   ),
                 ),
                 Text(
                   period,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: AppTheme.textLightSecondary,
                   ),
                 ),
               ],
             ),
             if (isPopular) ...[
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'Ahorras 33%',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.green[700],
+                  color: AppTheme.primaryGreen,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -294,7 +457,7 @@ class PremiumScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: onTap,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4A90E2),
+                backgroundColor: AppTheme.primaryBlue,
                 minimumSize: const Size(double.infinity, 44),
               ),
               child: const Text(
@@ -319,8 +482,8 @@ class PremiumScreen extends StatelessWidget {
         'answer': 'Mantendrás los beneficios Premium hasta el final del periodo de facturación.',
       },
       {
-        'question': '¿Hay descuento para estudiantes?',
-        'answer': 'Sí, ofrecemos un 50% de descuento para estudiantes con verificación.',
+        'question': '¿Puedo cambiar de plan más adelante?',
+        'answer': 'Sí, puedes cambiar entre el plan mensual y anual en cualquier momento desde la configuración de tu cuenta.',
       },
     ];
 
@@ -354,25 +517,50 @@ class PremiumScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Text(
             faq['answer'],
-            style: TextStyle(color: Colors.grey[600]),
+            style: const TextStyle(color: AppTheme.textLightSecondary),
           ),
         ),
       ],
     );
   }
 
-  void _subscribe(BuildContext context, String plan) {
+  void _subscribe(BuildContext context, String plan) async {
     final planId = plan == 'yearly' ? 'premium_annual' : 'premium_monthly';
-    final amount = plan == 'yearly' ? 79.99 : 9.99;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => PaymentScreen(
-          planId: planId,
-          amount: amount,
-          currency: 'EUR',
-        ),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
       ),
     );
+    try {
+      await IapService().purchase(planId);
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Suscripción activada'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      final message = e.toString().replaceAll('Exception: ', '');
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('No se pudo completar la compra'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Aceptar'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

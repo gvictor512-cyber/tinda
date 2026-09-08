@@ -1,12 +1,12 @@
-# RoomMate Match
+﻿# RoomMate Match
 
 Una aplicación móvil tipo Tinder para encontrar compañeros de piso compatibles.
 
-## 📱 Descripción
+## ðŸ“± Descripción
 
 RoomMate Match es una aplicación móvil nativa para iOS y Android que prioriza la compatibilidad entre personas por encima de la vivienda. El objetivo es reducir conflictos de convivencia mediante un algoritmo de matching inteligente.
 
-## 🎯 Características Principales
+## ðŸŽ¯ Características Principales
 
 ### Core Features
 - **Swipe Interface**: Interfaz similar a Tinder para deslizar perfiles
@@ -44,7 +44,7 @@ RoomMate Match es una aplicación móvil nativa para iOS y Android que prioriza 
 - Buscar pisos juntos con tu match
 - Guardar favoritos y compartir
 
-## 🏗️ Arquitectura
+## ðŸ—ï¸ Arquitectura
 
 ### Frontend (Mobile)
 - **Framework**: Flutter 3.x
@@ -71,39 +71,39 @@ RoomMate Match es una aplicación móvil nativa para iOS y Android que prioriza 
 - **Almacenamiento**: Firebase Storage
 - **CI/CD**: GitHub Actions
 
-## 📁 Estructura del Proyecto
+## ðŸ“ Estructura del Proyecto
 
 ```
 roommate-match/
-├── mobile/                          # Flutter App
-│   ├── lib/
-│   │   ├── main.dart
-│   │   ├── app.dart
-│   │   ├── config/
-│   │   ├── core/
-│   │   ├── features/
-│   │   └── utils/
-│   ├── android/
-│   ├── ios/
-│   └── pubspec.yaml
-│
-├── backend/                         # NestJS Backend
-│   ├── src/
-│   │   ├── main.ts
-│   │   ├── app.module.ts
-│   │   ├── config/
-│   │   ├── common/
-│   │   └── modules/
-│   ├── test/
-│   └── package.json
-│
-├── database/                        # PostgreSQL Schema
-│   └── schema.sql
-│
-└── README.md
+â”œâ”€â”€ mobile/                          # Flutter App
+â”‚   â”œâ”€â”€ lib/
+â”‚   â”‚   â”œâ”€â”€ main.dart
+â”‚   â”‚   â”œâ”€â”€ app.dart
+â”‚   â”‚   â”œâ”€â”€ config/
+â”‚   â”‚   â”œâ”€â”€ core/
+â”‚   â”‚   â”œâ”€â”€ features/
+â”‚   â”‚   â””â”€â”€ utils/
+â”‚   â”œâ”€â”€ android/
+â”‚   â”œâ”€â”€ ios/
+â”‚   â””â”€â”€ pubspec.yaml
+â”‚
+â”œâ”€â”€ backend/                         # NestJS Backend
+â”‚   â”œâ”€â”€ src/
+â”‚   â”‚   â”œâ”€â”€ main.ts
+â”‚   â”‚   â”œâ”€â”€ app.module.ts
+â”‚   â”‚   â”œâ”€â”€ config/
+â”‚   â”‚   â”œâ”€â”€ common/
+â”‚   â”‚   â””â”€â”€ modules/
+â”‚   â”œâ”€â”€ test/
+â”‚   â””â”€â”€ package.json
+â”‚
+â”œâ”€â”€ database/                        # PostgreSQL Schema
+â”‚   â””â”€â”€ schema.sql
+â”‚
+â””â”€â”€ README.md
 ```
 
-## 🚀 Instalación
+## ðŸš€ Instalación
 
 ### Prerrequisitos
 - Node.js 18+
@@ -140,7 +140,7 @@ psql -U postgres -c "CREATE DATABASE roommatematch;"
 psql -U postgres -d roommatematch -f database/schema.sql
 ```
 
-## 🔧 Configuración
+## ðŸ”§ Configuración
 
 ### Variables de Entorno (Backend)
 
@@ -170,7 +170,7 @@ NODE_ENV=development
 
 Configurar `android/app/google-services.json` y `ios/GoogleService-Info.plist` con las credenciales de tu proyecto Firebase.
 
-## 📊 Algoritmo de Compatibilidad
+## ðŸ“Š Algoritmo de Compatibilidad
 
 El algoritmo calcula un score de compatibilidad (0-100%) basado en:
 
@@ -184,7 +184,7 @@ El algoritmo calcula un score de compatibilidad (0-100%) basado en:
 - **Música/Ruido** (5%): Tolerancia al ruido
 - **Teletrabajo** (10%): Trabajo remoto
 
-## 🎨 Diseño
+## ðŸŽ¨ Diseño
 
 - **Estilo**: Moderno y minimalista
 - **Inspiración**: Tinder, Airbnb, Spotify
@@ -196,11 +196,11 @@ El algoritmo calcula un score de compatibilidad (0-100%) basado en:
 - **Dark Mode**: Soporte completo para modo oscuro
 - **Animaciones**: Transiciones suaves y fluidas
 
-## 📱 Screenshots
+## ðŸ“± Screenshots
 
 (Add screenshots when available)
 
-## 🔒 Seguridad
+## ðŸ”’ Seguridad
 
 | Feature | Implementación |
 |---------|----------------|
@@ -211,7 +211,7 @@ El algoritmo calcula un score de compatibilidad (0-100%) basado en:
 | Validación | class-validator (backend) |
 | Rate Limiting | @nestjs/throttler |
 
-## 🧪 Testing
+## ðŸ§ª Testing
 
 ```bash
 # Backend tests
@@ -224,7 +224,7 @@ cd mobile
 flutter test
 ```
 
-## 📦 Build
+## ðŸ“¦ Build
 
 ### Backend
 
@@ -249,7 +249,7 @@ cd mobile
 flutter build ios --release
 ```
 
-## 🚀 Deployment
+## ðŸš€ Deployment
 
 ### Backend
 - Google Cloud Run / AWS ECS
@@ -260,11 +260,11 @@ flutter build ios --release
 - App Store (iOS)
 - Google Play (Android)
 
-## 📄 Licencia
+## ðŸ“„ Licencia
 
 Proprietary - All rights reserved
 
-## 👥 Equipo
+## ðŸ‘¥ Equipo
 
 - Product Manager
 - UX/UI Designer
@@ -272,6 +272,6 @@ Proprietary - All rights reserved
 - Full Stack Developers
 - QA Engineers
 
-## 📞 Contacto
+## ðŸ“ž Contacto
 
-Para soporte o preguntas, contacta a: support@roommatematch.com
+Para soporte o preguntas, contacta a: support@roommatematchapp.com

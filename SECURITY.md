@@ -1,4 +1,4 @@
-# Security Policy - RoomMate Match
+﻿# Security Policy - RoomMate Match
 
 ## Reporting Security Vulnerabilities
 
@@ -6,7 +6,7 @@ We take the security of RoomMatematch seriously. If you discover a security vuln
 
 ### How to Report
 
-**Email:** security@roommatematch.com
+**Email:** support@roommatematchapp.com
 
 Please include:
 - Description of the vulnerability
@@ -135,7 +135,7 @@ Users will be notified of security updates via:
 ## Security Team
 
 For security-related inquiries:
-- **Email:** security@roommatematch.com
+- **Email:** support@roommatematchapp.com
 - **Contact:** Victor Garcia Caballero
 - **Phone:** +34 616 438 869
 - **Address:** Carrer Llunas, Barcelona, España
@@ -148,3 +148,7 @@ We thank security researchers who help us keep RoomMate Match secure.
 ---
 
 Last updated: July 2026
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

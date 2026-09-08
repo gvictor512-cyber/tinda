@@ -10,6 +10,7 @@ import 'settings_screen.dart';
 import '../premium/premium_screen.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
+import '../auth/welcome_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -308,6 +309,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () async {
                     await _authService.signOut();
+                    if (mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                        (route) => false,
+                      );
+                    }
                   },
                   icon: const Icon(Icons.logout_rounded),
                   label: const Text('Cerrar sesión'),

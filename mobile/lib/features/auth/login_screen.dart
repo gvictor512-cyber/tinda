@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../utils/secure_storage_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/analytics_service.dart';
 import '../../config/theme.dart';
-import '../onboarding/user_type_selection_screen.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../../app.dart';
@@ -45,12 +46,18 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
+      unawaited(AnalyticsService().logLogin('email'));
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       }
     } catch (e) {
+      unawaited(AnalyticsService().logLoginError(
+        method: 'email',
+        error: e.toString(),
+      ));
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
         _isLoading = false;
@@ -70,12 +77,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await _authService.signInWithGoogle(userType: userType);
 
+      unawaited(AnalyticsService().logLogin('google'));
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       }
     } catch (e) {
+      unawaited(AnalyticsService().logLoginError(
+        method: 'google',
+        error: e.toString(),
+      ));
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
         _isLoading = false;
@@ -94,12 +107,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await _authService.signInWithApple(userType: userType);
 
+      unawaited(AnalyticsService().logLogin('apple'));
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       }
     } catch (e) {
+      unawaited(AnalyticsService().logLoginError(
+        method: 'apple',
+        error: e.toString(),
+      ));
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
         _isLoading = false;
@@ -113,6 +132,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppTheme.primaryBlue),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -131,25 +155,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   builder: (context, value, child) {
                     return Transform.scale(
                       scale: value,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                              blurRadius: 30,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.home_outlined,
-                          size: 60,
-                          color: Colors.white,
-                        ),
+                      child: Image.asset(
+                        'assets/images/logo_symbol.png',
+                        height: 160,
+                        fit: BoxFit.contain,
                       ),
                     );
                   },
@@ -434,13 +443,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 const SizedBox(height: 24),
                 
-                // Back to user type selection
+                // Volver
                 TextButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (context) => const UserTypeSelectionScreen()),
-                    );
-                  },
+                  onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.arrow_back_rounded),
                   label: const Text('Volver'),
                   style: TextButton.styleFrom(

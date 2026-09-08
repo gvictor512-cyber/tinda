@@ -24,8 +24,8 @@ let MatchesController = class MatchesController {
     async swipe(req, swipeDto) {
         return this.matchesService.handleSwipe(req.user.uid, swipeDto);
     }
-    async getMyMatches(req) {
-        return this.matchesService.getUserMatches(req.user.uid);
+    async getMyMatches(req, page, limit) {
+        return this.matchesService.getUserMatches(req.user.uid, page, limit);
     }
     async getMatch(req, matchId) {
         return this.matchesService.getMatch(req.user.uid, matchId);
@@ -50,8 +50,10 @@ __decorate([
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)('page', new common_1.DefaultValuePipe(1), common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Query)('limit', new common_1.DefaultValuePipe(20), common_1.ParseIntPipe)),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Number, Number]),
     __metadata("design:returntype", Promise)
 ], MatchesController.prototype, "getMyMatches", null);
 __decorate([

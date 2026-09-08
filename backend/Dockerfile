@@ -14,6 +14,7 @@ FROM node:20-alpine
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV UV_THREADPOOL_SIZE=128
 
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup

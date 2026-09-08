@@ -44,3 +44,7 @@
 - **Trust**: Verified profiles and safe matching
 - **Community**: Building better living situations
 - **Simplicity**: Easy, intuitive experience
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

@@ -6,7 +6,7 @@ Resumen de lo que queda para lanzar la app, con los pasos que ya están preparad
 
 | Componente | Estado |
 |------------|--------|
-| App Flutter | Construye release APK, web, Windows, Linux y macOS. |
+| App Flutter | Construye release APK y AAB firmado. Web, Windows, Linux y macOS disponibles. |
 | Backend NestJS | Compila correctamente. Admin endpoints listos. |
 | Base de datos | Esquema PostgreSQL y SQLite local listos. |
 | SEO | Metadatos y sitemap configurados para web. |
@@ -18,10 +18,20 @@ Resumen de lo que queda para lanzar la app, con los pasos que ya están preparad
 ```powershell
 cd mobile
 flutter build apk --release          # APK de test/local
-flutter build appbundle --release    # AAB para Google Play
+flutter build appbundle --release    # AAB para Google Play (requiere cmdline-tools)
 ```
 
-**Requisito para AAB**: el APK release ya se genera; el AAB puede requerir Android NDK dependiendo del proyecto.
+Si `flutter build appbundle` falla por `strip debug symbols`, compila directamente con Gradle:
+```powershell
+cd mobile/android
+.\gradlew.bat :app:bundleRelease
+```
+
+**Build AAB firmado**: `mobile/build/app/outputs/bundle/release/app-release.aab` (~19 MB).
+
+**Automatizado**: Ejecuta `mobile/build_release.ps1` para generar APK y AAB juntos.
+
+**Producción Android**: Revisa `mobile/android/app/proguard-rules.pro` (Stripe, Firebase, in-app purchase) y `AndroidManifest.xml` (etiqueta `RoomMate Match`).
 
 ### Web
 ```powershell
@@ -91,10 +101,10 @@ storeFile=C:\ruta\absoluta\a\upload-keystore.jks
 - Ejecutar `database/schema.sql`.
 - Completar `backend/.env` con host, usuario y contraseña.
 
-### 5. Pagos (Stripe)
-- Crear cuenta en https://stripe.com.
-- Añadir `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` a `backend/.env`.
-- Configurar in-app purchases en Google Play Console y App Store Connect.
+### 5. Pagos (IAP nativo)
+- El código usa `in_app_purchase` y `IapService` para Google Play Billing / StoreKit.
+- Crea los productos/suscripciones en Google Play Console y App Store Connect con los IDs listados en `LAUNCH_NEXT_STEPS.md`.
+- Stripe se mantiene solo para web (`STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` en `backend/.env`).
 
 ### 6. Legal y tiendas
 - URL pública de política de privacidad.
@@ -122,3 +132,7 @@ storeFile=C:\ruta\absoluta\a\upload-keystore.jks
 ## Nota importante
 
 El código compila y los assets están listos. Lo que falta son cuentas externas (Google, Apple, Firebase, Stripe, PostgreSQL) y la conexión real de esos servicios. Sin eso, la app funciona en local pero no puede publicarse ni operar con usuarios reales.
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

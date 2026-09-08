@@ -18,7 +18,7 @@ exports.RegisterDto = RegisterDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
         description: 'User email',
-        example: 'user@example.com',
+        example: 'support@roommatematchapp.com',
     }),
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsEmail)(),

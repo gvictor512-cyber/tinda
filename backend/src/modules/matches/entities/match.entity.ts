@@ -1,6 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
 
 @Entity('matches')
+@Index(['user1Id', 'user2Id'])
+@Index(['isActive', 'createdAt'])
 export class Match {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -15,3 +15,13 @@
 -keepattributes *Annotation*
 -keepattributes Signature
 -keepattributes Exceptions
+
+# Firebase / Google Play Services
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# In-app purchase (Google Play Billing)
+-keep class com.android.billingclient.** { *; }
+-dontwarn com.android.billingclient.**

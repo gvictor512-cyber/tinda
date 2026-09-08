@@ -2,6 +2,13 @@ import { Controller, Get, Post, Body, UseGuards, Request, Param, ParseUUIDPipe, 
 import { NotificationsService } from './notifications.service';
 import { FirebaseAuthGuard } from '../../common/guards/auth.guard';
 
+class SendNotificationDto {
+  userId: string;
+  title: string;
+  body: string;
+  data?: Record<string, any>;
+}
+
 @Controller('notifications')
 @UseGuards(FirebaseAuthGuard)
 export class NotificationsController {
@@ -26,5 +33,20 @@ export class NotificationsController {
     const user = req.user;
     // TODO: Get user ID from Firebase UID
     return this.notificationsService.markAllAsRead(user.uid);
+  }
+
+  @Post('send')
+  @HttpCode(HttpStatus.OK)
+  async send(@Request() req, @Body() dto: SendNotificationDto) {
+    const senderId = req.user?.uid ?? '';
+    const notificationType = (dto.data?.type as string) || 'custom';
+    return this.notificationsService.sendToUser(
+      senderId,
+      dto.userId,
+      notificationType,
+      dto.title,
+      dto.body,
+      dto.data ?? {},
+    );
   }
 }

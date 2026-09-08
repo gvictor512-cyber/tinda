@@ -113,9 +113,51 @@ class AnalyticsService {
 
   // Log swipe action
   Future<void> logSwipe({required bool isLike, required String profileId}) async {
+    await _analytics.logEvent(
+      name: 'swipe',
+      parameters: {'is_like': isLike, 'profile_id': profileId},
+    );
     await _logEvent('swipe', {
       'is_like': isLike,
       'profile_id': profileId,
+    });
+  }
+
+  // Log report
+  Future<void> logReport({
+    required String reportedId,
+    required String reason,
+    String? reporterId,
+  }) async {
+    await _logEvent('report_user', {
+      'reported_id': reportedId,
+      'reason': reason,
+      'reporter_id': reporterId,
+    });
+  }
+
+  // Log premium view
+  Future<void> logPremiumView() async {
+    await _logEvent('premium_view', {});
+  }
+
+  // Log purchase
+  Future<void> logPurchase({
+    required String planId,
+    required String transactionId,
+    double? price,
+    String? currency,
+  }) async {
+    await _analytics.logPurchase(
+      currency: currency ?? 'EUR',
+      value: price ?? 0.0,
+      transactionId: transactionId,
+    );
+    await _logEvent('purchase', {
+      'plan_id': planId,
+      'transaction_id': transactionId,
+      'price': price,
+      'currency': currency,
     });
   }
 
@@ -673,5 +715,49 @@ class AnalyticsService {
       debugPrint('Error getting daily metrics: $e');
       rethrow;
     }
+  }
+
+  // Onboarding funnel
+  Future<void> logOnboardingBegin() async {
+    await _logEvent('onboarding_begin', {});
+  }
+
+  Future<void> logOnboardingStep(int step) async {
+    await _logEvent('onboarding_step', {'step': step});
+  }
+
+  Future<void> logOnboardingComplete() async {
+    await _logEvent('onboarding_complete', {});
+  }
+
+  Future<void> logOnboardingSkipped() async {
+    await _logEvent('onboarding_skip', {});
+  }
+
+  // Login error
+  Future<void> logLoginError({
+    required String method,
+    required String error,
+  }) async {
+    await _logEvent('login_error', {
+      'method': method,
+      'error': error,
+    });
+  }
+
+  // Purchase error
+  Future<void> logPurchaseError({
+    required String planId,
+    required String error,
+  }) async {
+    await _logEvent('purchase_error', {
+      'plan_id': planId,
+      'error': error,
+    });
+  }
+
+  /// Wrapper público para eventos personalizados.
+  Future<void> logEvent(String name, Map<String, dynamic> parameters) async {
+    await _logEvent(name, parameters);
   }
 }

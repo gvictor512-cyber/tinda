@@ -16,7 +16,7 @@ class CreateCustomerDto {
 }
 exports.CreateCustomerDto = CreateCustomerDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Customer email', example: 'user@example.com' }),
+    (0, swagger_1.ApiProperty)({ description: 'Customer email', example: 'support@roommatematchapp.com' }),
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsEmail)(),
     __metadata("design:type", String)

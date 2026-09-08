@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>App</string>
+	<string>RoomMate Match</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>app</string>
+	<string>RoomMate Match</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -60,8 +60,21 @@
 	<string>RoomMate Match necesita acceso a la cámara para que puedas añadir fotos de perfil y verificar tu identidad.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>RoomMate Match accede a tu galería para que puedas seleccionar fotos de perfil.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>RoomMate Match necesita guardar fotos en tu galería cuando lo solicites.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Usamos tu ubicación para mostrarte compañeros y pisos cercanos según tus preferencias.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.roommatematch.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>roommatematch</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Tu actividad se rastrea solo para mejorar la experiencia y ofrecer recomendaciones. Puedes rechazarlo.</string>
 	<key>UILaunchStoryboardName</key>
@@ -81,5 +94,14 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.lifestyle</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 RoomMate Match. All rights reserved.</string>
 </dict>
 </plist>

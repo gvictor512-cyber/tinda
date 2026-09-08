@@ -4,6 +4,8 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { VerifySelfieDto } from './dto/verify-selfie.dto';
 import { FirebaseAuthGuard } from '../../common/guards/auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 @Controller('verification')
 @UseGuards(FirebaseAuthGuard)
@@ -40,6 +42,8 @@ export class VerificationController {
   }
 
   @Post('approve')
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles('admin')
   @HttpCode(HttpStatus.OK)
   async approveVerification(@Body('firebaseUid') firebaseUid: string) {
     return this.verificationService.approveVerification(firebaseUid);

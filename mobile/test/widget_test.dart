@@ -10,15 +10,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:roommatematch/main.dart';
 
 void main() {
-  testWidgets('App splash smoke test', (WidgetTester tester) async {
+  testWidgets('App muestra pantalla de inicio', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const RoomMateMatchApp());
+    await tester.pumpAndSettle();
 
-    // Wait for the splash animation to complete.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 1200));
-
-    // Verify that the splash screen title is shown.
-    expect(find.text('RoomMate Match'), findsOneWidget);
+    // Verify that the welcome screen is shown.
+    expect(find.text('Crear cuenta'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 }

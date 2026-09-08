@@ -10,6 +10,8 @@ export declare class Verification {
     documentVerified: boolean;
     documentVerifiedAt: Date;
     documentUrl: string;
+    selfieUrl: string;
+    selfieSubmittedAt: Date;
     isVerified: boolean;
     verificationLevel: string;
     createdAt: Date;

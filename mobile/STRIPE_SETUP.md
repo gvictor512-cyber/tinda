@@ -344,3 +344,7 @@ Monitorea tus pagos en el Dashboard de Stripe:
 9. [ ] Configurar Google Pay (Android)
 10. [ ] Probar en modo test
 11. [ ] Desplegar a producción
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

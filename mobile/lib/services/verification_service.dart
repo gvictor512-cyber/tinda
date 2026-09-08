@@ -88,7 +88,7 @@ class VerificationService {
       }
 
       final storedCode = await SecureStorageService.getString('phone_verification_code');
-      final timestamp = await SecureStorageService.getInt('phone_code_timestamp') ?? 0;
+      final timestamp = await SecureStorageService.getInt('phone_code_timestamp');
 
       // Check if code is expired
       final codeAge = DateTime.now().millisecondsSinceEpoch - timestamp;

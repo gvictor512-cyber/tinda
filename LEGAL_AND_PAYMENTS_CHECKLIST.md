@@ -1,4 +1,4 @@
-# RoomMate Match - Checklist Legal, Empresarial y Pagos
+﻿# RoomMate Match - Checklist Legal, Empresarial y Pagos
 
 ## Acciones que requieren gestión fuera del código (tú o tu abogado/gestor)
 
@@ -13,8 +13,8 @@
 ### 2. Términos de Uso y Política de Privacidad
 - [ ] Revisar `TERMS_OF_SERVICE.md` y `PRIVACY_POLICY.md` con un abogado.
 - [ ] Sustituir los datos de contacto de ejemplo por los reales:
-  - Email legal: legal@roommatematch.com
-  - Email privacidad: privacy@roommatematch.com
+  - Email legal: support@roommatematchapp.com
+  - Email privacidad: support@roommatematchapp.com
   - Dirección postal real
   - Teléfono real
 - [ ] Publicar los documentos en URLs accesibles públicamente:

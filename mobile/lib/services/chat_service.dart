@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'notification_service.dart';
 import '../utils/input_sanitizer.dart';
 import '../utils/permission_validator.dart';
 import '../utils/rate_limiter.dart';
@@ -123,6 +124,12 @@ class ChatService {
           });
         }
       }
+
+      // Send push notification to receiver
+      await NotificationService().sendChatNotification(
+        receiverId,
+        senderName: currentUser.displayName ?? 'Alguien',
+      );
     } catch (e) {
       SecureLogger.error('Failed to send message', error: e, data: {
         'sender': _auth.currentUser?.uid,
@@ -152,18 +159,32 @@ class ChatService {
   }
 
   // Get all chats for current user
-  Stream<QuerySnapshot> getUserChats() {
+  Stream<List<QueryDocumentSnapshot>> getUserChats() {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
       debugPrint('Usuario no autenticado - devolviendo stream vacío');
-      return const Stream.empty();
+      return const Stream<List<QueryDocumentSnapshot>>.empty();
     }
 
     return _firestore
         .collection('chats')
-        .where('participants', arrayContains: currentUser.uid)
-        .orderBy('lastMessageTimestamp', descending: true)
-        .snapshots();
+        .snapshots()
+        .map((snapshot) {
+      final docs = snapshot.docs.where((doc) {
+        final data = doc.data() as Map<String, dynamic>?;
+        final participants = data?['participants'] as List? ?? [];
+        return participants.contains(currentUser.uid);
+      }).toList();
+      docs.sort((a, b) {
+        final aData = a.data() as Map<String, dynamic>?;
+        final bData = b.data() as Map<String, dynamic>?;
+        final aTs = aData?['lastMessageTimestamp'] as Timestamp?;
+        final bTs = bData?['lastMessageTimestamp'] as Timestamp?;
+        if (aTs == null || bTs == null) return 0;
+        return bTs.compareTo(aTs);
+      });
+      return docs;
+    });
   }
 
   // Mark messages as read

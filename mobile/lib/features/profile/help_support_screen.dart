@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/theme.dart';
 
 class HelpSupportScreen extends StatelessWidget {
@@ -22,6 +24,70 @@ class HelpSupportScreen extends StatelessWidget {
       'answer': 'Escríbenos a support@roommatematchapp.com.',
     },
   ];
+
+  void _showSupportDialog(BuildContext context) {
+    final subjectController = TextEditingController();
+    final bodyController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Contactar con soporte'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: subjectController,
+              decoration: const InputDecoration(labelText: 'Asunto'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: bodyController,
+              decoration: const InputDecoration(labelText: 'Mensaje'),
+              maxLines: 4,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final subject = subjectController.text.trim();
+              final body = bodyController.text.trim();
+
+              if (subject.isEmpty || body.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Rellena el asunto y el mensaje.')),
+                );
+                return;
+              }
+
+              final user = FirebaseAuth.instance.currentUser;
+              await FirebaseFirestore.instance.collection('support_messages').add({
+                'userId': user?.uid,
+                'email': user?.email,
+                'subject': subject,
+                'body': body,
+                'timestamp': FieldValue.serverTimestamp(),
+                'status': 'open',
+              });
+
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Mensaje enviado al equipo de soporte.')),
+                );
+              }
+            },
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +113,7 @@ class HelpSupportScreen extends StatelessWidget {
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         child: Text(
                           faq['answer']!,
-                          style: const TextStyle(color: AppTheme.textDarkSecondary),
+                          style: const TextStyle(color: AppTheme.textLightSecondary),
                         ),
                       ),
                     ],
@@ -63,7 +129,13 @@ class HelpSupportScreen extends StatelessWidget {
               leading: const Icon(Icons.email_outlined, color: AppTheme.primaryBlue),
               title: const Text('Contactar con soporte'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {},
+              onTap: () => _showSupportDialog(context),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              '© 2026 RoomMate Match. All rights reserved.',
+              style: TextStyle(fontSize: 12, color: AppTheme.textLightSecondary),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

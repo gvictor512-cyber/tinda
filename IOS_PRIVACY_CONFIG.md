@@ -1,4 +1,4 @@
-# iOS Privacy Configuration
+﻿# iOS Privacy Configuration
 
 ## Info.plist Keys
 
@@ -186,7 +186,7 @@ Add these keys to `mobile/ios/Runner/Info.plist`:
 ## App Review Information
 
 **Demo Account:**
-- **Email:** demo@roommatematch.com
+- **Email:** support@roommatematchapp.com
 - **Password:** [Demo password]
 - **Notes:** Account with full access for testing
 
@@ -247,3 +247,7 @@ Add these keys to `mobile/ios/Runner/Info.plist`:
 ### Export Compliance
 **Encryption:** Yes (standard encryption)
 **Export Compliance:** App uses standard encryption, no special export license required
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

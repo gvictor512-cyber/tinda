@@ -164,3 +164,7 @@ And implement consent form for GDPR/CCPA compliance.
 - [ ] Verify notification permissions
 - [ ] Test on Android 8.0+ devices
 - [ ] Verify compliance with Google Play policies
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

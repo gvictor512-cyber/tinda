@@ -1,157 +1,112 @@
 import 'package:flutter/material.dart';
-import '../../utils/secure_storage_service.dart';
 import '../../config/theme.dart';
+import '../auth/login_screen.dart';
+import '../auth/register_screen.dart';
 
 class UserTypeSelectionScreen extends StatelessWidget {
   const UserTypeSelectionScreen({super.key});
 
-  Future<void> _selectUserType(BuildContext context, String userType) async {
-    await SecureStorageService.setString('user_type', userType);
-    
-    if (context.mounted) {
-      Navigator.pushReplacementNamed(context, '/main');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: AppTheme.primaryGradient,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1A2A4E),
+              Color(0xFF0F1C36),
+            ],
+          ),
         ),
         child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.home_outlined,
-                    size: 100,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 32),
-                  const Text(
-                    '¿Qué tipo de usuario eres?',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Selecciona tu rol para personalizar tu experiencia',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 48),
-                  
-                  // Tenant option
-                  _buildUserTypeCard(
-                    context,
-                    icon: Icons.search,
-                    title: 'Busco piso',
-                    subtitle: 'Quiero encontrar el piso perfecto para mí',
-                    onTap: () => _selectUserType(context, 'tenant'),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Landlord option
-                  _buildUserTypeCard(
-                    context,
-                    icon: Icons.apartment,
-                    title: 'Tengo un piso',
-                    subtitle: 'Quiero alquilar mi piso a compañeros',
-                    onTap: () => _selectUserType(context, 'landlord'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUserTypeCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppTheme.lightSurface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Row(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 32,
-                    color: AppTheme.primaryBlue,
+                const Spacer(),
+                _buildLogo(),
+                const SizedBox(height: 32),
+                const Text(
+                  'RoomMate Match',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: -0.8,
                   ),
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textDark,
-                        ),
+                const SizedBox(height: 12),
+                Text(
+                  'Encuentra tu compañero de piso ideal',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryGreen,
+                      foregroundColor: AppTheme.darkBackground,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppTheme.textDarkSecondary,
-                        ),
+                      textStyle: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
                       ),
-                    ],
+                    ),
+                    child: const Text('Crear cuenta'),
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: AppTheme.textDarkSecondary,
-                  size: 20,
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white, width: 1.5),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    child: const Text('Iniciar sesión'),
+                  ),
                 ),
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  ),
+                  child: const Text(
+                    '¿Ya tienes cuenta? Inicia sesión',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                SizedBox(height: size.height * 0.04),
               ],
             ),
           ),
@@ -159,4 +114,13 @@ class UserTypeSelectionScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildLogo() {
+    return Image.asset(
+      'assets/images/logo_symbol.png',
+      height: 170,
+      fit: BoxFit.contain,
+    );
+  }
+
 }

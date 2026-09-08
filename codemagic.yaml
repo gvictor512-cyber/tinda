@@ -81,6 +81,8 @@ workflows:
       - name: Get Flutter dependencies
         script: flutter pub get
       - name: Build Android App Bundle
-        script: flutter build appbundle --release
+        script: |
+          cd android
+          ./gradlew :app:bundleRelease
     artifacts:
       - build/app/outputs/bundle/release/app-release.aab

@@ -192,3 +192,7 @@ The app is currently running on the emulator with:
 - ✅ Privacy settings screen
 
 Navigate through the app to capture each required screenshot.
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

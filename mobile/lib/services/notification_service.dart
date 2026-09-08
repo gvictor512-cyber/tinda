@@ -5,6 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
+import 'api_service.dart';
 
 class NotificationService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
@@ -23,12 +26,15 @@ class NotificationService {
 
   // Initialize notifications
   Future<void> initialize() async {
+    // Initialize timezones for scheduled notifications
+    tz.initializeTimeZones();
+
     // Request permissions
     await _requestPermissions();
 
     // Initialize local notifications
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/logo_notification');
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings();
@@ -143,7 +149,7 @@ class NotificationService {
             _channel.id,
             _channel.name,
             channelDescription: _channel.description,
-            icon: android.smallIcon,
+            icon: '@drawable/logo_notification',
             color: const Color(0xFF4A90E2),
           ),
           iOS: const DarwinNotificationDetails(),
@@ -193,6 +199,54 @@ class NotificationService {
     }
   }
 
+  // Send push notification to a specific user via the backend
+  Future<void> _notifyBackend(
+    String userId,
+    String title,
+    String body,
+    Map<String, String> data,
+  ) async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) return;
+      final idToken = await currentUser.getIdToken();
+      if (idToken == null) return;
+      final api = ApiService();
+      api.setAuthToken(idToken);
+      await api.post('/notifications/send', data: {
+        'userId': userId,
+        'title': title,
+        'body': body,
+        'data': data,
+      });
+    } catch (e) {
+      debugPrint('Error sending remote notification: $e');
+    }
+  }
+
+  // Notify a new incoming chat message
+  Future<void> sendChatNotification(
+    String receiverId, {
+    String senderName = 'Alguien',
+  }) async {
+    return _notifyBackend(
+      receiverId,
+      'Nuevo mensaje',
+      'Tienes un mensaje de $senderName',
+      {'type': 'new_message'},
+    );
+  }
+
+  // Notify a new match
+  Future<void> sendMatchNotification(String receiverId) async {
+    return _notifyBackend(
+      receiverId,
+      '¡Nuevo Match!',
+      '¡Parece que podríais ser grandes compañeros de piso!',
+      {'type': 'new_match'},
+    );
+  }
+
   // Send local notification (for testing)
   Future<void> sendLocalNotification({
     required String title,
@@ -209,6 +263,8 @@ class NotificationService {
           _channel.name,
           channelDescription: _channel.description,
           importance: Importance.high,
+          priority: Priority.high,
+          icon: '@drawable/logo_notification',
           color: const Color(0xFF4A90E2),
         ),
         iOS: const DarwinNotificationDetails(),
@@ -273,5 +329,59 @@ class NotificationService {
   // Clear specific notification
   Future<void> clearNotification(int id) async {
     await _localNotifications.cancel(id);
+  }
+
+  // Schedule re-engagement notification when user is inactive
+  Future<void> scheduleReEngagementNotification({Duration delay = const Duration(days: 3)}) async {
+    const id = 1001;
+    await _localNotifications.cancel(id);
+
+    final messages = [
+      {
+        'title': 'RoomMate Match',
+        'body': 'No dejes escapar a tu compañero ideal. ¡Vuelve!',
+      },
+      {
+        'title': 'RoomMate Match',
+        'body': 'Tienes nuevos perfiles cerca de tu zona.',
+      },
+      {
+        'title': 'RoomMate Match',
+        'body': 'Alguien ha visto tu perfil. ¿Te interesa?',
+      },
+      {
+        'title': 'RoomMate Match',
+        'body': 'Vuelve a buscar tu piso ideal hoy.',
+      },
+    ];
+
+    final index = delay.inDays % messages.length;
+    final message = messages[index.abs()];
+    final scheduledDate = tz.TZDateTime.now(tz.UTC).add(delay);
+
+    await _localNotifications.zonedSchedule(
+      id,
+      message['title'],
+      message['body'],
+      scheduledDate,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channel.id,
+          _channel.name,
+          channelDescription: _channel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@drawable/logo_notification',
+          color: const Color(0xFF4A90E2),
+        ),
+        iOS: const DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+    );
+
+    if (kDebugMode) {
+      print('Re-engagement notification scheduled for $scheduledDate UTC');
+    }
   }
 }

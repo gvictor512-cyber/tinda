@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, NotImplementedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as admin from 'firebase-admin';
 import { Verification } from './entities/verification.entity';
 import { User } from '../users/entities/user.entity';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -61,9 +62,10 @@ export class VerificationService {
       throw new NotFoundException('User not found');
     }
 
-    // Verify email with Firebase
-    // TODO: Implement actual email verification logic
-    // For now, we'll assume the token is valid
+    const firebaseUser = await admin.auth().getUser(firebaseUid);
+    if (!firebaseUser.emailVerified) {
+      throw new BadRequestException('Email not verified in Firebase');
+    }
     
     let verification = await this.verificationRepository.findOne({
       where: { userId: user.id },
@@ -96,34 +98,9 @@ export class VerificationService {
       throw new NotFoundException('User not found');
     }
 
-    // Verify phone number with SMS service
-    // TODO: Implement actual SMS verification logic
-    // For now, we'll assume the code is valid
-    
-    let verification = await this.verificationRepository.findOne({
-      where: { userId: user.id },
-    });
-
-    if (!verification) {
-      verification = this.verificationRepository.create({
-        userId: user.id,
-      });
-    }
-
-    verification.phoneVerified = true;
-    verification.phoneVerifiedAt = new Date();
-    verification.verificationLevel = 'standard';
-    
-    await this.verificationRepository.save(verification);
-
-    // Update user phone
-    user.phone = verifyPhoneDto.phoneNumber;
-    await this.usersRepository.save(user);
-
-    // Update overall verification status
-    await this.updateOverallVerification(verification);
-
-    return { success: true, message: 'Phone verified successfully' };
+    throw new NotImplementedException(
+      'SMS verification is not configured. Configure a provider (Twilio, Vonage, etc.) before enabling this endpoint.',
+    );
   }
 
   async verifySelfie(firebaseUid: string, verifySelfieDto: VerifySelfieDto) {

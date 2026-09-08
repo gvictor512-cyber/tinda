@@ -2,13 +2,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart';
 
 class EmailService {
-  static const String privacyEmail = 'privacy@roommatematch.com';
+  static const String privacyEmail = 'support@roommatematchapp.com';
   static const String supportEmail = 'support@roommatematchapp.com';
-  static const String legalEmail = 'legal@roommatematch.com';
+  static const String legalEmail = 'support@roommatematchapp.com';
   
   static const String privacyOfficerName = 'Victor Garcia Caballero';
-  static const String phoneNumber = '+34 616 438 869';
-  static const String address = 'Carrer Llunas, Barcelona, España';
+  static const String address = 'Barcelona, España';
 
   /// Send email using device email client (via url_launcher)
   static Future<void> sendEmail({
@@ -292,11 +291,10 @@ $privacyOfficerName
 Privacy Officer
 RoomMate Match
 
-📍 $address
-📞 $phoneNumber
-📧 $privacyEmail
+ðŸ“ $address
+ðŸ“§ $privacyEmail
 
-🔒 Tu privacidad es nuestra prioridad
+ðŸ”’ Tu privacidad es nuestra prioridad
 ''';
   }
 }

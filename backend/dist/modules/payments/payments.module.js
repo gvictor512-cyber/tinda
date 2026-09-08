@@ -9,15 +9,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentsModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const typeorm_1 = require("@nestjs/typeorm");
 const payments_controller_1 = require("./payments.controller");
 const payments_webhook_controller_1 = require("./payments-webhook.controller");
 const payments_service_1 = require("./payments.service");
+const user_entity_1 = require("../users/entities/user.entity");
+const payment_entity_1 = require("../admin/entities/payment.entity");
+const subscription_entity_1 = require("../premium/entities/subscription.entity");
 let PaymentsModule = class PaymentsModule {
 };
 exports.PaymentsModule = PaymentsModule;
 exports.PaymentsModule = PaymentsModule = __decorate([
     (0, common_1.Module)({
-        imports: [config_1.ConfigModule],
+        imports: [
+            config_1.ConfigModule,
+            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, payment_entity_1.Payment, subscription_entity_1.Subscription]),
+        ],
         controllers: [payments_controller_1.PaymentsController, payments_webhook_controller_1.PaymentsWebhookController],
         providers: [payments_service_1.PaymentsService],
         exports: [payments_service_1.PaymentsService],

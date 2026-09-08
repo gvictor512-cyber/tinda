@@ -28,6 +28,25 @@ let ProfilesController = class ProfilesController {
     async findMyProfile(req) {
         return this.profilesService.findByUserId(req.user.uid);
     }
+    async search(city, ageMin, ageMax, budgetMin, budgetMax, gender, page = 1, limit = 20) {
+        const filters = {};
+        if (city)
+            filters.city = city;
+        if (ageMin)
+            filters.ageMin = parseInt(ageMin, 10);
+        if (ageMax)
+            filters.ageMax = parseInt(ageMax, 10);
+        if (budgetMin)
+            filters.budgetMin = parseInt(budgetMin, 10);
+        if (budgetMax)
+            filters.budgetMax = parseInt(budgetMax, 10);
+        if (gender)
+            filters.gender = gender;
+        return this.profilesService.searchProfiles(filters, page, limit);
+    }
+    async findByCity(city, page = 1, limit = 20) {
+        return this.profilesService.findProfilesByCity(city, page, limit);
+    }
     async findOne(id) {
         return this.profilesService.findOne(id);
     }
@@ -61,6 +80,29 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], ProfilesController.prototype, "findMyProfile", null);
+__decorate([
+    (0, common_1.Get)('search'),
+    __param(0, (0, common_1.Query)('city')),
+    __param(1, (0, common_1.Query)('ageMin')),
+    __param(2, (0, common_1.Query)('ageMax')),
+    __param(3, (0, common_1.Query)('budgetMin')),
+    __param(4, (0, common_1.Query)('budgetMax')),
+    __param(5, (0, common_1.Query)('gender')),
+    __param(6, (0, common_1.Query)('page', new common_1.DefaultValuePipe(1), common_1.ParseIntPipe)),
+    __param(7, (0, common_1.Query)('limit', new common_1.DefaultValuePipe(20), common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String, String, String, Number, Number]),
+    __metadata("design:returntype", Promise)
+], ProfilesController.prototype, "search", null);
+__decorate([
+    (0, common_1.Get)('city/:city'),
+    __param(0, (0, common_1.Param)('city')),
+    __param(1, (0, common_1.Query)('page', new common_1.DefaultValuePipe(1), common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Query)('limit', new common_1.DefaultValuePipe(20), common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Number, Number]),
+    __metadata("design:returntype", Promise)
+], ProfilesController.prototype, "findByCity", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),

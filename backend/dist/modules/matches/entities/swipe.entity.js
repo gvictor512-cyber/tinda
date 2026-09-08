@@ -35,6 +35,8 @@ __decorate([
     __metadata("design:type", Date)
 ], Swipe.prototype, "createdAt", void 0);
 exports.Swipe = Swipe = __decorate([
-    (0, typeorm_1.Entity)('swipes')
+    (0, typeorm_1.Entity)('swipes'),
+    (0, typeorm_1.Index)(['swiperId', 'swipedId']),
+    (0, typeorm_1.Index)(['swipedId', 'swipeType', 'createdAt'])
 ], Swipe);
 //# sourceMappingURL=swipe.entity.js.map

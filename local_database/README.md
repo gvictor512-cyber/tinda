@@ -31,3 +31,7 @@ Puedes abrir `roommatematch_local.db` con cualquier cliente SQLite, por ejemplo:
 - [DB Browser for SQLite](https://sqlitebrowser.org/)
 - Extensión SQLite en VS Code
 - DBeaver
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

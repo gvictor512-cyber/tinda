@@ -1,7 +1,7 @@
-# Email Templates - privacy@roommatematch.com
+﻿# Email Templates - support@roommatematchapp.com
 
 ## Contact Information
-- **Email:** privacy@roommatematch.com
+- **Email:** support@roommatematchapp.com
 - **Name:** Victor Garcia Caballero
 - **Phone:** +34 616 438 869
 - **Address:** Carrer Llunas, Barcelona, España
@@ -16,7 +16,7 @@
 
 Hola,
 
-Gracias por contactarnos a través de privacy@roommatematch.com.
+Gracias por contactarnos a través de support@roommatematchapp.com.
 
 Hemos recibido tu consulta sobre privacidad y datos personales. Nuestro equipo revisará tu solicitud y te responderemos en un plazo máximo de **48 horas hábiles**.
 
@@ -35,7 +35,9 @@ Privacy Officer
 RoomMate Match
 Carrer Llunas, Barcelona, España
 Tel: +34 616 438 869
-Email: privacy@roommatematch.com
+Email: support@roommatematchapp.com
+
+© 2026 RoomMate Match. All rights reserved.
 
 ---
 
@@ -74,7 +76,9 @@ Privacy Officer
 RoomMate Match
 Carrer Llunas, Barcelona, España
 Tel: +34 616 438 869
-Email: privacy@roommatematch.com
+Email: support@roommatematchapp.com
+
+© 2026 RoomMate Match. All rights reserved.
 
 ---
 
@@ -89,11 +93,11 @@ Hola [Nombre del usuario],
 Hemos procesado tu solicitud de eliminación de datos personales de RoomMate Match.
 
 **Acciones realizadas:**
-- ✅ Cuenta de usuario eliminada
-- ✅ Datos de perfil borrados permanentemente
-- ✅ Historial de conversaciones eliminado
-- ✅ Fotos de perfil eliminadas
-- ✅ Datos de actividad borrados
+- âœ… Cuenta de usuario eliminada
+- âœ… Datos de perfil borrados permanentemente
+- âœ… Historial de conversaciones eliminado
+- âœ… Fotos de perfil eliminadas
+- âœ… Datos de actividad borrados
 
 **Información importante:**
 - Los datos han sido eliminados de nuestros servidores
@@ -113,7 +117,9 @@ Privacy Officer
 RoomMate Match
 Carrer Llunas, Barcelona, España
 Tel: +34 616 438 869
-Email: privacy@roommatematch.com
+Email: support@roommatematchapp.com
+
+© 2026 RoomMate Match. All rights reserved.
 
 ---
 
@@ -128,9 +134,9 @@ Hola [Nombre del usuario],
 Hemos actualizado la información en tu cuenta de RoomMate Match según tu solicitud.
 
 **Datos corregidos:**
-- [Campo 1]: [Valor anterior] → [Valor nuevo]
-- [Campo 2]: [Valor anterior] → [Valor nuevo]
-- [Campo 3]: [Valor anterior] → [Valor nuevo]
+- [Campo 1]: [Valor anterior] â†’ [Valor nuevo]
+- [Campo 2]: [Valor anterior] â†’ [Valor nuevo]
+- [Campo 3]: [Valor anterior] â†’ [Valor nuevo]
 
 **Confirmación:**
 Los cambios ya están activos en tu cuenta. Puedes verificarlos iniciando sesión en la aplicación.
@@ -144,7 +150,9 @@ Privacy Officer
 RoomMate Match
 Carrer Llunas, Barcelona, España
 Tel: +34 616 438 869
-Email: privacy@roommatematch.com
+Email: support@roommatematchapp.com
+
+© 2026 RoomMate Match. All rights reserved.
 
 ---
 
@@ -178,7 +186,9 @@ Privacy Officer
 RoomMate Match
 Carrer Llunas, Barcelona, España
 Tel: +34 616 438 869
-Email: privacy@roommatematch.com
+Email: support@roommatematchapp.com
+
+© 2026 RoomMate Match. All rights reserved.
 
 ---
 
@@ -228,7 +238,9 @@ Privacy Officer
 RoomMate Match
 Carrer Llunas, Barcelona, España
 Tel: +34 616 438 869
-Email: privacy@roommatematch.com
+Email: support@roommatematchapp.com
+
+© 2026 RoomMate Match. All rights reserved.
 
 ---
 
@@ -248,10 +260,10 @@ Te escribimos para informarte sobre un incidente de seguridad que puede haber af
 - **Datos afectados:** [Lista de datos]
 
 **Acciones tomadas:**
-- ✅ Identificamos y bloqueamos el acceso no autorizado
-- ✅ Notificamos a las autoridades competentes
-- ✅ Revisamos y fortalecimos nuestras medidas de seguridad
-- ✅ Estamos trabajando con expertos en seguridad
+- âœ… Identificamos y bloqueamos el acceso no autorizado
+- âœ… Notificamos a las autoridades competentes
+- âœ… Revisamos y fortalecimos nuestras medidas de seguridad
+- âœ… Estamos trabajando con expertos en seguridad
 
 **Recomendaciones para ti:**
 - Cambia tu contraseña de RoomMate Match
@@ -274,7 +286,9 @@ Privacy Officer
 RoomMate Match
 Carrer Llunas, Barcelona, España
 Tel: +34 616 438 869
-Email: privacy@roommatematch.com
+Email: support@roommatematchapp.com
+
+© 2026 RoomMate Match. All rights reserved.
 
 ---
 
@@ -324,7 +338,9 @@ Privacy Officer
 RoomMate Match
 Carrer Llunas, Barcelona, España
 Tel: +34 616 438 869
-Email: privacy@roommatematch.com
+Email: support@roommatematchapp.com
+
+© 2026 RoomMate Match. All rights reserved.
 
 ---
 
@@ -357,7 +373,9 @@ Privacy Officer
 RoomMate Match
 Carrer Llunas, Barcelona, España
 Tel: +34 616 438 869
-Email: privacy@roommatematch.com
+Email: support@roommatematchapp.com
+
+© 2026 RoomMate Match. All rights reserved.
 
 ---
 
@@ -395,7 +413,9 @@ Privacy Officer
 RoomMate Match
 Carrer Llunas, Barcelona, España
 Tel: +34 616 438 869
-Email: privacy@roommatematch.com
+Email: support@roommatematchapp.com
+
+© 2026 RoomMate Match. All rights reserved.
 
 ---
 
@@ -409,13 +429,13 @@ Victor Garcia Caballero
 Privacy Officer
 RoomMate Match
 
-📍 Carrer Llunas, Barcelona, España
-📞 +34 616 438 869
-📧 privacy@roommatematch.com
+ðŸ“ Carrer Llunas, Barcelona, España
+ðŸ“ž +34 616 438 869
+ðŸ“§ support@roommatematchapp.com
 
-🔒 Tu privacidad es nuestra prioridad
-📄 Política de Privacidad: [URL]
-🌐 roommatematch.com
+ðŸ”’ Tu privacidad es nuestra prioridad
+ðŸ“„ Política de Privacidad: [URL]
+ðŸŒ roommatematch.com
 ```
 
 ---
@@ -561,19 +581,35 @@ El equipo de RoomMate Match
 
 **Subject:** Restablece tu contraseña de RoomMate Match
 
-**Body:**
+**Body (HTML):**
 
-Hola [Nombre del usuario],
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Restablece tu contraseña</title>
+</head>
+<body>
+  <p>Hola [Nombre del usuario],</p>
 
-Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Pulsa el siguiente enlace para crear una nueva contraseña:
+  <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Pulsa el botón a continuación para crear una nueva contraseña:</p>
 
-[Enlace de restablecimiento]
+  <p style="text-align: center; margin: 24px 0;">
+    <a href="[Enlace de restablecimiento]" style="background-color: #4A90E2; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Restablecer contraseña</a>
+  </p>
 
-El enlace expira en 24 horas. Si no has solicitado este cambio, por favor contacta con nosotros en support@roommatematchapp.com.
+  <p>O copia y pega este enlace en tu navegador:</p>
+  <p><a href="[Enlace de restablecimiento]">[Enlace de restablecimiento]</a></p>
 
-Atentamente,
+  <p>El enlace expira en 24 horas. Si no has solicitado este cambio, contacta con nosotros en <a href="mailto:support@roommatematchapp.com">support@roommatematchapp.com</a>.</p>
 
-El equipo de RoomMate Match
+  <p>Atentamente,<br>El equipo de RoomMate Match</p>
+</body>
+</html>
+```
+
+**Nota:** Para que Gmail y Outlook muestren el enlace clicable, el email debe enviarse con el encabezado `Content-Type: text/html; charset=UTF-8`. Usa un servicio de backend (SendGrid, SES, Mailgun) en lugar de plantillas de texto plano.
 
 ---
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification } from './entities/notification.entity';
@@ -11,59 +11,26 @@ export class NotificationsService {
     private notificationsRepository: Repository<Notification>,
   ) {}
 
-  async sendMatchNotification(userId: string, matchedUserId: string, matchId: string) {
-    // Save to database
-    const notification = this.notificationsRepository.create({
+  async sendMatchNotification(senderId: string, userId: string, matchedUserId: string, matchId: string) {
+    return this.sendToUser(
+      senderId,
       userId,
-      notificationType: 'new_match',
-      title: '¡Nuevo Match!',
-      body: '¡Parece que podríais ser grandes compañeros de piso!',
-      data: {
-        matchedUserId,
-        matchId,
-      },
-    });
-
-    await this.notificationsRepository.save(notification);
-
-    // Send push notification via FCM
-    // TODO: Get user's device token and send FCM notification
-    try {
-      // const user = await this.usersRepository.findOne({ where: { id: userId } });
-      // if (user?.deviceToken) {
-      //   await admin.messaging().send({
-      //     token: user.deviceToken,
-      //     notification: {
-      //       title: '¡Nuevo Match!',
-      //       body: '¡Parece que podríais ser grandes compañeros de piso!',
-      //     },
-      //     data: {
-      //       matchId,
-      //       type: 'new_match',
-      //     },
-      //   });
-      // }
-    } catch (error) {
-      console.error('Error sending FCM notification:', error);
-    }
+      'new_match',
+      '¡Nuevo Match!',
+      '¡Parece que podríais ser grandes compañeros de piso!',
+      { matchedUserId, matchId },
+    );
   }
 
-  async sendNewMessageNotification(userId: string, senderId: string, matchId: string) {
-    const notification = this.notificationsRepository.create({
+  async sendNewMessageNotification(senderId: string, userId: string, originalSenderId: string, matchId: string) {
+    return this.sendToUser(
+      senderId,
       userId,
-      notificationType: 'new_message',
-      title: 'Nuevo mensaje',
-      body: 'Tienes un nuevo mensaje',
-      data: {
-        senderId,
-        matchId,
-      },
-    });
-
-    await this.notificationsRepository.save(notification);
-
-    // Send FCM notification
-    // TODO: Implement FCM sending
+      'new_message',
+      'Nuevo mensaje',
+      'Tienes un nuevo mensaje',
+      { originalSenderId, matchId },
+    );
   }
 
   async getUserNotifications(userId: string, limit: number = 20) {
@@ -84,6 +51,71 @@ export class NotificationsService {
       { userId, isRead: false },
       { isRead: true },
     );
+    return { success: true };
+  }
+
+  private async _verifyRelationship(
+    senderId: string,
+    receiverId: string,
+    notificationType: string,
+  ): Promise<void> {
+    const collection = notificationType === 'new_match' ? 'matches' : 'chats';
+    const field = notificationType === 'new_match' ? 'users' : 'participants';
+
+    const docs = await admin.firestore()
+      .collection(collection)
+      .where(field, 'array-contains', senderId)
+      .get();
+
+    const hasRelationship = docs.docs.some((doc) => {
+      const list = (doc.data()[field] as string[]) || [];
+      return list.includes(receiverId);
+    });
+
+    if (!hasRelationship) {
+      throw new ForbiddenException('No estás autorizado para notificar a este usuario');
+    }
+  }
+
+  async sendToUser(
+    senderId: string,
+    userId: string,
+    notificationType: string,
+    title: string,
+    body: string,
+    data: Record<string, any>,
+  ) {
+    await this._verifyRelationship(senderId, userId, notificationType);
+
+    const notification = this.notificationsRepository.create({
+      userId,
+      notificationType,
+      title,
+      body,
+      data,
+    });
+    await this.notificationsRepository.save(notification);
+
+    try {
+      const userDoc = await admin.firestore().collection('users').doc(userId).get();
+      const fcmToken = userDoc.data()?.fcmToken as string | undefined;
+
+      if (fcmToken) {
+        const stringData: Record<string, string> = { type: notificationType };
+        for (const [key, value] of Object.entries(data)) {
+          stringData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+        }
+
+        await admin.messaging().send({
+          token: fcmToken,
+          notification: { title, body },
+          data: stringData,
+        });
+      }
+    } catch (error) {
+      console.error('Error sending FCM notification:', error);
+    }
+
     return { success: true };
   }
 }

@@ -43,7 +43,7 @@ export declare class MatchesService {
         compatibility: number;
         explanation: string;
     }>;
-    getUserMatches(firebaseUid: string): Promise<{
+    getUserMatches(firebaseUid: string, page?: number, limit?: number): Promise<{
         otherUser: Profile;
         id: string;
         user1Id: string;
@@ -66,5 +66,9 @@ export declare class MatchesService {
     unmatch(firebaseUid: string, matchId: string): Promise<{
         message: string;
     }>;
-    getPendingLikes(firebaseUid: string): Promise<any[]>;
+    getPendingLikes(firebaseUid: string, page?: number, limit?: number): Promise<{
+        profile: Profile;
+        swipeType: string;
+        swipedAt: Date;
+    }[]>;
 }

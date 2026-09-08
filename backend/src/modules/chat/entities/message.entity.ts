@@ -1,6 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
 
 @Entity('messages')
+@Index(['matchId', 'createdAt'])
+@Index(['receiverId', 'isRead'])
 export class Message {
   @PrimaryGeneratedColumn('uuid')
   id: string;

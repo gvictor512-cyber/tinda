@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsArray, IsEnum, Min, Max, IsBoolean, IsUrl } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsArray, IsEnum, Min, Max, IsBoolean, IsUrl, Length, MaxLength, Matches } from 'class-validator';
 
 export class CompatibilitySettingsDto {
   @ApiProperty({ example: 'madrugador', required: false })
@@ -84,16 +84,19 @@ export class CreateProfileDto {
   @ApiProperty({ example: 'Estudiante', required: false })
   @IsString()
   @IsOptional()
+  @Length(1, 100)
   profession?: string;
 
   @ApiProperty({ example: 'Madrid' })
   @IsString()
   @IsNotEmpty()
+  @Length(1, 100)
   city: string;
 
   @ApiProperty({ example: 'Busco compañeros tranquilos y ordenados', required: false })
   @IsString()
   @IsOptional()
+  @MaxLength(2000)
   bio?: string;
 
   @ApiProperty({ example: ['https://example.com/photo1.jpg'], required: false })
@@ -118,6 +121,7 @@ export class CreateProfileDto {
   @ApiProperty({ example: 'Centro', required: false })
   @IsString()
   @IsOptional()
+  @Length(1, 100)
   preferredLocation?: string;
 
   @ApiProperty({ example: ['Español', 'Inglés'], required: false })

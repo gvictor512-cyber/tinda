@@ -1,6 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
 
 @Entity('swipes')
+@Index(['swiperId', 'swipedId'])
+@Index(['swipedId', 'swipeType', 'createdAt'])
 export class Swipe {
   @PrimaryGeneratedColumn('uuid')
   id: string;

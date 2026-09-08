@@ -197,15 +197,20 @@ let ProfilesService = class ProfilesService {
         }
         return this.profilesRepository.save(profile);
     }
-    async findProfilesByCity(city, limit = 20) {
+    async findProfilesByCity(city, page = 1, limit = 20) {
+        const safeLimit = Math.min(limit, 100);
+        const skip = (Math.max(page, 1) - 1) * safeLimit;
         return this.profilesRepository.find({
             where: { city },
             relations: ['user'],
-            take: limit,
+            take: safeLimit,
+            skip,
             order: { createdAt: 'DESC' },
         });
     }
-    async searchProfiles(filters) {
+    async searchProfiles(filters, page = 1, limit = 20) {
+        const safeLimit = Math.min(limit, 100);
+        const skip = (Math.max(page, 1) - 1) * safeLimit;
         const queryBuilder = this.profilesRepository.createQueryBuilder('profile')
             .leftJoinAndSelect('profile.user', 'user')
             .where('user.isActive = :isActive', { isActive: true });
@@ -228,7 +233,8 @@ let ProfilesService = class ProfilesService {
             queryBuilder.andWhere('profile.gender = :gender', { gender: filters.gender });
         }
         queryBuilder.orderBy('profile.createdAt', 'DESC')
-            .take(filters.limit || 20);
+            .skip(skip)
+            .take(safeLimit);
         return queryBuilder.getMany();
     }
 };

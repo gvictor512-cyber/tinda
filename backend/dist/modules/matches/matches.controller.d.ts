@@ -19,7 +19,7 @@ export declare class MatchesController {
         success: boolean;
         matched: boolean;
     }>;
-    getMyMatches(req: any): Promise<{
+    getMyMatches(req: any, page: number, limit: number): Promise<{
         otherUser: import("../profiles/entities/profile.entity").Profile;
         id: string;
         user1Id: string;
@@ -42,5 +42,9 @@ export declare class MatchesController {
     unmatch(req: any, matchId: string): Promise<{
         message: string;
     }>;
-    getPendingLikes(req: any): Promise<any[]>;
+    getPendingLikes(req: any): Promise<{
+        profile: import("../profiles/entities/profile.entity").Profile;
+        swipeType: string;
+        swipedAt: Date;
+    }[]>;
 }

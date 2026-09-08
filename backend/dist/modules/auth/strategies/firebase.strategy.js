@@ -41,15 +41,22 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FirebaseStrategy = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const typeorm_1 = require("@nestjs/typeorm");
 const passport_custom_1 = require("passport-custom");
+const typeorm_2 = require("typeorm");
 const admin = __importStar(require("firebase-admin"));
+const user_entity_1 = require("../../users/entities/user.entity");
 let FirebaseStrategy = class FirebaseStrategy extends (0, passport_1.PassportStrategy)(passport_custom_1.Strategy, 'firebase') {
-    constructor() {
+    constructor(usersRepository) {
         super();
+        this.usersRepository = usersRepository;
     }
     async validate(req) {
         const token = this.extractTokenFromHeader(req);
@@ -57,15 +64,22 @@ let FirebaseStrategy = class FirebaseStrategy extends (0, passport_1.PassportStr
             throw new common_1.UnauthorizedException('No token provided');
         }
         try {
-            const decodedToken = await admin.auth().verifyIdToken(token);
+            const decodedToken = await admin.auth().verifyIdToken(token, true);
+            const dbUser = await this.usersRepository.findOne({
+                where: { firebaseUid: decodedToken.uid },
+            });
+            if (decodedToken.exp * 1000 < Date.now()) {
+                throw new common_1.UnauthorizedException('Token expired');
+            }
             return {
                 uid: decodedToken.uid,
                 email: decodedToken.email,
                 emailVerified: decodedToken.email_verified,
+                role: dbUser?.role ?? 'user',
             };
         }
         catch (error) {
-            throw new common_1.UnauthorizedException('Invalid Firebase token');
+            throw new common_1.UnauthorizedException('Invalid or expired Firebase token');
         }
     }
     extractTokenFromHeader(req) {
@@ -76,6 +90,7 @@ let FirebaseStrategy = class FirebaseStrategy extends (0, passport_1.PassportStr
 exports.FirebaseStrategy = FirebaseStrategy;
 exports.FirebaseStrategy = FirebaseStrategy = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __metadata("design:paramtypes", [typeorm_2.Repository])
 ], FirebaseStrategy);
 //# sourceMappingURL=firebase.strategy.js.map

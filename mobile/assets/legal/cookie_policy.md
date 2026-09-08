@@ -104,9 +104,8 @@ Nos reservamos el derecho de modificar esta política. Le notificaremos cualquie
 ## 9. Contacto
 
 Para preguntas sobre esta política:
-- **Email:** privacy@roommatematch.com
-- **Dirección:** Carrer Llunas, Barcelona, España
-- **Teléfono:** +34 616 438 869
+- **Email:** support@roommatematchapp.com
+- **Dirección:** Barcelona, España
 
 ## 10. Legislación Aplicable
 

@@ -20,15 +20,16 @@ export declare class VerificationService {
         success: boolean;
         message: string;
     }>;
-    verifyPhone(firebaseUid: string, verifyPhoneDto: VerifyPhoneDto): Promise<{
-        success: boolean;
-        message: string;
-    }>;
+    verifyPhone(firebaseUid: string, verifyPhoneDto: VerifyPhoneDto): Promise<void>;
     verifySelfie(firebaseUid: string, verifySelfieDto: VerifySelfieDto): Promise<{
         success: boolean;
         message: string;
     }>;
     verifyDocument(firebaseUid: string, documentUrl: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    approveVerification(firebaseUid: string): Promise<{
         success: boolean;
         message: string;
     }>;

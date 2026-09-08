@@ -50,7 +50,7 @@ let ChatService = class ChatService {
         });
         return this.messagesRepository.save(message);
     }
-    async getMatchMessages(matchId, userId, limit = 50) {
+    async getMatchMessages(matchId, userId, page = 1, limit = 50) {
         const match = await this.matchesRepository.findOne({
             where: { id: matchId },
         });
@@ -60,10 +60,13 @@ let ChatService = class ChatService {
         if (match.user1Id !== userId && match.user2Id !== userId) {
             throw new common_1.BadRequestException('Access denied');
         }
+        const safeLimit = Math.min(limit, 100);
+        const skip = (Math.max(page, 1) - 1) * safeLimit;
         return this.messagesRepository.find({
             where: { matchId },
             order: { createdAt: 'ASC' },
-            take: limit,
+            take: safeLimit,
+            skip,
         });
     }
     async getMatch(matchId) {
@@ -102,38 +105,32 @@ let ChatService = class ChatService {
         return { success: true };
     }
     async sendNewMessageNotification(receiverId, senderId, matchId) {
-        const sender = await this.usersRepository.findOne({
-            where: { id: senderId },
-        });
-        await this.notificationsService.sendNewMessageNotification(receiverId, senderId, matchId);
+        await this.notificationsService.sendNewMessageNotification(senderId, receiverId, senderId, matchId);
     }
-    async getUserConversations(userId) {
+    async getUserConversations(userId, limit = 50) {
         const matches = await this.matchesRepository
             .createQueryBuilder('match')
             .where('(match.user1Id = :userId OR match.user2Id = :userId)', { userId })
             .andWhere('match.isActive = :isActive', { isActive: true })
             .orderBy('match.createdAt', 'DESC')
+            .limit(Math.min(limit, 100))
             .getMany();
-        const conversations = await Promise.all(matches.map(async (match) => {
-            const otherUserId = match.user1Id === userId ? match.user2Id : match.user1Id;
-            const lastMessage = await this.messagesRepository.findOne({
-                where: { matchId: match.id },
+        const matchIds = matches.map((m) => m.id);
+        const [lastMessages, unreadCounts] = await Promise.all([
+            Promise.all(matchIds.map((matchId) => this.messagesRepository.findOne({
+                where: { matchId },
                 order: { createdAt: 'DESC' },
-            });
-            const unreadCount = await this.messagesRepository.count({
-                where: {
-                    matchId: match.id,
-                    receiverId: userId,
-                    isRead: false,
-                },
-            });
-            return {
-                matchId: match.id,
-                otherUserId,
-                lastMessage,
-                unreadCount,
-                compatibilityScore: match.compatibilityScore,
-            };
+            }))),
+            Promise.all(matchIds.map((matchId) => this.messagesRepository.count({
+                where: { matchId, receiverId: userId, isRead: false },
+            }))),
+        ]);
+        const conversations = matches.map((match, index) => ({
+            matchId: match.id,
+            otherUserId: match.user1Id === userId ? match.user2Id : match.user1Id,
+            lastMessage: lastMessages[index],
+            unreadCount: unreadCounts[index],
+            compatibilityScore: match.compatibilityScore,
         }));
         return conversations;
     }

@@ -1,19 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'l10n/app_localizations.dart';
 import 'utils/secure_storage_service.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_web_plugins/flutter_web_plugins.dart'
+    if (dart.library.io) 'utils/url_strategy_stub.dart';
 import 'config/theme.dart';
+import 'features/settings/legal_document_screen.dart';
 import 'app.dart';
 import 'features/onboarding/user_type_selection_screen.dart';
-import 'features/auth/login_screen.dart';
+import 'features/onboarding/onboarding_screen.dart';
+import 'features/auth/welcome_screen.dart';
 import 'services/auth_service.dart';
 import 'services/stripe_payment_service.dart';
+import 'services/iap_service.dart';
+import 'services/notification_service.dart';
+import 'services/att_service.dart';
+import 'services/rating_service.dart';
+import 'services/update_service.dart';
+import 'services/deep_link_service.dart';
 
 const bool _isTest = bool.fromEnvironment('FLUTTER_TEST');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (kIsWeb) {
+    setUrlStrategy(PathUrlStrategy());
+  }
+
+  User? currentUser;
+  bool hasCompletedOnboarding = true;
 
   if (!_isTest) {
     try {
@@ -39,13 +58,38 @@ void main() async {
       debugPrint('Error al inicializar Firebase: $e');
     }
 
-    // Initialize Stripe
+    // Initialize Stripe (web only; mobile uses IAP)
     try {
-      await StripePaymentService.initialize();
-      debugPrint('Stripe inicializado correctamente');
+      if (kIsWeb) {
+        await StripePaymentService.initialize();
+        debugPrint('Stripe inicializado correctamente');
+      }
     } catch (e) {
       debugPrint('Error al inicializar Stripe: $e');
     }
+
+    // Initialize In-App Purchase
+    try {
+      await IapService().initialize();
+      debugPrint('IAP inicializado correctamente');
+    } catch (e) {
+      debugPrint('Error al inicializar IAP: $e');
+    }
+
+    // Initialize notifications
+    try {
+      await NotificationService().initialize();
+      await NotificationService().scheduleReEngagementNotification(delay: const Duration(days: 3));
+      debugPrint('Notificaciones inicializadas correctamente');
+    } catch (e) {
+      debugPrint('Error al inicializar notificaciones: $e');
+    }
+
+    // Wait for the auth state to be available
+    currentUser = await FirebaseAuth.instance.authStateChanges().first;
+
+    // Check if the user has completed the onboarding
+    hasCompletedOnboarding = await SecureStorageService.getBool('onboarding_completed');
   }
 
   // Set preferred orientations
@@ -54,27 +98,102 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(const RoomMateMatchApp());
+  String initialRoute;
+  if (currentUser != null) {
+    initialRoute = '/main';
+  } else if (!hasCompletedOnboarding) {
+    initialRoute = '/onboarding';
+  } else {
+    initialRoute = '/login';
+  }
+
+  runApp(RoomMateMatchApp(initialRoute: initialRoute));
 }
 
-class RoomMateMatchApp extends StatelessWidget {
-  const RoomMateMatchApp({super.key});
+class RoomMateMatchApp extends StatefulWidget {
+  final String initialRoute;
+
+  const RoomMateMatchApp({super.key, this.initialRoute = '/login'});
+
+  @override
+  State<RoomMateMatchApp> createState() => _RoomMateMatchAppState();
+}
+
+class _RoomMateMatchAppState extends State<RoomMateMatchApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    AttService.requestIfNeeded();
+    RatingService.trackAppOpen();
+    DeepLinkService().init();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (_navigatorKey.currentContext != null) {
+        await UpdateService.checkForUpdate(_navigatorKey.currentContext!);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'RoomMate Match',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.darkTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      home: const SplashScreen(),
-      routes: {
-        '/main': (context) => const MainScreen(),
-        '/login': (context) => const LoginScreen(),
+      themeMode: ThemeMode.dark,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: (locale, supportedLocales) {
+        if (locale == null) return const Locale('es');
+        for (final l in supportedLocales) {
+          if (l.languageCode == locale.languageCode) return l;
+        }
+        return const Locale('es');
       },
+      initialRoute: widget.initialRoute,
+      onGenerateRoute: _generateRoute,
     );
   }
+}
+
+Route<dynamic>? _generateRoute(RouteSettings settings) {
+  Widget page;
+  switch (settings.name) {
+    case '/login':
+      page = const WelcomeScreen();
+      break;
+    case '/onboarding':
+      page = const OnboardingScreen();
+      break;
+    case '/main':
+      page = const MainScreen();
+      break;
+    case '/terms':
+      page = const LegalDocumentScreen(
+        title: 'Términos de Servicio',
+        assetPath: 'assets/legal/terms_of_service.md',
+      );
+      break;
+    case '/privacy':
+      page = const LegalDocumentScreen(
+        title: 'Política de Privacidad',
+        assetPath: 'assets/legal/privacy_policy.md',
+      );
+      break;
+    case '/cookies':
+      page = const LegalDocumentScreen(
+        title: 'Política de Cookies',
+        assetPath: 'assets/legal/cookie_policy.md',
+      );
+      break;
+    case '/':
+    default:
+      page = const WelcomeScreen();
+  }
+  return MaterialPageRoute(builder: (context) => page, settings: settings);
 }
 
 class SplashScreen extends StatefulWidget {
@@ -91,6 +210,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     _checkAuthStatus();
+
   }
 
   Future<void> _checkAuthStatus() async {
@@ -120,7 +240,7 @@ class _SplashScreenState extends State<SplashScreen> {
           );
         } else {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            MaterialPageRoute(builder: (context) => const WelcomeScreen()),
           );
         }
       }
@@ -129,7 +249,7 @@ class _SplashScreenState extends State<SplashScreen> {
       // On error, navigate to login screen as fallback
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
         );
       }
     }
@@ -146,80 +266,23 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: AppTheme.primaryGradient,
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              Color(0xFF022C87),
+              Color(0xFF1FA5F0),
+            ],
+          ),
         ),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.easeOutBack,
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(35),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      blurRadius: 30,
-                      offset: const Offset(0, 15),
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.home_outlined,
-                  size: 70,
-                  color: AppTheme.primaryBlue,
-                ),
-              ),
-              const SizedBox(height: 32),
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 1000),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: Transform.translate(
-                      offset: Offset(0, 30 * (1 - value)),
-                      child: const Text(
-                        'RoomMate Match',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 1000),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: Transform.translate(
-                      offset: Offset(0, 20 * (1 - value)),
-                      child: Text(
-                        'Encuentra tu compañero de piso ideal',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                  );
-                },
+              Image.asset(
+                'assets/images/logo_symbol.png',
+                height: 320,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 64),
               SizedBox(
@@ -229,6 +292,15 @@ class _SplashScreenState extends State<SplashScreen> {
                   strokeWidth: 3,
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                   backgroundColor: Colors.white.withValues(alpha: 0.2),
+                ),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                '© 2026 RoomMate Match',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],

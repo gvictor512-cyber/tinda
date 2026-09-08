@@ -112,18 +112,21 @@ __decorate([
     (0, swagger_1.ApiProperty)({ example: 'Estudiante', required: false }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.Length)(1, 100),
     __metadata("design:type", String)
 ], CreateProfileDto.prototype, "profession", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 'Madrid' }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.Length)(1, 100),
     __metadata("design:type", String)
 ], CreateProfileDto.prototype, "city", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 'Busco compañeros tranquilos y ordenados', required: false }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.MaxLength)(2000),
     __metadata("design:type", String)
 ], CreateProfileDto.prototype, "bio", void 0);
 __decorate([
@@ -152,6 +155,7 @@ __decorate([
     (0, swagger_1.ApiProperty)({ example: 'Centro', required: false }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.Length)(1, 100),
     __metadata("design:type", String)
 ], CreateProfileDto.prototype, "preferredLocation", void 0);
 __decorate([

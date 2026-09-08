@@ -267,3 +267,7 @@ roommate-match/
 - **Storage**: Firebase Storage
 - **Notifications**: Firebase Cloud Messaging
 - **CI/CD**: GitHub Actions
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

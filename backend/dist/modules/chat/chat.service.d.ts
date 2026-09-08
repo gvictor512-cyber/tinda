@@ -18,14 +18,14 @@ export declare class ChatService {
     private notificationsService;
     constructor(messagesRepository: Repository<Message>, matchesRepository: Repository<Match>, usersRepository: Repository<User>, notificationsService: NotificationsService);
     createMessage(createMessageDto: CreateMessageDto): Promise<Message>;
-    getMatchMessages(matchId: string, userId: string, limit?: number): Promise<Message[]>;
+    getMatchMessages(matchId: string, userId: string, page?: number, limit?: number): Promise<Message[]>;
     getMatch(matchId: string): Promise<Match>;
     verifyMatchAccess(userId: string, matchId: string): Promise<Match>;
     markMessagesAsRead(matchId: string, userId: string): Promise<{
         success: boolean;
     }>;
     sendNewMessageNotification(receiverId: string, senderId: string, matchId: string): Promise<void>;
-    getUserConversations(userId: string): Promise<{
+    getUserConversations(userId: string, limit?: number): Promise<{
         matchId: string;
         otherUserId: string;
         lastMessage: Message;

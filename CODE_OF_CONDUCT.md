@@ -1,4 +1,4 @@
-# Code of Conduct - RoomMate Match
+﻿# Code of Conduct - RoomMate Match
 
 ## Our Pledge
 
@@ -33,7 +33,7 @@ This Code of Conduct applies to:
 ### How to Report
 If you experience or witness unacceptable behavior, please report it to:
 
-**Email:** conduct@roommatematch.com
+**Email:** support@roommatematchapp.com
 
 **What to Include:**
 - Description of the incident
@@ -61,7 +61,7 @@ Unacceptable behavior may result in:
 
 ### Appeal Process
 If you believe enforcement action was unjustified:
-- Submit appeal to conduct@roommatematch.com
+- Submit appeal to support@roommatematchapp.com
 - Include evidence and context
 - Review within 7 business days
 
@@ -129,7 +129,7 @@ Project leaders are held to the same standards as all community members.
 ## Contact
 
 For questions about this Code of Conduct:
-- **Email:** conduct@roommatematch.com
+- **Email:** support@roommatematchapp.com
 - **Contact:** Victor Garcia Caballero
 - **Phone:** +34 616 438 869
 - **Address:** Carrer Llunas, Barcelona, España
@@ -142,3 +142,7 @@ By participating in the RoomMate Match project, you agree to abide by this Code 
 ---
 
 Last updated: July 2026
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

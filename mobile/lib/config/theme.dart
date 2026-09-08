@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Modern gradient colors
-  static const Color primaryBlue = Color(0xFF6366F1);
-  static const Color primaryBlueDark = Color(0xFF4F46E5);
-  static const Color primaryGreen = Color(0xFF10B981);
-  static const Color secondaryPurple = Color(0xFF8B5CF6);
+  // Modern gradient colors (RoomMate Match brand)
+  static const Color primaryBlue = Color(0xFF1FA5F0);
+  static const Color primaryBlueDark = Color(0xFF022C87);
+  static const Color primaryGreen = Color(0xFF50E3C2);
+  static const Color secondaryPurple = Color(0xFF9B59B6);
   static const Color accentPink = Color(0xFFEC4899);
   static const Color accentOrange = Color(0xFFF97316);
   
   // Background colors
-  static const Color darkBackground = Color(0xFF0F172A);
-  static const Color darkSurface = Color(0xFF1E293B);
-  static const Color lightBackground = Color(0xFFF8FAFC);
+  static const Color darkBackground = Color(0xFF1A1A2E);
+  static const Color darkSurface = Color(0xFF25253D);
+  static const Color lightBackground = Color(0xFFFFFFFF);
   static const Color lightSurface = Color(0xFFFFFFFF);
   
   // Text colors
@@ -28,9 +28,9 @@ class AppTheme {
   
   // Gradient definitions
   static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [primaryBlue, secondaryPurple],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [primaryBlueDark, primaryBlue],
   );
   
   static const LinearGradient successGradient = LinearGradient(

@@ -71,3 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Removed:** Removed features
 - **Fixed:** Bug fixes
 - **Security:** Security improvements
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

@@ -15,10 +15,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatGateway = void 0;
 const websockets_1 = require("@nestjs/websockets");
 const socket_io_1 = require("socket.io");
+const redis_1 = require("redis");
+const redis_adapter_1 = require("@socket.io/redis-adapter");
 const chat_service_1 = require("./chat.service");
 let ChatGateway = class ChatGateway {
     constructor(chatService) {
         this.chatService = chatService;
+    }
+    async afterInit(server) {
+        const redisUrl = process.env.REDIS_URL;
+        if (!redisUrl) {
+            return;
+        }
+        const pubClient = (0, redis_1.createClient)({ url: redisUrl });
+        const subClient = pubClient.duplicate();
+        await Promise.all([pubClient.connect(), subClient.connect()]);
+        server.adapter((0, redis_adapter_1.createAdapter)(pubClient, subClient));
     }
     async handleConnection(client) {
         try {

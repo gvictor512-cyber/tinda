@@ -26,6 +26,8 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
     project.evaluationDependsOn(":app")
 
+    project.ext["compileSdk"] = 37
+
     configurations.all {
         resolutionStrategy {
             force("androidx.annotation:annotation-experimental:1.3.1")

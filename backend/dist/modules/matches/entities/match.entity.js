@@ -43,6 +43,8 @@ __decorate([
     __metadata("design:type", Boolean)
 ], Match.prototype, "isActive", void 0);
 exports.Match = Match = __decorate([
-    (0, typeorm_1.Entity)('matches')
+    (0, typeorm_1.Entity)('matches'),
+    (0, typeorm_1.Index)(['user1Id', 'user2Id']),
+    (0, typeorm_1.Index)(['isActive', 'createdAt'])
 ], Match);
 //# sourceMappingURL=match.entity.js.map

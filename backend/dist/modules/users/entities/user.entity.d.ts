@@ -10,6 +10,7 @@ export declare class User {
     isPremium: boolean;
     premiumExpiresAt: Date;
     isVerified: boolean;
+    role: string;
     deletedAt: Date;
     acceptedTermsAt: Date;
     acceptedPrivacyAt: Date;

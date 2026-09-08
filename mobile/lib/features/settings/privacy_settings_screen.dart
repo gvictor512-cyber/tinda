@@ -57,15 +57,6 @@ class PrivacySettingsScreen extends StatelessWidget {
               subject: 'Consulta sobre privacidad',
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.phone, color: Color(0xFF4A90E2)),
-            title: const Text('Teléfono'),
-            subtitle: const Text(EmailService.phoneNumber),
-            onTap: () => EmailService.openEmailClient(
-              recipient: EmailService.privacyEmail,
-              subject: 'Consulta telefónica',
-            ),
-          ),
           const Divider(),
           const _SectionHeader('Documentos Legales'),
           _LegalDocument(

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:swipable_stack/swipable_stack.dart';
 import 'profile_card.dart';
 import '../apartment/apartment_details_screen.dart';
+import '../filters/filters_screen.dart';
+import 'package:roommatematch/services/matching_service.dart';
 
 class SwipeScreen extends StatefulWidget {
   const SwipeScreen({super.key});
@@ -12,8 +14,11 @@ class SwipeScreen extends StatefulWidget {
 
 class _SwipeScreenState extends State<SwipeScreen> {
   final SwipableStackController _controller = SwipableStackController();
-  
+  final MatchingService _matchingService = MatchingService();
+
+  List<Map<String, dynamic>> _allProfiles = [];
   List<Map<String, dynamic>> _profiles = [];
+  Map<String, dynamic> _activeFilters = {};
   bool _isLoading = true;
   // ignore: unused_field
   int _currentIndex = 0;
@@ -36,21 +41,73 @@ class _SwipeScreenState extends State<SwipeScreen> {
   Future<void> _loadProfiles() async {
     setState(() => _isLoading = true);
     try {
-      // TODO: Load profiles from API based on filters
-      // For now, using mock data with minimal delay
-      await Future.delayed(const Duration(milliseconds: 100));
-      
+      final candidates = await _matchingService.getPotentialMatches();
+      if (candidates.isEmpty) throw Exception('No hay perfiles disponibles');
+
       setState(() {
-        _profiles = _getMockProfiles();
+        _allProfiles = candidates.map(_mapProfile).toList();
+        _profiles = _applyFilters(_allProfiles);
         _isLoading = false;
       });
     } catch (e) {
       debugPrint('Error loading profiles: $e');
       setState(() {
-        _profiles = _getMockProfiles();
+        _allProfiles = _getMockProfiles();
+        _profiles = _applyFilters(_allProfiles);
         _isLoading = false;
       });
     }
+  }
+
+  Map<String, dynamic> _mapProfile(Map<String, dynamic> candidate) {
+    final profile = candidate['profile'] as Map<String, dynamic>? ?? {};
+    final apartment = candidate['apartment'] as Map<String, dynamic>? ??
+        candidate['listing'] as Map<String, dynamic>? ?? {};
+    return {
+      'id': candidate['uid'] ?? candidate['documentId'] ?? '',
+      'name': profile['name'] ?? candidate['displayName'] ?? 'Usuario',
+      'age': profile['age'] ?? 0,
+      'profession': profile['profession'] ?? '',
+      'city': profile['city'] ?? '',
+      'bio': profile['bio'] ?? candidate['bio'] ?? '',
+      'photos': (profile['photos'] as List<dynamic>?) ??
+          (candidate['photoURL'] != null ? [candidate['photoURL']] : []),
+      'compatibility': (candidate['compatibility'] as num?)?.toInt() ?? 0,
+      'badges': (profile['badges'] as List<dynamic>?) ?? [],
+      'apartment': apartment,
+    };
+  }
+
+  List<Map<String, dynamic>> _applyFilters(List<Map<String, dynamic>> profiles) {
+    final ageMin = (_activeFilters['ageMin'] as int?) ?? 18;
+    final ageMax = (_activeFilters['ageMax'] as int?) ?? 100;
+    final budgetMin = (_activeFilters['budgetMin'] as int?) ?? 0;
+    final budgetMax = (_activeFilters['budgetMax'] as int?) ?? 100000;
+    final city = _activeFilters['city'] as String?;
+
+    return profiles.where((p) {
+      final age = p['age'] as int?;
+      if (age == null || age < ageMin || age > ageMax) return false;
+
+      final price = (p['apartment']?['price'] as num?)?.toDouble() ?? 0;
+      if (price < budgetMin || price > budgetMax) return false;
+
+      if (city != null && city.isNotEmpty && p['city'] != city) return false;
+
+      return true;
+    }).toList();
+  }
+
+  Future<void> _openFilters() async {
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(builder: (_) => const FiltersScreen()),
+    );
+    if (result == null) return;
+    setState(() {
+      _activeFilters = result;
+      _profiles = _applyFilters(_allProfiles);
+    });
   }
 
   List<Map<String, dynamic>> _getMockProfiles() {
@@ -163,10 +220,16 @@ class _SwipeScreenState extends State<SwipeScreen> {
     ];
   }
 
-  void _onSwipeLeft() {
+  void _onSwipeLeft() async {
     if (_profiles.isEmpty) return;
-    
-    // TODO: Send dislike to backend
+    final swipedId = _profiles[0]['id'] as String? ?? '';
+    if (swipedId.isNotEmpty) {
+      try {
+        await _matchingService.recordSwipe(swipedId: swipedId, isLike: false);
+      } catch (e) {
+        debugPrint('Error recording dislike: $e');
+      }
+    }
     setState(() {
       _profiles.removeAt(0);
       _currentIndex = 0;
@@ -179,7 +242,16 @@ class _SwipeScreenState extends State<SwipeScreen> {
       return;
     }
 
-    // TODO: Send like to backend
+    final swipedId = _profiles[0]['id'] as String? ?? '';
+    if (swipedId.isNotEmpty) {
+      try {
+        final isMatch = await _matchingService.recordSwipe(swipedId: swipedId, isLike: true);
+        if (isMatch && mounted) _showMatchDialog(swipedId);
+      } catch (e) {
+        debugPrint('Error recording like: $e');
+      }
+    }
+
     setState(() {
       _profiles.removeAt(0);
       _currentIndex = 0;
@@ -193,12 +265,45 @@ class _SwipeScreenState extends State<SwipeScreen> {
       return;
     }
 
-    // TODO: Send super like to backend
+    final swipedId = _profiles[0]['id'] as String? ?? '';
+    if (swipedId.isNotEmpty) {
+      try {
+        final isMatch = await _matchingService.sendSuperLike(swipedId);
+        if (isMatch && mounted) _showMatchDialog(swipedId);
+      } catch (e) {
+        debugPrint('Error sending super like: $e');
+      }
+    }
+
     setState(() {
       _profiles.removeAt(0);
       _currentIndex = 0;
       _likesRemaining--;
     });
+  }
+
+  void _showMatchDialog(String otherUserId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¡Match!'),
+        content: const Text('Tú y esta persona os habéis gustado. ¿Queréis empezar a chatear?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Más tarde'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Navigate to chat list; user can open the match from there
+              Navigator.pushNamed(context, '/chat');
+            },
+            child: const Text('Chatear'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showPremiumDialog() {
@@ -243,11 +348,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Filtros no disponibles en modo demostración')),
-              );
-            },
+            onPressed: _openFilters,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),

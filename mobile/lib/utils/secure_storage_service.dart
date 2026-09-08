@@ -4,9 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// Usa el keychain/keystore nativo en iOS/Android.
 class SecureStorageService {
   static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
+    aOptions: AndroidOptions.defaultOptions,
     iOptions: IOSOptions(
       accountName: 'roommatematch_secure_storage',
     ),

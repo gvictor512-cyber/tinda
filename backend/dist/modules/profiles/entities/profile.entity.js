@@ -89,6 +89,8 @@ __decorate([
     __metadata("design:type", Date)
 ], Profile.prototype, "updatedAt", void 0);
 exports.Profile = Profile = __decorate([
-    (0, typeorm_1.Entity)('profiles')
+    (0, typeorm_1.Entity)('profiles'),
+    (0, typeorm_1.Index)(['userId']),
+    (0, typeorm_1.Index)(['city'])
 ], Profile);
 //# sourceMappingURL=profile.entity.js.map

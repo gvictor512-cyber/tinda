@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../config/theme.dart';
 
 class CompatibilityBadge extends StatelessWidget {
   final int score;
@@ -8,17 +9,22 @@ class CompatibilityBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _getScoreColor(score);
-    
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color, color.withValues(alpha: 0.85)],
+        ),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.3),
-            blurRadius: 8,
+            color: color.withValues(alpha: 0.35),
+            blurRadius: 12,
             spreadRadius: 2,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -30,7 +36,7 @@ class CompatibilityBadge extends StatelessWidget {
             color: Colors.white,
             size: 16,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           Text(
             '$score%',
             style: const TextStyle(
@@ -45,15 +51,15 @@ class CompatibilityBadge extends StatelessWidget {
   }
 
   Color _getScoreColor(int score) {
-    if (score >= 85) return const Color(0xFF27AE60);
-    if (score >= 70) return const Color(0xFF4A90E2);
+    if (score >= 85) return AppTheme.primaryGreen;
+    if (score >= 70) return AppTheme.primaryBlue;
     if (score >= 50) return const Color(0xFFF39C12);
     return const Color(0xFFE74C3C);
   }
 
   IconData _getScoreIcon(int score) {
-    if (score >= 85) return Icons.star;
-    if (score >= 70) return Icons.thumb_up;
+    if (score >= 85) return Icons.favorite;
+    if (score >= 70) return Icons.favorite;
     if (score >= 50) return Icons.remove;
     return Icons.warning;
   }

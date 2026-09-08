@@ -1,3 +1,5 @@
+﻿import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:google_sign_in/google_sign_in.dart';
@@ -265,8 +267,32 @@ class AuthService extends ChangeNotifier {
         return true;
       }
 
-      // Real Firebase password reset
-      await _firebaseAuth.sendPasswordResetEmail(email: email);
+      // Detect device language and country (e.g., "es_ES" -> "es-ES")
+      var locale = Platform.localeName;
+      if (locale == 'C' || locale.isEmpty) locale = 'es_ES';
+      locale = locale.replaceAll('_', '-');
+      final parts = locale.split('-');
+      final lang = parts.isNotEmpty ? parts[0] : 'es';
+      final country = parts.length > 1 ? parts[1] : '';
+
+      // Set Firebase email language so the email itself is in the right language
+      await _firebaseAuth.setLanguageCode(lang);
+
+      // Real Firebase password reset with branded, localized redirect
+      final continueUrl =
+          'https://roommatematch.com/reset-password.html?lang=$lang&country=$country&email=${Uri.encodeComponent(email)}';
+      final actionCodeSettings = firebase_auth.ActionCodeSettings(
+        url: continueUrl,
+        handleCodeInApp: false,
+        iOSBundleId: 'com.roommatematch.app',
+        androidPackageName: 'com.roommatematch.app',
+        androidInstallApp: false,
+        androidMinimumVersion: '21',
+      );
+      await _firebaseAuth.sendPasswordResetEmail(
+        email: email,
+        actionCodeSettings: actionCodeSettings,
+      );
       _isLoading = false;
       notifyListeners();
       return true;
@@ -287,7 +313,7 @@ class AuthService extends ChangeNotifier {
         // Mock user data
         await Future.delayed(const Duration(milliseconds: 200));
         return {
-          'email': 'mock@example.com',
+          'email': 'support@roommatematchapp.com',
           'displayName': 'Mock User',
           'createdAt': DateTime.now().toIso8601String(),
           'isActive': true,

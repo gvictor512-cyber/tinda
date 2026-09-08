@@ -6,8 +6,11 @@ import {
   ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { createClient } from 'redis';
+import { createAdapter } from '@socket.io/redis-adapter';
 import { ChatService } from './chat.service';
 import { FirebaseAuthGuard } from '../../common/guards/auth.guard';
 
@@ -16,11 +19,26 @@ import { FirebaseAuthGuard } from '../../common/guards/auth.guard';
     origin: '*',
   },
 })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
   constructor(private readonly chatService: ChatService) {}
+
+  async afterInit(server: Server) {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+      return;
+    }
+
+    const pubClient = createClient({ url: redisUrl });
+    const subClient = pubClient.duplicate();
+
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+    server.adapter(createAdapter(pubClient, subClient));
+  }
 
   async handleConnection(client: Socket) {
     try {

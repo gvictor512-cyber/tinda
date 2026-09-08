@@ -178,9 +178,8 @@ Estos Términos se rigen por las leyes de España. Cualquier disputa se resolver
 ## 14. Contacto
 
 Para preguntas sobre estos Términos:
-- **Email:** legal@roommatematch.com
-- **Dirección:** Carrer Llunas, Barcelona, España
-- **Teléfono:** +34 616 438 869
+- **Email:** support@roommatematchapp.com
+- **Dirección:** Barcelona, España
 
 ## 15. Acuerdo Completo
 

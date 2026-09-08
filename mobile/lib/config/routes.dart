@@ -41,6 +41,7 @@ class AppRoutes {
         final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
         return ChatScreen(
           matchId: args?['matchId'] ?? '',
+          otherUserId: args?['otherUserId'] ?? '',
           otherUserName: args?['otherUserName'] ?? 'Usuario',
           otherUserPhoto: args?['otherUserPhoto'] ?? '',
         );

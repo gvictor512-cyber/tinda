@@ -56,7 +56,7 @@
 
 #### 2. App Configuration
 - [ ] Create app in Google Play Console
-- [ ] Upload APK/AAB file ✅ BUILD READY (app-debug.apk generated)
+- [ ] Upload AAB file ✅ BUILD READY (app-release.aab, ~19 MB)
 - [ ] Complete store listing:
   - [ ] Upload icon (512x512 px) ✅ READY
   - [ ] Upload feature graphic (1024x500 px) ✅ CREATED
@@ -250,7 +250,7 @@
 - ✅ Android Firebase config (`google-services.json`) is in place
 - ⏳ iOS `GoogleService-Info.plist` template created but needs real values from Firebase Console
 - ✅ Backend dependencies installed and built (`npm install` + `npm run build`)
-- ⏳ Backend still needs PostgreSQL running and `.env` values verified
+- ✅ Backend docker-compose and `setup_roles.sh` ready; needs `.env` real values
 
 ## 🚀 Ready for Publication
 
@@ -260,8 +260,7 @@
 - ✅ Descriptions ready
 - ✅ Content rating responses ready
 - ✅ Feature graphic ready (`assets/store/google-play/feature-graphic-1024x500.png`)
-- ✅ Release APK ready (`mobile/build/app/outputs/flutter-apk/app-release.apk`, 59.6 MB)
-- ⏳ App Bundle (AAB) pending — needs Android NDK installation
+- ✅ Release AAB ready (`mobile/build/app/outputs/bundle/release/app-release.aab`, ~19 MB)
 - ⏳ Developer account needed
 
 ### App Store
@@ -274,5 +273,9 @@
 
 ---
 
-**Last Updated:** July 28, 2026
-**Status:** Release APK, backend build, feature graphic, icons and docs ready; pending AAB (NDK), iOS real Firebase values, dev accounts, PostgreSQL and payments
+**Last Updated:** August 17, 2026
+**Status:** Release AAB, IAP migration, backend docker-compose and docs ready; pending dev accounts, real Firebase values, PostgreSQL real `.env` and store payment products
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

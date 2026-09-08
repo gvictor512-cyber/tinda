@@ -256,3 +256,7 @@ tinder piso1/
 - [Dribbble](https://dribbble.com)
 - [Behance](https://behance.net)
 - [Pinterest](https://pinterest.com)
+
+---
+
+© 2026 RoomMate Match. Todos los derechos reservados.

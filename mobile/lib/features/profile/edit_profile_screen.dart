@@ -1,5 +1,8 @@
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 
@@ -17,7 +20,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _cityController = TextEditingController();
   final _authService = AuthService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   bool _isLoading = false;
+  String? _photoUrl;
 
   @override
   void dispose() {
@@ -39,14 +44,60 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final data = await _authService.getUserData();
       if (data != null) {
         final profile = data['profile'] as Map<String, dynamic>?;
+        final photos = profile?['photos'] as List<dynamic>?;
         _nameController.text = data['name']?.toString() ?? '';
         _bioController.text = profile?['bio']?.toString() ?? '';
         _cityController.text = profile?['city']?.toString() ?? '';
+        _photoUrl = photos != null && photos.isNotEmpty ? photos[0].toString() : null;
       } else {
         _nameController.text = _authService.currentUser?.displayName ?? '';
       }
     } catch (e) {
       debugPrint('Error loading profile: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _pickAndUploadPhoto() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    final uid = _authService.currentUser?.uid;
+    if (uid == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No estás autenticado')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final ref = _storage.ref().child('users/$uid/profile/0.jpg');
+      await ref.putFile(File(picked.path));
+      final url = await ref.getDownloadURL();
+
+      await _firestore.collection('users').doc(uid).update({
+        'profile.photos': [url],
+        'profile.updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        setState(() => _photoUrl = url);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto actualizada correctamente')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al subir foto: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -110,16 +161,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 16),
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  child: const Icon(Icons.person, size: 50, color: AppTheme.primaryBlue),
+                GestureDetector(
+                  onTap: _isLoading ? null : _pickAndUploadPhoto,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                        backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
+                        child: _photoUrl == null
+                            ? const Icon(Icons.person, size: 50, color: AppTheme.primaryBlue)
+                            : null,
+                      ),
+                      if (_isLoading)
+                        const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      if (!_isLoading)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryBlue,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppTheme.darkBackground, width: 2),
+                            ),
+                            child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  user?.email ?? 'usuario@example.com',
+                  user?.email ?? 'support@roommatematchapp.com',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 16, color: AppTheme.textDarkSecondary),
+                  style: const TextStyle(fontSize: 16, color: AppTheme.textLightSecondary),
                 ),
                 const SizedBox(height: 32),
                 TextFormField(

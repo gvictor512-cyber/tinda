@@ -163,10 +163,12 @@ roommate, compañero piso, compartir piso, alquiler, vivienda, estudiantes, matc
 Matching inteligente para encontrar tu compañero de piso ideal. Seguro, fácil y efectivo.
 
 ### Política de Privacidad URL
-[Debes crear una política de privacidad y alojarla en tu sitio web]
+**https://roommatematch.app/privacy-policy.html**
+(Alojada en `mobile/web/privacy-policy.html`, desplegar junto con la web.)
 
 ### URL de Soporte
-[Debes crear un sitio web o página de soporte]
+**https://roommatematch.app/support.html**
+(Alojada en `mobile/web/support.html`, desplegar junto con la web.)
 
 ### Categoría
 Google Play: Estilo de vida

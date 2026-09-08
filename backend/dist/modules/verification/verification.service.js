@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
@@ -16,6 +49,7 @@ exports.VerificationService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const admin = __importStar(require("firebase-admin"));
 const verification_entity_1 = require("./entities/verification.entity");
 const user_entity_1 = require("../users/entities/user.entity");
 let VerificationService = class VerificationService {
@@ -61,6 +95,10 @@ let VerificationService = class VerificationService {
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
+        const firebaseUser = await admin.auth().getUser(firebaseUid);
+        if (!firebaseUser.emailVerified) {
+            throw new common_1.BadRequestException('Email not verified in Firebase');
+        }
         let verification = await this.verificationRepository.findOne({
             where: { userId: user.id },
         });
@@ -83,22 +121,7 @@ let VerificationService = class VerificationService {
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
-        let verification = await this.verificationRepository.findOne({
-            where: { userId: user.id },
-        });
-        if (!verification) {
-            verification = this.verificationRepository.create({
-                userId: user.id,
-            });
-        }
-        verification.phoneVerified = true;
-        verification.phoneVerifiedAt = new Date();
-        verification.verificationLevel = 'standard';
-        await this.verificationRepository.save(verification);
-        user.phone = verifyPhoneDto.phoneNumber;
-        await this.usersRepository.save(user);
-        await this.updateOverallVerification(verification);
-        return { success: true, message: 'Phone verified successfully' };
+        throw new common_1.NotImplementedException('SMS verification is not configured. Configure a provider (Twilio, Vonage, etc.) before enabling this endpoint.');
     }
     async verifySelfie(firebaseUid, verifySelfieDto) {
         const user = await this.usersRepository.findOne({
@@ -115,12 +138,13 @@ let VerificationService = class VerificationService {
                 userId: user.id,
             });
         }
-        verification.selfieVerified = true;
-        verification.selfieVerifiedAt = new Date();
-        verification.verificationLevel = 'advanced';
+        verification.selfieUrl = verifySelfieDto.selfieUrl;
+        verification.selfieSubmittedAt = new Date();
+        verification.selfieVerified = false;
+        verification.verificationLevel = 'pending_review';
         await this.verificationRepository.save(verification);
         await this.updateOverallVerification(verification);
-        return { success: true, message: 'Selfie verified successfully' };
+        return { success: true, message: 'Selfie submitted for manual review' };
     }
     async verifyDocument(firebaseUid, documentUrl) {
         const user = await this.usersRepository.findOne({
@@ -137,13 +161,33 @@ let VerificationService = class VerificationService {
                 userId: user.id,
             });
         }
-        verification.documentVerified = true;
-        verification.documentVerifiedAt = new Date();
+        verification.documentVerified = false;
         verification.documentUrl = documentUrl;
-        verification.verificationLevel = 'advanced';
+        verification.verificationLevel = 'pending_review';
         await this.verificationRepository.save(verification);
         await this.updateOverallVerification(verification);
-        return { success: true, message: 'Document verified successfully' };
+        return { success: true, message: 'Document submitted for manual review' };
+    }
+    async approveVerification(firebaseUid) {
+        const user = await this.usersRepository.findOne({
+            where: { firebaseUid },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        let verification = await this.verificationRepository.findOne({
+            where: { userId: user.id },
+        });
+        if (!verification) {
+            throw new common_1.NotFoundException('Verification not found');
+        }
+        verification.selfieVerified = true;
+        verification.selfieVerifiedAt = new Date();
+        verification.documentVerified = true;
+        verification.documentVerifiedAt = new Date();
+        await this.verificationRepository.save(verification);
+        await this.updateOverallVerification(verification);
+        return { success: true, message: 'Verification approved manually' };
     }
     async updateOverallVerification(verification) {
         const verificationsCompleted = [

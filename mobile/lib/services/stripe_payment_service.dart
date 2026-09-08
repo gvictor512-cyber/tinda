@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,11 +18,14 @@ class StripePaymentService {
     defaultValue: '',
   );
 
-  // Backend API URL. Cambia según entorno:
-  // Android emulator: 10.0.2.2:3000
-  // iOS simulator / web: localhost:3000
+  // Backend API URL. Sobrescribe con --dart-define=BACKEND_BASE_URL=...
+  // Android emulator: http://10.0.2.2:3000
+  // iOS simulator / web: http://localhost:3000
   // Producción: https://roommatematch-api.onrender.com
-  static const String _backendBaseUrl = 'https://roommatematch-api.onrender.com';
+  static const String _backendBaseUrl = String.fromEnvironment(
+    'BACKEND_BASE_URL',
+    defaultValue: 'https://roommatematch-api.onrender.com',
+  );
   
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -392,7 +396,7 @@ class StripePaymentService {
               ? PaymentSheetGooglePay(
                   merchantCountryCode: 'ES',
                   currencyCode: currency.toUpperCase(),
-                  testEnv: true,
+                  testEnv: kDebugMode,
                 )
               : null,
         ),

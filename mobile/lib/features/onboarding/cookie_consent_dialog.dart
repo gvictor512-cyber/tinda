@@ -59,20 +59,20 @@ class CookieConsentDialog extends StatelessWidget {
               'Usamos cookies y tecnologías similares para ofrecerte una experiencia segura y personalizada.',
             ),
             const SizedBox(height: 12),
-            _CookieCategory(
+            const _CookieCategory(
               title: 'Esenciales',
               description: 'Necesarias para que la app funcione.',
               alwaysOn: true,
             ),
-            _CookieCategory(
+            const _CookieCategory(
               title: 'Rendimiento y analíticas',
               description: 'Nos ayudan a entender cómo se usa la app.',
             ),
-            _CookieCategory(
+            const _CookieCategory(
               title: 'Funcionalidad',
               description: 'Recuerdan tus preferencias.',
             ),
-            _CookieCategory(
+            const _CookieCategory(
               title: 'Marketing',
               description: 'Personalización y anuncios relevantes.',
             ),

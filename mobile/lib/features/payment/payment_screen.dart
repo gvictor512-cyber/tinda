@@ -1,3 +1,4 @@
+// Web-only payment screen. On mobile, PremiumScreen uses IapService with in_app_purchase.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/stripe_payment_service.dart';
@@ -65,10 +66,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       if (paymentIntentId != null) {
         // Actualizar suscripción localmente
-        await _paymentService.purchaseSubscription(
-          widget.planId,
-          transactionId: paymentIntentId,
-        );
+        await _recordPurchase(paymentIntentId);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -105,10 +103,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
 
       if (paymentIntentId != null) {
-        await _paymentService.purchaseSubscription(
-          widget.planId,
-          transactionId: paymentIntentId,
-        );
+        await _recordPurchase(paymentIntentId);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -145,10 +140,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
 
       if (paymentIntentId != null) {
-        await _paymentService.purchaseSubscription(
-          widget.planId,
-          transactionId: paymentIntentId,
-        );
+        await _recordPurchase(paymentIntentId);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -229,7 +221,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  plan?.name ?? widget.planId,
+                  plan?.name ?? _paymentService.getIndividualPurchaseItem(widget.planId)?['name'] as String? ?? widget.planId,
                   style: const TextStyle(fontSize: 16),
                 ),
                 Text(
@@ -534,6 +526,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
       await _processGooglePay();
     } else {
       await _processCardPayment();
+    }
+  }
+
+  Future<void> _recordPurchase(String transactionId) async {
+    final isIndividual = _paymentService.getIndividualPurchaseItem(widget.planId) != null;
+    if (isIndividual) {
+      await _paymentService.purchaseIndividualItem(widget.planId, transactionId: transactionId);
+    } else {
+      await _paymentService.purchaseSubscription(widget.planId, transactionId: transactionId);
     }
   }
 

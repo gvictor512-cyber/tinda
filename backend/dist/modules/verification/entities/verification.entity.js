@@ -59,6 +59,14 @@ __decorate([
     __metadata("design:type", String)
 ], Verification.prototype, "documentUrl", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'selfie_url', nullable: true }),
+    __metadata("design:type", String)
+], Verification.prototype, "selfieUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'selfie_submitted_at', type: 'timestamp', nullable: true }),
+    __metadata("design:type", Date)
+], Verification.prototype, "selfieSubmittedAt", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'is_verified', default: false }),
     __metadata("design:type", Boolean)
 ], Verification.prototype, "isVerified", void 0);
