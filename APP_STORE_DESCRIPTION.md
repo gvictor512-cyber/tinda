@@ -30,7 +30,6 @@ Nuestro algoritmo exclusivo analiza múltiples factores para encontrar tu match 
 **Verificación Segura**
 - Verificación de email y teléfono
 - Selfie verification para mayor seguridad
-- Sistema de verificación opcional con documento
 
 ### ✨ Características Principales
 

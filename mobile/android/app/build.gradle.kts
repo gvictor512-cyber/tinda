@@ -22,7 +22,7 @@ android {
     defaultConfig {
         applicationId = "com.roommatematch.app"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -56,7 +56,7 @@ android {
                 signingConfigs.getByName("debug")
             }
             ndk {
-                debugSymbolLevel = "none"
+                debugSymbolLevel = "symbol_table"
             }
         }
     }
@@ -64,19 +64,6 @@ android {
     lint {
         checkReleaseBuilds = false
         abortOnError = false
-    }
-}
-
-// Workaround: el entorno no tiene NDK, así que se deshabilita el strip de símbolos
-// nativos en release (APK/AAB) hasta que se instale/configura el NDK real.
-android.packagingOptions.jniLibs.keepDebugSymbols.add("**/*.so")
-
-tasks.whenTaskAdded {
-    if (name.contains("Release", ignoreCase = true) &&
-        (name.contains("NativeDebugMetadata", ignoreCase = true) ||
-            name.contains("DebugSymbols", ignoreCase = true) ||
-            name.contains("Strip", ignoreCase = true))) {
-        enabled = false
     }
 }
 
