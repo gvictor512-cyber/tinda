@@ -522,7 +522,7 @@ class ChatService {
         'reason': sanitizedReason,
         'description': sanitizedDescription,
         'timestamp': FieldValue.serverTimestamp(),
-        'status': 'pending',
+        'status': 'open',
       });
     } catch (e) {
       SecureLogger.error('Failed to report user', error: e);

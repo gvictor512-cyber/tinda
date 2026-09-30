@@ -147,6 +147,93 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _showReportDialog() {
+    final reasons = [
+      'Contenido inapropiado',
+      'Perfil falso',
+      'Spam',
+      'Comportamiento abusivo',
+      'Otro',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Reportar usuario'),
+        children: [
+          ...reasons.map((reason) => SimpleDialogOption(
+                child: Text(reason),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _reportUser(reason);
+                },
+              )),
+          SimpleDialogOption(
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _reportUser(String reason) async {
+    try {
+      await _chatService.reportUser(
+        userId: widget.otherUserId,
+        reason: reason,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reporte enviado. Gracias.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _blockUser() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bloquear usuario'),
+        content: Text(
+          '¿Bloquear a ${widget.otherUserName}? No podréis enviaros mensajes ni ver vuestros perfiles.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Bloquear'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await _chatService.blockUser(widget.otherUserId);
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -203,6 +290,34 @@ class _ChatScreenState extends State<ChatScreen> {
             icon: const Icon(Icons.location_on),
             onPressed: _sendLocation,
             tooltip: 'Enviar ubicación',
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'report') {
+                _showReportDialog();
+              } else if (value == 'block') {
+                _blockUser();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'report',
+                child: ListTile(
+                  leading: Icon(Icons.flag_outlined),
+                  title: Text('Reportar'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'block',
+                child: ListTile(
+                  leading: Icon(Icons.block),
+                  title: Text('Bloquear'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
         ],
       ),

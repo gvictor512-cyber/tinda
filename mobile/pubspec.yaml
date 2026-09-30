@@ -1,7 +1,7 @@
 name: roommatematch
 description: RoomMate Match - Find your perfect roommate
 publish_to: 'none'
-version: 1.0.0+3
+version: 1.0.0+4
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -99,5 +99,6 @@ flutter:
 
 flutter_launcher_icons:
   image_path: "assets/images/logo_launcher.png"
+  image_path_ios: "assets/images/logo_launcher_ios.png"
   android: true
   ios: true

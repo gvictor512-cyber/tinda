@@ -158,6 +158,30 @@ class MatchingService {
         }
       }
 
+      // Get users blocked in either direction (blocked_users collection)
+      final blockedUserIds = <String>{};
+      final blockedByMeSnapshot = await _firestore
+          .collection('blocked_users')
+          .where('blockerId', isEqualTo: currentUser.uid)
+          .get();
+      for (var doc in blockedByMeSnapshot.docs) {
+        final blockedId = doc.data()['blockedId'] as String?;
+        if (blockedId != null) blockedUserIds.add(blockedId);
+      }
+      final blockedMeSnapshot = await _firestore
+          .collection('blocked_users')
+          .where('blockedId', isEqualTo: currentUser.uid)
+          .get();
+      for (var doc in blockedMeSnapshot.docs) {
+        final blockerId = doc.data()['blockerId'] as String?;
+        if (blockerId != null) blockedUserIds.add(blockerId);
+      }
+      // Legacy array-based blocks stored on the user document
+      final blockedArray = userData.data()?['blockedUsers'] as List?;
+      if (blockedArray != null) {
+        blockedUserIds.addAll(blockedArray.whereType<String>());
+      }
+
       // Query potential candidates
       final candidatesQuery = _firestore
           .collection('users')
@@ -174,6 +198,10 @@ class MatchingService {
         if (candidateId == null) continue;
         if (candidateId == currentUser.uid) continue;
         if (userType != null && candidateData['userType'] == userType) continue;
+        if (candidateData['banned'] == true) continue;
+
+        // Skip if blocked in either direction
+        if (blockedUserIds.contains(candidateId)) continue;
 
         // Skip if already swiped or matched
         if (swipedUserIds.contains(candidateId) || matchedUserIds.contains(candidateId)) {

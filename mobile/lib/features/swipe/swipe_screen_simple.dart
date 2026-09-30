@@ -705,6 +705,12 @@ class _SwipeScreenState extends State<SwipeScreen> {
       await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).update({
         'blockedUsers': FieldValue.arrayUnion([userId]),
       });
+      // Also write to blocked_users collection so isBlocked() checks (messaging) work
+      await FirebaseFirestore.instance.collection('blocked_users').add({
+        'blockerId': currentUser.uid,
+        'blockedId': userId,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
 
       if (mounted) {
         setState(() {
