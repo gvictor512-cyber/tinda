@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
 import 'analytics_service.dart';
+import 'payment_api_service.dart';
 import 'payment_service.dart';
 
 /// Servicio de compras dentro de la app (IAP) usando Google Play Billing y StoreKit.
@@ -18,6 +19,7 @@ class IapService {
 
   final InAppPurchase _iap = InAppPurchase.instance;
   final PaymentService _paymentService = PaymentService();
+  final PaymentApiService _paymentApi = PaymentApiService();
 
   StreamSubscription<List<PurchaseDetails>>? _subscription;
   final List<ProductDetails> _products = [];
@@ -211,10 +213,30 @@ class IapService {
         planId: planId,
         transactionId: transactionId,
       ));
+
+      // Solicitar factura por email (no bloqueante, omite compras de debug)
+      if (!kDebugMode && purchase.verificationData.source != 'debug') {
+        final product = _findProduct(purchase.productID);
+        unawaited(_paymentApi.sendPurchaseReceipt(
+          productId: purchase.productID,
+          transactionId: transactionId,
+          productName: product?.title,
+          amountCents: product != null ? (product.rawPrice * 100).round() : null,
+          currency: product?.currencyCode,
+          platform: Platform.isIOS ? 'ios' : 'android',
+        ));
+      }
     } catch (e) {
       debugPrint('Error entregando producto: $e');
       rethrow;
     }
+  }
+
+  ProductDetails? _findProduct(String productId) {
+    for (final p in _products) {
+      if (p.id == productId) return p;
+    }
+    return null;
   }
 
   String _planProductIdToPlanId(String productId) {

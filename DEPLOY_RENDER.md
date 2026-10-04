@@ -27,7 +27,17 @@
    - `FIREBASE_PRIVATE_KEY` → clave privada de Firebase Admin.
    - `FIREBASE_CLIENT_EMAIL` → email del servicio de Firebase.
    - `JWT_SECRET` → Render ya la generó automáticamente.
+   - `RESEND_API_KEY` → API key de https://resend.com (emails de factura de compra).
+   - `MAIL_FROM` → remitente verificado en Resend, p. ej. `RoomMate Match <facturas@roommatematchapp.com>`.
 8. Render desplegará tu backend automáticamente.
+
+## Facturas por email
+
+Tras cada compra IAP la app llama a `POST /payments/receipt`, que registra el
+pago en la tabla `payments` y envía la factura al email del usuario. Se usa la
+API HTTP de [Resend](https://resend.com) (los puertos SMTP están bloqueados en
+Render). Para que los emails lleguen a cualquier usuario debes verificar tu
+dominio en Resend (DNS) o, en pruebas, usar el remitente `onboarding@resend.dev`.
 
 ## URL del backend
 

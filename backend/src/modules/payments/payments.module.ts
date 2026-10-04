@@ -7,10 +7,12 @@ import { PaymentsService } from './payments.service';
 import { User } from '../users/entities/user.entity';
 import { Payment } from '../admin/entities/payment.entity';
 import { Subscription } from '../premium/entities/subscription.entity';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule,
+    MailModule,
     TypeOrmModule.forFeature([User, Payment, Subscription]),
   ],
   controllers: [PaymentsController, PaymentsWebhookController],

@@ -4,6 +4,7 @@ import { PaymentsService } from './payments.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { SetupSubscriptionDto } from './dto/setup-subscription.dto';
+import { SendReceiptDto } from './dto/send-receipt.dto';
 import { FirebaseAuthGuard } from '../../common/guards/auth.guard';
 
 @ApiTags('payments')
@@ -44,5 +45,15 @@ export class PaymentsController {
     @Body('subscriptionId') subscriptionId: string,
   ) {
     return this.paymentsService.cancelSubscription(subscriptionId);
+  }
+
+  /**
+   * Notifica una compra IAP completada: registra el pago y envia la factura
+   * por email. Idempotente por transactionId.
+   */
+  @Post('receipt')
+  @HttpCode(HttpStatus.OK)
+  async sendPurchaseReceipt(@Request() req, @Body() dto: SendReceiptDto) {
+    return this.paymentsService.sendPurchaseReceipt(req.user.uid, req.user.email, dto);
   }
 }

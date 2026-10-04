@@ -59,6 +59,10 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        value: RoomMate Match <facturas@roommatematchapp.com>
       - key: REDIS_URL
         fromService:
           type: redis
