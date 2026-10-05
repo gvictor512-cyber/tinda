@@ -59,4 +59,22 @@ export class UsersController {
   async seedDemo(@Request() req) {
     return this.usersService.seedDemoData(req.user.uid);
   }
+
+  /**
+   * Records a swipe server-side and creates the match+chat when the
+   * other user already liked the caller. Used as fallback when the
+   * client-side Firestore write fails under the deployed rules.
+   */
+  @Post('me/swipe')
+  async recordSwipe(
+    @Request() req,
+    @Body() body: { swipedId: string; isLike: boolean; isSuperLike?: boolean },
+  ) {
+    return this.usersService.recordSwipe(
+      req.user.uid,
+      body.swipedId,
+      body.isLike,
+      body.isSuperLike,
+    );
+  }
 }

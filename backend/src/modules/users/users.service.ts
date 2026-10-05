@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { admin } from '../../common/config/firebase.config';
@@ -647,6 +652,79 @@ export class UsersService {
       matches: matchCount,
       messages: messagesCreated,
     };
+  }
+
+  /**
+   * Records a swipe on behalf of the caller and, on a mutual like,
+   * creates the match + chat documents. Mirrors the client-side
+   * MatchingService logic but runs with the Admin SDK, so it cannot
+   * be rejected by Firestore rules.
+   */
+  async recordSwipe(
+    firebaseUid: string,
+    swipedId: string,
+    isLike: boolean,
+    isSuperLike = false,
+  ): Promise<{ matched: boolean }> {
+    if (!swipedId || swipedId === firebaseUid) {
+      throw new BadRequestException('Invalid swipedId');
+    }
+    const db = admin.firestore();
+    const fv = admin.firestore.FieldValue;
+
+    await db
+      .collection('swipes')
+      .doc(`${firebaseUid}_${swipedId}`)
+      .set({
+        swiperId: firebaseUid,
+        swipedId,
+        isLike,
+        ...(isSuperLike ? { isSuperLike: true } : {}),
+        timestamp: fv.serverTimestamp(),
+      });
+
+    if (!isLike) return { matched: false };
+
+    const mutual = await db
+      .collection('swipes')
+      .doc(`${swipedId}_${firebaseUid}`)
+      .get();
+    const mutualData = mutual.data();
+    if (!mutual.exists || mutualData?.isLike !== true) {
+      return { matched: false };
+    }
+
+    const pairId =
+      firebaseUid < swipedId
+        ? `${firebaseUid}_${swipedId}`
+        : `${swipedId}_${firebaseUid}`;
+    const batch = db.batch();
+    batch.set(
+      db.collection('matches').doc(pairId),
+      {
+        users: [firebaseUid, swipedId],
+        timestamp: fv.serverTimestamp(),
+        lastMessage: null,
+        unreadCount: { [firebaseUid]: 0, [swipedId]: 0 },
+      },
+      { merge: true },
+    );
+    batch.set(
+      db.collection('chats').doc(pairId),
+      {
+        participants: [firebaseUid, swipedId],
+        lastMessage: null,
+        lastMessageTimestamp: null,
+        createdAt: fv.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    await batch.commit();
+
+    this.logger.log(
+      `Swipe ${firebaseUid} -> ${swipedId} like=${isLike} matched=true`,
+    );
+    return { matched: true };
   }
 
   /** Minimal geohash encoder (mirrors the client's GeoHash utility). */
