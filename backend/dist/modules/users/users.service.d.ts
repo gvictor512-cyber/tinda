@@ -6,6 +6,7 @@ export declare class UsersService {
     private usersRepository;
     private consentLogRepository;
     private dataRequestRepository;
+    private readonly logger;
     constructor(usersRepository: Repository<User>, consentLogRepository: Repository<ConsentLog>, dataRequestRepository: Repository<DataRequest>);
     findByFirebaseUid(firebaseUid: string): Promise<User>;
     create(firebaseUid: string, email: string): Promise<User>;
@@ -19,4 +20,19 @@ export declare class UsersService {
     }>;
     exportData(firebaseUid: string): Promise<Record<string, unknown>>;
     deleteUser(firebaseUid: string): Promise<DataRequest>;
+    private deleteFirebaseData;
+    claimReferralRewards(firebaseUid: string): Promise<{
+        granted: number;
+        freeLikes?: undefined;
+    } | {
+        granted: number;
+        freeLikes: number;
+    }>;
+    seedDemoData(firebaseUid: string): Promise<{
+        profiles: number;
+        likes: number;
+        matches: number;
+        messages: number;
+    }>;
+    private encodeGeohash;
 }

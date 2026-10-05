@@ -16,6 +16,7 @@ const payments_service_1 = require("./payments.service");
 const user_entity_1 = require("../users/entities/user.entity");
 const payment_entity_1 = require("../admin/entities/payment.entity");
 const subscription_entity_1 = require("../premium/entities/subscription.entity");
+const mail_module_1 = require("../mail/mail.module");
 let PaymentsModule = class PaymentsModule {
 };
 exports.PaymentsModule = PaymentsModule;
@@ -23,6 +24,7 @@ exports.PaymentsModule = PaymentsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule,
+            mail_module_1.MailModule,
             typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, payment_entity_1.Payment, subscription_entity_1.Subscription]),
         ],
         controllers: [payments_controller_1.PaymentsController, payments_webhook_controller_1.PaymentsWebhookController],

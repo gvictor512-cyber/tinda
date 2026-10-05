@@ -39,4 +39,24 @@ export class UsersController {
       version: consentDto.version,
     });
   }
+
+  /**
+   * Claims pending referral rewards for the caller (referrer).
+   * The client cannot write another user's doc, so freeLikes are
+   * granted server-side via the Admin SDK.
+   */
+  @Post('me/referral-rewards')
+  async claimReferralRewards(@Request() req) {
+    return this.usersService.claimReferralRewards(req.user.uid);
+  }
+
+  /**
+   * Seeds demo data for the caller: profiles, incoming likes, mutual
+   * matches and chats with two-way messages. Runs with the Admin SDK
+   * so Firestore rules don't block likes written as demo users.
+   */
+  @Post('me/seed-demo')
+  async seedDemo(@Request() req) {
+    return this.usersService.seedDemoData(req.user.uid);
+  }
 }

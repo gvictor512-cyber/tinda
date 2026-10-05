@@ -10,4 +10,17 @@ export declare class UsersController {
         user: import("./entities/user.entity").User;
         log: import("./entities/consent-log.entity").ConsentLog;
     }>;
+    claimReferralRewards(req: any): Promise<{
+        granted: number;
+        freeLikes?: undefined;
+    } | {
+        granted: number;
+        freeLikes: number;
+    }>;
+    seedDemo(req: any): Promise<{
+        profiles: number;
+        likes: number;
+        matches: number;
+        messages: number;
+    }>;
 }

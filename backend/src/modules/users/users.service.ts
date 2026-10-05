@@ -324,4 +324,371 @@ export class UsersService {
     );
     return { granted: unrewarded.length, freeLikes: totalLikes };
   }
+
+  /**
+   * Seeds a complete test scenario for the caller: demo profiles that
+   * appear in the swipe deck, incoming likes, mutual matches and chats
+   * with two-way messages. Admin SDK bypasses rules so writes that the
+   * client can't do (likes written as demo users) work here.
+   */
+  async seedDemoData(firebaseUid: string): Promise<{
+    profiles: number;
+    likes: number;
+    matches: number;
+    messages: number;
+  }> {
+    const db = admin.firestore();
+    const fv = admin.firestore.FieldValue;
+    const GeoPoint = admin.firestore.GeoPoint;
+
+    // --- Caller context: userType drives the candidate type ---
+    const meRef = db.collection('users').doc(firebaseUid);
+    const meSnap = await meRef.get();
+    const me = meSnap.data() ?? {};
+    if (!me.preferences || typeof me.preferences !== 'object') {
+      await meRef.set(
+        {
+          preferences: {
+            ageRange: [18, 40],
+            gender: 'all',
+            budget: 650,
+            maxDistance: 50,
+            location: new GeoPoint(40.4168, -3.7038),
+          },
+        },
+        { merge: true },
+      );
+      me.preferences = {
+        ageRange: [18, 40],
+        gender: 'all',
+        budget: 650,
+        maxDistance: 50,
+        location: new GeoPoint(40.4168, -3.7038),
+      };
+    }
+    const myType = (me.userType as string) ?? 'tenant';
+    const candidateType = myType === 'landlord' ? 'tenant' : 'landlord';
+    const myLoc = me.preferences?.location;
+    const baseLat = myLoc?.latitude ?? 40.4168;
+    const baseLon = myLoc?.longitude ?? -3.7038;
+    const myBudget =
+      typeof me.preferences?.budget === 'number' ? me.preferences.budget : 650;
+
+    // --- Purge previous demo data (profiles + this user's related docs) ---
+    const demoSnap = await db
+      .collection('profiles')
+      .where('isDemo', '==', true)
+      .get();
+    const demoIds = new Set(demoSnap.docs.map((d) => d.id));
+    if (demoIds.size > 0) {
+      const purge = db.batch();
+      for (const d of demoSnap.docs) purge.delete(d.ref);
+
+      const swipesA = await db
+        .collection('swipes')
+        .where('swiperId', '==', firebaseUid)
+        .get();
+      const swipesB = await db
+        .collection('swipes')
+        .where('swipedId', '==', firebaseUid)
+        .get();
+      for (const d of [...swipesA.docs, ...swipesB.docs]) {
+        const data = d.data();
+        if (demoIds.has(data.swipedId) || demoIds.has(data.swiperId)) {
+          purge.delete(d.ref);
+        }
+      }
+
+      const matches = await db
+        .collection('matches')
+        .where('users', 'array-contains', firebaseUid)
+        .get();
+      for (const d of matches.docs) {
+        const users: string[] = d.data().users ?? [];
+        if (users.some((u) => demoIds.has(u))) {
+          purge.delete(d.ref);
+          purge.delete(db.collection('chats').doc(d.id));
+        }
+      }
+      await purge.commit();
+    }
+
+    // --- Demo content ---
+    const names = [
+      'Lucía', 'Marcos', 'Sofía', 'Daniel', 'Valeria',
+      'Pablo', 'Carmen', 'Alejandro', 'Elena', 'Hugo',
+      'Marta', 'Adrián',
+    ];
+    const bios = [
+      'Estudiante de arquitectura, tranquila y ordenada.',
+      'Trabajo en tecnología, teletrabajo casi todos los días.',
+      'Deportista, madrugadora y muy limpia.',
+      'Recién llegado a la ciudad por trabajo. Sociable.',
+      'Me encanta el yoga, las plantas y los planes de domingo.',
+      'Fotógrafo freelance, paso mucho tiempo fuera.',
+      'Doctoranda en biología, busco convivencia tranquila.',
+      'Amante de los animales y la música.',
+      'Cocinero de profesión, la cocina siempre huele bien.',
+      'Estudio diseño, me gusta el arte y las exposiciones.',
+      'Teletrabajo en marketing, busco piso luminoso.',
+      'Ciclista y senderista los fines de semana.',
+    ];
+    const interestPool = [
+      'Música', 'Cine', 'Deporte', 'Viajes', 'Cocinar',
+      'Lectura', 'Senderismo', 'Fotografía', 'Yoga', 'Arte',
+    ];
+    const femalePortraits = [
+      'photo-1494790108377-be9c29b29330',
+      'photo-1438761681033-6461ffad8d80',
+      'photo-1544005313-94ddf0286df2',
+      'photo-1517841905240-472988babdf9',
+      'photo-1531123897727-8f129e1688ce',
+      'photo-1489424731084-a5d8b219a5bb',
+    ];
+    const malePortraits = [
+      'photo-1507003211169-0a1dd7228f2d',
+      'photo-1500648767791-00dcc994a43e',
+      'photo-1472099645785-5658abf4ff4e',
+      'photo-1506794778202-cad84cf45f1d',
+      'photo-1560250097-0b93528c311a',
+      'photo-1519085360753-af0119f7cbe7',
+    ];
+    const apartmentInteriors = [
+      'photo-1522708323590-d24dbb6b0267',
+      'photo-1502672260266-1c1ef2d93688',
+      'photo-1560448204-e02f11c3d0e2',
+      'photo-1493809842364-78817add7ffb',
+      'photo-1554995207-c18c203602cb',
+      'photo-1484154218962-a197022b5858',
+    ];
+    const img = (id: string) =>
+      `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=80`;
+    const rand = (arr: string[]) =>
+      arr[Math.floor(Math.random() * arr.length)];
+
+    // --- Create 12 profiles ---
+    const createdIds: string[] = [];
+    const batch = db.batch();
+    const now = Date.now();
+    for (let i = 0; i < 12; i++) {
+      const ref = db.collection('profiles').doc();
+      createdIds.push(ref.id);
+      const gender = i % 2 === 0 ? 'female' : 'male';
+      const age = 22 + (i % 15);
+      const portraits = gender === 'female' ? femalePortraits : malePortraits;
+      const portraitIdx = Math.floor(i / 2);
+      const photos = [
+        img(portraits[portraitIdx % portraits.length]),
+        img(portraits[(portraitIdx + 3) % portraits.length]),
+      ];
+      const location = new GeoPoint(
+        baseLat + (Math.random() - 0.5) * 0.04,
+        baseLon + (Math.random() - 0.5) * 0.04,
+      );
+      const budget = Math.round(myBudget * (0.95 + Math.random() * 0.1));
+      const interests = [...new Set([rand(interestPool), rand(interestPool)])];
+
+      const data: Record<string, unknown> = {
+        uid: ref.id,
+        name: names[i],
+        userType: candidateType,
+        photoURL: photos[0],
+        birthDate: admin.firestore.Timestamp.fromDate(
+          new Date(new Date().getFullYear() - age, i % 12, 15),
+        ),
+        createdAt: fv.serverTimestamp(),
+        isActive: true,
+        isPremium: false,
+        isVerified: false,
+        isDemo: true,
+        seedVersion: 2,
+        banned: false,
+        geohash: this.encodeGeohash(
+          Math.round(location.latitude * 100) / 100,
+          Math.round(location.longitude * 100) / 100,
+        ),
+        profile: {
+          age,
+          bio: bios[i],
+          gender,
+          interests,
+          photos,
+        },
+        preferences: {
+          ageRange: [18, 99],
+          gender: 'all',
+          budget,
+          maxDistance: 100,
+          location,
+        },
+      };
+      if (candidateType === 'landlord') {
+        data.apartment = {
+          title: 'Habitación luminosa en piso compartido',
+          location: 'Zona centro',
+          price: budget,
+          description: 'Habitación exterior con escritorio, gastos incluidos.',
+          photos: [
+            img(apartmentInteriors[i % apartmentInteriors.length]),
+            img(apartmentInteriors[(i + 2) % apartmentInteriors.length]),
+          ],
+        };
+      }
+      batch.set(ref, data);
+    }
+    await batch.commit();
+
+    // --- 5 incoming likes (demo -> user) ---
+    const likesBatch = db.batch();
+    const likeCount = Math.min(5, createdIds.length);
+    for (let i = 0; i < likeCount; i++) {
+      likesBatch.set(
+        db.collection('swipes').doc(`${createdIds[i]}_${firebaseUid}`),
+        {
+          swiperId: createdIds[i],
+          swipedId: firebaseUid,
+          isLike: true,
+          isDemo: true,
+          timestamp: fv.serverTimestamp(),
+        },
+      );
+    }
+    await likesBatch.commit();
+
+    // --- 3 mutual matches + chats with two-way messages ---
+    let messagesCreated = 0;
+    const matchCount = Math.min(3, createdIds.length);
+    const convo: string[][] = [
+      [
+        '¡Hola! Me ha encantado tu perfil 😊',
+        '¿Buscas piso por alguna zona en concreto?',
+        'Sí, por el centro. ¿Y tú tienes habitación libre?',
+        'Tengo una habitación exterior muy luminosa, te la puedo enseñar cuando quieras',
+      ],
+      [
+        '¡Hola! Parece que tenemos intereses en común',
+        '¡Hola! Sí, he visto que también te gusta el senderismo',
+        'Sí, salgo casi todos los fines de semana',
+        '¡Genial! Cuando quieras hablamos de la convivencia',
+      ],
+      [
+        'Hola, he visto tu anuncio y me interesa',
+        '¡Hola! Me alegro, cuéntame un poco sobre ti',
+        'Trabajo en remoto, soy ordenado y tranquilo',
+        'Perfecto, es justo el ambiente que buscamos en casa',
+      ],
+    ];
+    for (let i = 0; i < matchCount; i++) {
+      const demoId = createdIds[i];
+      const pairId =
+        firebaseUid < demoId
+          ? `${firebaseUid}_${demoId}`
+          : `${demoId}_${firebaseUid}`;
+
+      await db
+        .collection('swipes')
+        .doc(`${firebaseUid}_${demoId}`)
+        .set({
+          swiperId: firebaseUid,
+          swipedId: demoId,
+          isLike: true,
+          isDemo: true,
+          timestamp: fv.serverTimestamp(),
+        });
+
+      const msgs = convo[i % convo.length];
+      const lastMsg = msgs[msgs.length - 1];
+      const lastTs = admin.firestore.Timestamp.fromMillis(
+        now - i * 3600000 - 300000,
+      );
+
+      const pairBatch = db.batch();
+      pairBatch.set(db.collection('matches').doc(pairId), {
+        users: [firebaseUid, demoId],
+        timestamp: fv.serverTimestamp(),
+        lastMessage: lastMsg,
+        lastMessageTimestamp: lastTs,
+        unreadCount: { [firebaseUid]: 1, [demoId]: 0 },
+      });
+      pairBatch.set(db.collection('chats').doc(pairId), {
+        participants: [firebaseUid, demoId],
+        lastMessage: lastMsg,
+        lastMessageTimestamp: lastTs,
+        lastMessageSender: demoId,
+        createdAt: fv.serverTimestamp(),
+        unreadCounts: { [firebaseUid]: 1, [demoId]: 0 },
+      });
+      await pairBatch.commit();
+
+      const msgBatch = db.batch();
+      msgs.forEach((text, j) => {
+        const fromDemo = j % 2 === 0;
+        msgBatch.set(db.collection('chats').doc(pairId).collection('messages').doc(), {
+          senderId: fromDemo ? demoId : firebaseUid,
+          receiverId: fromDemo ? firebaseUid : demoId,
+          message: text,
+          imageUrl: null,
+          timestamp: admin.firestore.Timestamp.fromMillis(
+            now - i * 3600000 - (msgs.length - j) * 120000,
+          ),
+          read: !fromDemo,
+        });
+      });
+      await msgBatch.commit();
+      messagesCreated += msgs.length;
+    }
+
+    this.logger.log(
+      `Demo seed uid=${firebaseUid} profiles=${createdIds.length} likes=${likeCount} matches=${matchCount} msgs=${messagesCreated}`,
+    );
+    return {
+      profiles: createdIds.length,
+      likes: likeCount,
+      matches: matchCount,
+      messages: messagesCreated,
+    };
+  }
+
+  /** Minimal geohash encoder (mirrors the client's GeoHash utility). */
+  private encodeGeohash(
+    latitude: number,
+    longitude: number,
+    precision = 6,
+  ): string {
+    const base32 = '0123456789bcdefghjkmnpqrstuvwxyz';
+    const latRange = [-90, 90];
+    const lonRange = [-180, 180];
+    let out = '';
+    let bit = 0;
+    let ch = 0;
+    let even = true;
+    while (out.length < precision) {
+      if (even) {
+        const mid = (lonRange[0] + lonRange[1]) / 2;
+        if (longitude >= mid) {
+          ch |= 1 << (4 - bit);
+          lonRange[0] = mid;
+        } else {
+          lonRange[1] = mid;
+        }
+      } else {
+        const mid = (latRange[0] + latRange[1]) / 2;
+        if (latitude >= mid) {
+          ch |= 1 << (4 - bit);
+          latRange[0] = mid;
+        } else {
+          latRange[1] = mid;
+        }
+      }
+      even = !even;
+      if (bit < 4) {
+        bit++;
+      } else {
+        out += base32[ch];
+        bit = 0;
+        ch = 0;
+      }
+    }
+    return out;
+  }
 }

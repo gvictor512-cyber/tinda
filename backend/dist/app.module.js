@@ -63,7 +63,12 @@ const verification_module_1 = require("./modules/verification/verification.modul
 const groups_module_1 = require("./modules/groups/groups.module");
 const payments_module_1 = require("./modules/payments/payments.module");
 const admin_module_1 = require("./modules/admin/admin.module");
+const moderation_module_1 = require("./modules/moderation/moderation.module");
+const app_check_middleware_1 = require("./common/middleware/app-check.middleware");
 let AppModule = class AppModule {
+    configure(consumer) {
+        consumer.apply(app_check_middleware_1.AppCheckMiddleware).forRoutes('*');
+    }
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
@@ -154,6 +159,7 @@ exports.AppModule = AppModule = __decorate([
             groups_module_1.GroupsModule,
             payments_module_1.PaymentsModule,
             admin_module_1.AdminModule,
+            moderation_module_1.ModerationModule,
         ],
         providers: [
             {

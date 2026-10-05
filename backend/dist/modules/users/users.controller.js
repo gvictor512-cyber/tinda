@@ -37,6 +37,12 @@ let UsersController = class UsersController {
             version: consentDto.version,
         });
     }
+    async claimReferralRewards(req) {
+        return this.usersService.claimReferralRewards(req.user.uid);
+    }
+    async seedDemo(req) {
+        return this.usersService.seedDemoData(req.user.uid);
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -68,6 +74,20 @@ __decorate([
     __metadata("design:paramtypes", [Object, consent_dto_1.ConsentDto]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "logConsent", null);
+__decorate([
+    (0, common_1.Post)('me/referral-rewards'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "claimReferralRewards", null);
+__decorate([
+    (0, common_1.Post)('me/seed-demo'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "seedDemo", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(auth_guard_1.FirebaseAuthGuard),

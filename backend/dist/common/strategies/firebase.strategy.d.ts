@@ -4,6 +4,7 @@ export declare class FirebaseStrategy extends FirebaseStrategy_base {
     validate(req: any): Promise<{
         uid: string;
         email: string;
+        role: string;
     }>;
 }
 export {};

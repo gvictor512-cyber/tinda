@@ -19,6 +19,8 @@ const payments_service_1 = require("./payments.service");
 const create_payment_intent_dto_1 = require("./dto/create-payment-intent.dto");
 const create_customer_dto_1 = require("./dto/create-customer.dto");
 const setup_subscription_dto_1 = require("./dto/setup-subscription.dto");
+const send_receipt_dto_1 = require("./dto/send-receipt.dto");
+const verify_iap_dto_1 = require("./dto/verify-iap.dto");
 const auth_guard_1 = require("../../common/guards/auth.guard");
 let PaymentsController = class PaymentsController {
     constructor(paymentsService) {
@@ -35,6 +37,12 @@ let PaymentsController = class PaymentsController {
     }
     async cancelSubscription(req, subscriptionId) {
         return this.paymentsService.cancelSubscription(subscriptionId);
+    }
+    async sendPurchaseReceipt(req, dto) {
+        return this.paymentsService.sendPurchaseReceipt(req.user.uid, req.user.email, dto);
+    }
+    async verifyIap(req, dto) {
+        return this.paymentsService.verifyIapPurchase(req.user.uid, dto);
     }
 };
 exports.PaymentsController = PaymentsController;
@@ -73,6 +81,24 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], PaymentsController.prototype, "cancelSubscription", null);
+__decorate([
+    (0, common_1.Post)('receipt'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, send_receipt_dto_1.SendReceiptDto]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "sendPurchaseReceipt", null);
+__decorate([
+    (0, common_1.Post)('iap/verify'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, verify_iap_dto_1.VerifyIapDto]),
+    __metadata("design:returntype", Promise)
+], PaymentsController.prototype, "verifyIap", null);
 exports.PaymentsController = PaymentsController = __decorate([
     (0, swagger_1.ApiTags)('payments'),
     (0, common_1.Controller)('payments'),

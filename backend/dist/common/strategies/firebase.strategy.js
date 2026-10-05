@@ -19,9 +19,27 @@ let FirebaseStrategy = class FirebaseStrategy extends (0, passport_1.PassportStr
         }
         try {
             const decodedToken = await firebase_config_1.admin.auth().verifyIdToken(idToken);
+            let role = decodedToken.role;
+            if (!role) {
+                try {
+                    const db = firebase_config_1.admin.firestore();
+                    const adminDoc = await db.collection('admins').doc(decodedToken.uid).get();
+                    if (adminDoc.exists) {
+                        role = 'admin';
+                    }
+                    else {
+                        const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+                        role = userDoc.data()?.role ?? 'user';
+                    }
+                }
+                catch {
+                    role = 'user';
+                }
+            }
             return {
                 uid: decodedToken.uid,
                 email: decodedToken.email,
+                role,
             };
         }
         catch (error) {
