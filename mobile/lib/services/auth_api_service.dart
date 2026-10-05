@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'api_service.dart';
 
 class AuthApiService {
@@ -31,6 +32,23 @@ class AuthApiService {
       });
     } on DioException catch (_) {
       rethrow;
+    }
+  }
+
+  /// Permanently delete the user record on the backend. Performs the full
+  /// cascade server-side: Postgres anonymization, Firestore documents,
+  /// Storage files and the Firebase Auth user (Admin SDK).
+  /// Throws if there is no signed-in user or the request fails.
+  Future<void> deleteMe() async {
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (token == null) throw Exception('Usuario no autenticado');
+    _api.setAuthToken(token);
+    try {
+      await _api.delete('/users/me');
+    } on DioException catch (_) {
+      rethrow;
+    } finally {
+      _api.clearAuthToken();
     }
   }
 }

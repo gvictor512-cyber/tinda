@@ -58,9 +58,24 @@ class IapService {
     }
   }
 
-  String _getProductId(String planId) {
+  /// Todos los IDs de producto candidatos para un plan en la región actual:
+  /// el ID regional (si está definido) y el ID base. Ambos se consultan en la
+  /// tienda y se usa el regional solo si existe en App Store Connect /
+  /// Play Console; en caso contrario se usa el base.
+  Set<String> _candidateProductIds(String planId) {
     final region = _getRegion();
-    return _regionalProductIds[region]?[planId] ?? _planProductIds[planId]!;
+    return {
+      _planProductIds[planId]!,
+      if (_regionalProductIds[region]?[planId] != null)
+        _regionalProductIds[region]![planId]!,
+    };
+  }
+
+  ProductDetails? _resolveProduct(String planId) {
+    final region = _getRegion();
+    final regionalId = _regionalProductIds[region]?[planId];
+    return (regionalId != null ? _findProduct(regionalId) : null) ??
+        _findProduct(_planProductIds[planId]!);
   }
 
   final _purchaseCompleters = <String, Completer<PurchaseDetails?>>{};
@@ -81,7 +96,7 @@ class IapService {
 
   /// Cargar los detalles de producto de las tiendas (por región).
   Future<List<ProductDetails>> loadProducts() async {
-    final ids = _planProductIds.keys.map((planId) => _getProductId(planId)).toSet();
+    final ids = _planProductIds.keys.expand(_candidateProductIds).toSet();
     final response = await _iap.queryProductDetails(ids);
     if (response.error != null) {
       throw Exception('Error consultando productos: ${response.error!}');
@@ -96,14 +111,13 @@ class IapService {
   /// Devuelve el PurchaseDetails si se completó, o null si fue cancelado.
   Future<PurchaseDetails?> purchase(String planId) async {
     try {
-    final productId = _getProductId(planId);
     if (!_planProductIds.containsKey(planId)) throw Exception('Plan desconocido: $planId');
 
     final isAvailable = await _iap.isAvailable();
     if (!isAvailable) {
       if (kDebugMode) {
         final simulated = PurchaseDetails(
-          productID: productId,
+          productID: _planProductIds[planId]!,
           status: PurchaseStatus.purchased,
           transactionDate: DateTime.now().toIso8601String(),
           purchaseID: 'debug_${DateTime.now().millisecondsSinceEpoch}',
@@ -121,10 +135,11 @@ class IapService {
 
     if (_products.isEmpty) await loadProducts();
 
-    final product = _products.firstWhere(
-      (p) => p.id == productId,
-      orElse: () => throw Exception('Producto $productId no encontrado en la tienda.'),
-    );
+    final product = _resolveProduct(planId);
+    if (product == null) {
+      throw Exception('Producto para plan $planId no encontrado en la tienda.');
+    }
+    final productId = product.id;
 
     final completer = Completer<PurchaseDetails?>();
     _purchaseCompleters[productId] = completer;
@@ -135,7 +150,7 @@ class IapService {
       await _iap.buyNonConsumable(purchaseParam: PurchaseParam(productDetails: product));
     }
 
-    return completer.future.timeout(
+    return await completer.future.timeout(
       const Duration(seconds: 15),
       onTimeout: () {
         _purchaseCompleters.remove(productId);
@@ -202,10 +217,23 @@ class IapService {
       }
       final transactionId = purchase.purchaseID!;
 
+      final platform = Platform.isIOS ? 'ios' : 'android';
+      final verificationData = purchase.verificationData.serverVerificationData;
+
       if (isSubscription) {
-        await _paymentService.purchaseSubscription(planId, transactionId: transactionId);
+        await _paymentService.purchaseSubscription(
+          planId,
+          transactionId: transactionId,
+          verificationData: verificationData,
+          platform: platform,
+        );
       } else {
-        await _paymentService.purchaseIndividualItem(planId, transactionId: transactionId);
+        await _paymentService.purchaseIndividualItem(
+          planId,
+          transactionId: transactionId,
+          verificationData: verificationData,
+          platform: platform,
+        );
       }
 
       // Log analytics
