@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
@@ -21,6 +21,8 @@ import { VerificationModule } from './modules/verification/verification.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { ModerationModule } from './modules/moderation/moderation.module';
+import { AppCheckMiddleware } from './common/middleware/app-check.middleware';
 
 @Module({
   imports: [
@@ -113,6 +115,7 @@ import { AdminModule } from './modules/admin/admin.module';
     GroupsModule,
     PaymentsModule,
     AdminModule,
+    ModerationModule,
   ],
   providers: [
     {
@@ -126,4 +129,8 @@ import { AdminModule } from './modules/admin/admin.module';
     RolesGuard,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(AppCheckMiddleware).forRoutes('*');
+  }
+}
