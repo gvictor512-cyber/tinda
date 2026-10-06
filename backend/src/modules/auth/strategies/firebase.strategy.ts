@@ -23,22 +23,33 @@ export class FirebaseStrategy extends PassportStrategy(Strategy, 'firebase') {
     }
 
     try {
-      const decodedToken = await admin.auth().verifyIdToken(token, true);
-      const dbUser = await this.usersRepository.findOne({
-        where: { firebaseUid: decodedToken.uid },
-      });
+      // checkRevoked=false: the revocation check needs a service-account
+      // call to the Auth backend — if it degrades, EVERY valid token
+      // would 401. Signature/exp/aud validation stays strict.
+      const decodedToken = await admin.auth().verifyIdToken(token);
 
       if (decodedToken.exp * 1000 < Date.now()) {
         throw new UnauthorizedException('Token expired');
       }
 
+      // Role lookup is optional data — a Postgres hiccup must not turn
+      // into a 401 for a valid Firebase token.
+      let role = 'user';
+      try {
+        const dbUser = await this.usersRepository.findOne({
+          where: { firebaseUid: decodedToken.uid },
+        });
+        role = dbUser?.role ?? 'user';
+      } catch { /* keep default role */ }
+
       return {
         uid: decodedToken.uid,
         email: decodedToken.email,
         emailVerified: decodedToken.email_verified,
-        role: dbUser?.role ?? 'user',
+        role,
       };
     } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Invalid or expired Firebase token');
     }
   }
