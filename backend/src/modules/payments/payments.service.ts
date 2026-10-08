@@ -1,4 +1,13 @@
-import { Injectable, BadRequestException, ForbiddenException, Logger, ServiceUnavailableException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  Logger,
+  ServiceUnavailableException,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -91,7 +100,11 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
 
       const batch = db.batch();
       for (const doc of snap.docs) {
-        batch.set(doc.ref, { isActive: false, autoRenew: false }, { merge: true });
+        batch.set(
+          doc.ref,
+          { isActive: false, autoRenew: false },
+          { merge: true },
+        );
         batch.set(
           db.collection('users').doc(doc.id),
           {
@@ -132,7 +145,9 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       throw new Error('STRIPE_SECRET_KEY is not configured');
     }
     this.stripe = new Stripe(secretKey, { apiVersion: '2024-06-20' });
-    this.destinationBankAccount = this.configService.get<string>('STRIPE_DESTINATION_BANK_ACCOUNT') || undefined;
+    this.destinationBankAccount =
+      this.configService.get<string>('STRIPE_DESTINATION_BANK_ACCOUNT') ||
+      undefined;
   }
 
   async createCustomer(dto: CreateCustomerDto) {
@@ -206,13 +221,20 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
    * email del usuario. Las renovaciones/restauraciones de suscripciones se
    * deduplican por transactionId y no reenvian el email.
    */
-  async sendPurchaseReceipt(firebaseUid: string, tokenEmail: string | undefined, dto: SendReceiptDto) {
+  async sendPurchaseReceipt(
+    firebaseUid: string,
+    tokenEmail: string | undefined,
+    dto: SendReceiptDto,
+  ) {
     const planId = dto.productId.replace(/_(us|gb|mx)$/i, '');
     const catalog = RECEIPT_CATALOG[dto.productId] ?? RECEIPT_CATALOG[planId];
 
-    const amountCents = dto.amountCents ?? catalog?.amountCents ?? 0;
+    // The server-side catalog wins over any client-supplied amount so a
+    // tampered client cannot forge an invoice with an arbitrary price.
+    const amountCents = catalog?.amountCents ?? dto.amountCents ?? 0;
     const currency = (dto.currency || 'EUR').toUpperCase();
-    const productName = dto.productName || catalog?.name || planId || dto.productId;
+    const productName =
+      dto.productName || catalog?.name || planId || dto.productId;
 
     let user = await this.userRepository.findOne({ where: { firebaseUid } });
     if (!user && tokenEmail) {
@@ -225,7 +247,11 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     const email = user?.email || tokenEmail;
 
     const provider =
-      dto.platform === 'ios' ? 'apple_iap' : dto.platform === 'android' ? 'google_iap' : 'iap';
+      dto.platform === 'ios'
+        ? 'apple_iap'
+        : dto.platform === 'android'
+          ? 'google_iap'
+          : 'iap';
 
     const existing = await this.paymentRepository.findOne({
       where: { providerPaymentId: dto.transactionId },
@@ -266,7 +292,9 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         transactionId: dto.transactionId,
       });
       if (!sent) {
-        this.logger.warn(`No se pudo enviar la factura ${invoiceNumber} a ${email}`);
+        this.logger.warn(
+          `No se pudo enviar la factura ${invoiceNumber} a ${email}`,
+        );
       }
     } else {
       this.logger.warn(
@@ -280,7 +308,11 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
   /** RMM-YYYYMMDD-XXXXXX (derivado del transactionId, deterministico). */
   private buildInvoiceNumber(transactionId: string): string {
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const suffix = transactionId.replace(/[^A-Za-z0-9]/g, '').slice(-6).toUpperCase() || '000000';
+    const suffix =
+      transactionId
+        .replace(/[^A-Za-z0-9]/g, '')
+        .slice(-6)
+        .toUpperCase() || '000000';
     return `RMM-${date}-${suffix}`;
   }
 
@@ -289,38 +321,58 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       throw new Error('Missing stripe-signature header');
     }
 
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    );
     if (!webhookSecret) {
       throw new Error('STRIPE_WEBHOOK_SECRET not configured');
     }
 
-    const event = this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    const event = this.stripe.webhooks.constructEvent(
+      payload,
+      signature,
+      webhookSecret,
+    );
 
     switch (event.type) {
       case 'payment_intent.succeeded':
-        await this._handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+        await this._handlePaymentIntentSucceeded(
+          event.data.object as Stripe.PaymentIntent,
+        );
         break;
       case 'payment_intent.payment_failed':
-        await this._handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+        await this._handlePaymentIntentFailed(
+          event.data.object as Stripe.PaymentIntent,
+        );
         break;
       case 'invoice.payment_succeeded':
-        await this._handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
+        await this._handleInvoicePaymentSucceeded(
+          event.data.object as Stripe.Invoice,
+        );
         break;
       case 'customer.subscription.deleted':
-        await this._handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        await this._handleSubscriptionDeleted(
+          event.data.object as Stripe.Subscription,
+        );
         break;
     }
 
     return { received: true };
   }
 
-  private async _getUserFromMetadata(firebaseUid: string | undefined): Promise<User | null> {
+  private async _getUserFromMetadata(
+    firebaseUid: string | undefined,
+  ): Promise<User | null> {
     if (!firebaseUid) return null;
     return this.userRepository.findOne({ where: { firebaseUid } });
   }
 
-  private async _handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
-    const user = await this._getUserFromMetadata(paymentIntent.metadata?.firebase_uid);
+  private async _handlePaymentIntentSucceeded(
+    paymentIntent: Stripe.PaymentIntent,
+  ) {
+    const user = await this._getUserFromMetadata(
+      paymentIntent.metadata?.firebase_uid,
+    );
     if (!user) return;
 
     // Idempotency: Stripe retries webhooks — skip already-recorded intents.
@@ -373,8 +425,12 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async _handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
-    const user = await this._getUserFromMetadata(paymentIntent.metadata?.firebase_uid);
+  private async _handlePaymentIntentFailed(
+    paymentIntent: Stripe.PaymentIntent,
+  ) {
+    const user = await this._getUserFromMetadata(
+      paymentIntent.metadata?.firebase_uid,
+    );
     if (!user) return;
 
     await this.paymentRepository.save({
@@ -393,8 +449,11 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     const subscriptionId = invoice.subscription as string;
     if (!subscriptionId) return;
 
-    const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
-    const user = await this._getUserFromMetadata(subscription.metadata?.firebase_uid);
+    const subscription =
+      await this.stripe.subscriptions.retrieve(subscriptionId);
+    const user = await this._getUserFromMetadata(
+      subscription.metadata?.firebase_uid,
+    );
     if (!user) return;
 
     const periodEnd = new Date((invoice.period_end || 0) * 1000);
@@ -404,7 +463,10 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       where: { userId: user.id, planType: 'premium' },
     });
     if (!sub) {
-      sub = this.subscriptionRepository.create({ userId: user.id, planType: 'premium' });
+      sub = this.subscriptionRepository.create({
+        userId: user.id,
+        planType: 'premium',
+      });
     }
     sub.startDate = periodStart;
     sub.endDate = periodEnd;
@@ -418,11 +480,17 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     await this.userRepository.save(user);
 
     // Mirror the entitlement into Firestore (the mobile app reads it there)
-    await this._writeFirestoreEntitlement(user.firebaseUid, periodEnd.getTime(), 'stripe');
+    await this._writeFirestoreEntitlement(
+      user.firebaseUid,
+      periodEnd.getTime(),
+      'stripe',
+    );
   }
 
   private async _handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-    const user = await this._getUserFromMetadata(subscription.metadata?.firebase_uid);
+    const user = await this._getUserFromMetadata(
+      subscription.metadata?.firebase_uid,
+    );
     if (!user) return;
 
     const sub = await this.subscriptionRepository.findOne({
@@ -462,10 +530,20 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException(`Unknown product: ${dto.productId}`);
     }
 
-    // Idempotency: same transactionId can only grant once
-    const existing = await this.paymentRepository.findOne({
-      where: { providerPaymentId: dto.transactionId },
-    });
+    // Idempotency check via Postgres audit table — best-effort: if the DB
+    // is unreachable we still proceed, because the Firestore iap_grants
+    // marker below is the atomic idempotency guarantee. Failing here on a
+    // DB hiccup would leave the store transaction forever undelivered.
+    let existing: Payment | null = null;
+    try {
+      existing = await this.paymentRepository.findOne({
+        where: { providerPaymentId: dto.transactionId },
+      });
+    } catch (e) {
+      this.logger.error(
+        `payments lookup failed for tx=${dto.transactionId}: ${e}`,
+      );
+    }
     if (existing && (existing.metadata as any)?.grantedAt) {
       return { verified: true, alreadyGranted: true };
     }
@@ -478,7 +556,21 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     let verifiedBy = 'unverified';
     let expiryMs: number | null = null;
 
-    if (dto.platform === 'ios') {
+    // Debug-build purchases carry a `debug_` transaction id and no real
+    // receipt — skip store verification so the entitlement flow can be
+    // tested end-to-end. In production this prefix is rejected outright:
+    // otherwise anyone could mint premium by sending `debug_anything`.
+    const isProduction =
+      this.configService.get<string>('NODE_ENV') === 'production';
+    const isDebugTransaction = dto.transactionId.startsWith('debug_');
+
+    if (isDebugTransaction && isProduction) {
+      throw new BadRequestException('Invalid transaction id');
+    }
+
+    if (isDebugTransaction) {
+      verifiedBy = 'debug_simulated';
+    } else if (dto.platform === 'ios') {
       const r = await this._verifyAppleReceipt(dto.verificationData, planId);
       verifiedBy = r.verified ? 'apple' : 'unverified';
       expiryMs = r.expiryMs;
@@ -524,29 +616,46 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       return { verified: true, alreadyGranted: true };
     }
 
-    // Record the payment (audit trail)
-    let user = await this.userRepository.findOne({ where: { firebaseUid } });
-    if (!user) {
-      user = await this.userRepository.save(
-        this.userRepository.create({ firebaseUid }),
+    // Record the payment (audit trail) — best-effort: the entitlement
+    // already lives in Firestore, so a Postgres outage must not fail the
+    // delivery and leave a paid transaction stuck in the store queue.
+    try {
+      let user = await this.userRepository.findOne({ where: { firebaseUid } });
+      if (!user) {
+        // email is NOT NULL — pull it from Firebase Auth (a bare save with
+        // only firebaseUid used to crash with a constraint violation).
+        const fbUser = await admin
+          .auth()
+          .getUser(firebaseUid)
+          .catch(() => null);
+        user = await this.userRepository.save(
+          this.userRepository.create({
+            firebaseUid,
+            email: fbUser?.email ?? `${firebaseUid}@no-email.local`,
+          }),
+        );
+      }
+      if (!existing) {
+        await this.paymentRepository.save({
+          userId: user.id,
+          amount: catalog.amountCents,
+          currency: 'EUR',
+          status: 'succeeded',
+          provider: dto.platform === 'ios' ? 'apple_iap' : 'google_iap',
+          providerPaymentId: dto.transactionId,
+          planType: planId,
+          metadata: {
+            productId: dto.productId,
+            platform: dto.platform,
+            verifiedBy,
+            grantedAt: new Date().toISOString(),
+          },
+        });
+      }
+    } catch (e) {
+      this.logger.error(
+        `Failed to record payment tx=${dto.transactionId} uid=${firebaseUid}: ${e}`,
       );
-    }
-    if (!existing) {
-      await this.paymentRepository.save({
-        userId: user.id,
-        amount: catalog.amountCents,
-        currency: 'EUR',
-        status: 'succeeded',
-        provider: dto.platform === 'ios' ? 'apple_iap' : 'google_iap',
-        providerPaymentId: dto.transactionId,
-        planType: planId,
-        metadata: {
-          productId: dto.productId,
-          platform: dto.platform,
-          verifiedBy,
-          grantedAt: new Date().toISOString(),
-        },
-      });
     }
 
     this.logger.log(
@@ -563,7 +672,9 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
 
     const granted = await db.runTransaction(async (tx) => {
       const snap = await tx.get(userRef);
-      if (!snap.exists) return false;
+      if (!snap.exists) {
+        throw new NotFoundException('User profile not found');
+      }
       if (snap.get('hasUsedFreeTrial') === true) return false;
 
       const endMs = Date.now() + 7 * 24 * 3600 * 1000;
@@ -706,8 +817,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         const until = now + 24 * 3600 * 1000;
         const data = {
           isListingHighlighted: true,
-          listingHighlightedUntil:
-            admin.firestore.Timestamp.fromMillis(until),
+          listingHighlightedUntil: admin.firestore.Timestamp.fromMillis(until),
         };
         if (tx) {
           tx.set(userRef, data, { merge: true });
@@ -728,21 +838,27 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     source: string,
   ) {
     try {
-      await admin.firestore().collection('users').doc(firebaseUid).set(
-        {
-          isPremium: true,
-          planId: 'premium',
-          subscription: {
-            status: 'active',
-            autoRenew: true,
-            source,
-            endDate: admin.firestore.Timestamp.fromMillis(endMs),
+      await admin
+        .firestore()
+        .collection('users')
+        .doc(firebaseUid)
+        .set(
+          {
+            isPremium: true,
+            planId: 'premium',
+            subscription: {
+              status: 'active',
+              autoRenew: true,
+              source,
+              endDate: admin.firestore.Timestamp.fromMillis(endMs),
+            },
           },
-        },
-        { merge: true },
-      );
+          { merge: true },
+        );
     } catch (e) {
-      this.logger.warn(`Firestore entitlement write failed for ${firebaseUid}: ${e}`);
+      this.logger.warn(
+        `Firestore entitlement write failed for ${firebaseUid}: ${e}`,
+      );
     }
   }
 
@@ -750,22 +866,27 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
   private async _revokeFirestoreEntitlement(firebaseUid: string) {
     try {
       const db = admin.firestore();
-      await db.collection('users').doc(firebaseUid).set(
-        {
-          isPremium: false,
-          planId: 'basic',
-          subscription: {
-            status: 'expired',
+      await db
+        .collection('users')
+        .doc(firebaseUid)
+        .set(
+          {
+            isPremium: false,
+            planId: 'basic',
+            subscription: {
+              status: 'expired',
+            },
           },
-        },
-        { merge: true },
-      );
-      await db.collection('subscriptions').doc(firebaseUid).set(
-        { isActive: false, autoRenew: false },
-        { merge: true },
-      );
+          { merge: true },
+        );
+      await db
+        .collection('subscriptions')
+        .doc(firebaseUid)
+        .set({ isActive: false, autoRenew: false }, { merge: true });
     } catch (e) {
-      this.logger.warn(`Firestore entitlement revoke failed for ${firebaseUid}: ${e}`);
+      this.logger.warn(
+        `Firestore entitlement revoke failed for ${firebaseUid}: ${e}`,
+      );
     }
   }
 
@@ -780,7 +901,19 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
   ): Promise<{ verified: boolean; expiryMs: number | null }> {
     const secret = this.configService.get<string>('APPLE_SHARED_SECRET');
     if (!secret) {
-      this.logger.warn('APPLE_SHARED_SECRET not set — skipping Apple receipt validation');
+      // Fail closed in production: granting premium without receipt
+      // validation lets anyone claim a purchase that never happened.
+      if (this.configService.get<string>('NODE_ENV') === 'production') {
+        this.logger.error(
+          'APPLE_SHARED_SECRET not set — refusing unverified grant',
+        );
+        throw new ServiceUnavailableException(
+          'Payment verification is not configured',
+        );
+      }
+      this.logger.warn(
+        'APPLE_SHARED_SECRET not set — skipping Apple receipt validation',
+      );
       return { verified: false, expiryMs: null };
     }
     if (!receiptData) {
@@ -788,12 +921,22 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     }
 
     const verify = async (url: string) => {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 'receipt-data': receiptData, password: secret }),
-      });
-      return res.json() as Promise<any>;
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            'receipt-data': receiptData,
+            password: secret,
+          }),
+        });
+        return res.json() as Promise<any>;
+      } catch (e) {
+        this.logger.error(`Apple verifyReceipt request failed: ${e}`);
+        throw new ServiceUnavailableException(
+          'Apple receipt service unavailable',
+        );
+      }
     };
 
     let body = await verify('https://buy.itunes.apple.com/verifyReceipt');
@@ -801,14 +944,23 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       body = await verify('https://sandbox.itunes.apple.com/verifyReceipt');
     }
     if (body.status !== 0) {
-      throw new BadRequestException(`Apple receipt invalid (status=${body.status})`);
+      throw new BadRequestException(
+        `Apple receipt invalid (status=${body.status})`,
+      );
     }
 
-    const isSubscription = planId === 'premium_monthly' || planId === 'premium_annual';
-    const items: any[] = body.latest_receipt_info ?? body.receipt?.in_app ?? [];
+    const isSubscription =
+      planId === 'premium_monthly' || planId === 'premium_annual';
+    const rawItems = body.latest_receipt_info ?? body.receipt?.in_app;
+    const items: any[] = Array.isArray(rawItems) ? rawItems : [];
     const match = items
-      .filter((i) => i.product_id === planId || i.product_id?.startsWith(planId))
-      .sort((a, b) => Number(b.expires_date_ms ?? 0) - Number(a.expires_date_ms ?? 0))[0];
+      .filter(
+        (i) => i.product_id === planId || i.product_id?.startsWith(planId),
+      )
+      .sort(
+        (a, b) =>
+          Number(b.expires_date_ms ?? 0) - Number(a.expires_date_ms ?? 0),
+      )[0];
 
     if (!match) {
       throw new BadRequestException('Product not found in receipt');
@@ -833,28 +985,60 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     planId: string,
   ): Promise<{ verified: boolean; expiryMs: number | null }> {
     const saJson = this.configService.get<string>('GOOGLE_PLAY_SA_JSON');
-    const packageName = this.configService.get<string>('GOOGLE_PLAY_PACKAGE_NAME');
+    const packageName = this.configService.get<string>(
+      'GOOGLE_PLAY_PACKAGE_NAME',
+    );
     if (!saJson || !packageName) {
-      this.logger.warn('GOOGLE_PLAY_SA_JSON/GOOGLE_PLAY_PACKAGE_NAME not set — skipping Google verification');
+      // Fail closed in production for the same reason as Apple above.
+      if (this.configService.get<string>('NODE_ENV') === 'production') {
+        this.logger.error(
+          'GOOGLE_PLAY_SA_JSON/GOOGLE_PLAY_PACKAGE_NAME not set — refusing unverified grant',
+        );
+        throw new ServiceUnavailableException(
+          'Payment verification is not configured',
+        );
+      }
+      this.logger.warn(
+        'GOOGLE_PLAY_SA_JSON/GOOGLE_PLAY_PACKAGE_NAME not set — skipping Google verification',
+      );
       return { verified: false, expiryMs: null };
     }
     if (!purchaseToken) {
       throw new BadRequestException('Missing purchase token');
     }
 
-    const sa = JSON.parse(saJson) as { client_email: string; private_key: string };
+    let sa: { client_email: string; private_key: string };
+    try {
+      sa = JSON.parse(saJson);
+    } catch {
+      this.logger.error('GOOGLE_PLAY_SA_JSON is not valid JSON');
+      throw new ServiceUnavailableException(
+        'Payment verification is misconfigured',
+      );
+    }
     const token = await this._googleAccessToken(sa);
     const base = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${packageName}/purchases`;
-    const isSubscription = planId === 'premium_monthly' || planId === 'premium_annual';
+    const isSubscription =
+      planId === 'premium_monthly' || planId === 'premium_annual';
     const url = isSubscription
       ? `${base}/subscriptions/${productId}/tokens/${purchaseToken}`
       : `${base}/products/${productId}/tokens/${purchaseToken}`;
 
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (e) {
+      this.logger.error(`Google androidpublisher request failed: ${e}`);
+      throw new ServiceUnavailableException(
+        'Google Play verification service unavailable',
+      );
+    }
     if (!res.ok) {
-      throw new BadRequestException(`Google purchase invalid (HTTP ${res.status})`);
+      throw new BadRequestException(
+        `Google purchase invalid (HTTP ${res.status})`,
+      );
     }
     const body = (await res.json()) as any;
 
