@@ -236,11 +236,20 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     const productName =
       dto.productName || catalog?.name || planId || dto.productId;
 
-    let user = await this.userRepository.findOne({ where: { firebaseUid } });
-    if (!user && tokenEmail) {
-      // El usuario puede no existir aun en esta BD si nunca se registro via API.
-      user = await this.userRepository.save(
-        this.userRepository.create({ firebaseUid, email: tokenEmail }),
+    let user: User | null = null;
+    try {
+      user = await this.userRepository.findOne({ where: { firebaseUid } });
+      if (!user && tokenEmail) {
+        // El usuario puede no existir aun en esta BD si nunca se registro via API.
+        user = await this.userRepository.save(
+          this.userRepository.create({ firebaseUid, email: tokenEmail }),
+        );
+      }
+    } catch (e) {
+      // Postgres en caida no debe impedir el envio de la factura — seguimos
+      // y solo registramos el fallo.
+      this.logger.error(
+        `receipt: user lookup/create failed uid=${firebaseUid}: ${e}`,
       );
     }
 
@@ -253,29 +262,56 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           ? 'google_iap'
           : 'iap';
 
-    const existing = await this.paymentRepository.findOne({
-      where: { providerPaymentId: dto.transactionId },
-    });
-    if (existing) {
-      return { sent: false, alreadyRecorded: true, invoiceNumber: null };
+    let existing: Payment | null = null;
+    try {
+      existing = await this.paymentRepository.findOne({
+        where: { providerPaymentId: dto.transactionId },
+      });
+    } catch (e) {
+      this.logger.error(
+        `receipt: payment lookup failed tx=${dto.transactionId}: ${e}`,
+      );
+    }
+    // verifyIapPurchase ya graba el pago — si ademas marco la factura como
+    // enviada, esta llamada es una repeticion real y se deduplica. Si el
+    // pago existe pero la factura nunca llego a enviarse, seguimos y la
+    // mandamos ahora (antes se devolvia alreadyRecorded y el email nunca
+    // salia).
+    const alreadySent = (existing?.metadata as any)?.receiptSent === true;
+    if (existing && alreadySent) {
+      return {
+        sent: false,
+        alreadyRecorded: true,
+        invoiceNumber: (existing.metadata as any)?.invoiceNumber ?? null,
+      };
     }
 
-    const invoiceNumber = this.buildInvoiceNumber(dto.transactionId);
+    const invoiceNumber =
+      (existing?.metadata as any)?.invoiceNumber ??
+      this.buildInvoiceNumber(dto.transactionId);
 
-    await this.paymentRepository.save({
-      userId: user?.id ?? null,
-      amount: amountCents,
-      currency,
-      status: 'succeeded',
-      provider,
-      providerPaymentId: dto.transactionId,
-      planType: planId || dto.productId,
-      metadata: {
-        productId: dto.productId,
-        platform: dto.platform ?? null,
-        invoiceNumber,
-      },
-    });
+    if (!existing) {
+      try {
+        await this.paymentRepository.save({
+          userId: user?.id ?? null,
+          amount: amountCents,
+          currency,
+          status: 'succeeded',
+          provider,
+          providerPaymentId: dto.transactionId,
+          planType: planId || dto.productId,
+          metadata: {
+            productId: dto.productId,
+            platform: dto.platform ?? null,
+            invoiceNumber,
+          },
+        });
+      } catch (e) {
+        this.logger.error(
+          `receipt: payment save failed tx=${dto.transactionId}: ${e}`,
+        );
+      }
+    }
 
     let sent = false;
     if (email) {
@@ -300,6 +336,22 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(
         `Compra ${dto.transactionId} sin email asociado; factura ${invoiceNumber} no enviada`,
       );
+    }
+
+    // Marca receiptSent para deduplicar reintentos del cliente — best-effort.
+    if (sent && existing) {
+      try {
+        existing.metadata = {
+          ...(existing.metadata ?? {}),
+          invoiceNumber,
+          receiptSent: true,
+        };
+        await this.paymentRepository.save(existing);
+      } catch (e) {
+        this.logger.error(
+          `receipt: receiptSent flag failed tx=${dto.transactionId}: ${e}`,
+        );
+      }
     }
 
     return { sent, alreadyRecorded: false, invoiceNumber };
