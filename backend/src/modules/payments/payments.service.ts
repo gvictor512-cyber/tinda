@@ -11,7 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { createSign } from 'crypto';
+import { createSign, createVerify, X509Certificate } from 'crypto';
 import Stripe from 'stripe';
 import { admin } from '../../common/config/firebase.config';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
@@ -571,7 +571,11 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     if (isDebugTransaction) {
       verifiedBy = 'debug_simulated';
     } else if (dto.platform === 'ios') {
-      const r = await this._verifyAppleReceipt(dto.verificationData, planId);
+      const r = await this._verifyAppleReceipt(
+        dto.verificationData,
+        planId,
+        dto.transactionId,
+      );
       verifiedBy = r.verified ? 'apple' : 'unverified';
       expiryMs = r.expiryMs;
     } else if (dto.platform === 'android') {
@@ -592,26 +596,39 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     const markerRef = db
       .collection('iap_grants')
       .doc(`${firebaseUid}_${dto.transactionId}`);
-    const duplicated = await db.runTransaction(async (tx) => {
-      const marker = await tx.get(markerRef);
-      if (marker.exists) return true;
-      await this._grantEntitlement(
-        firebaseUid,
-        planId,
-        expiryMs,
-        dto.transactionId,
-        dto.platform,
-        tx,
-      );
-      tx.create(markerRef, {
-        uid: firebaseUid,
-        transactionId: dto.transactionId,
-        planId,
-        verifiedBy,
-        grantedAt: admin.firestore.FieldValue.serverTimestamp(),
+    let duplicated: boolean;
+    try {
+      duplicated = await db.runTransaction(async (tx) => {
+        const marker = await tx.get(markerRef);
+        if (marker.exists) return true;
+        await this._grantEntitlement(
+          firebaseUid,
+          planId,
+          expiryMs,
+          dto.transactionId,
+          dto.platform,
+          tx,
+        );
+        tx.create(markerRef, {
+          uid: firebaseUid,
+          transactionId: dto.transactionId,
+          planId,
+          verifiedBy,
+          grantedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return false;
       });
-      return false;
-    });
+    } catch (e) {
+      // Un error de Firestore aquí llegaba al cliente como un 500 genérico
+      // imposible de diagnosticar — ahora se loguea con stack y se expone
+      // el motivo real.
+      this.logger.error(
+        `Firestore grant failed uid=${firebaseUid} tx=${dto.transactionId}: ${e instanceof Error ? e.stack : e}`,
+      );
+      throw new ServiceUnavailableException(
+        `No se pudo activar la compra (error interno): ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
     if (duplicated) {
       return { verified: true, alreadyGranted: true };
     }
@@ -898,7 +915,16 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
   private async _verifyAppleReceipt(
     receiptData: string | undefined,
     planId: string,
+    transactionId: string,
   ): Promise<{ verified: boolean; expiryMs: number | null }> {
+    // StoreKit 2 (in_app_purchase_storekit reciente) envía la transacción
+    // como JWS firmado por Apple en lugar del recibo base64 de SK1 —
+    // verifyReceipt lo rechazaría con 21002. El JWS se verifica por firma
+    // (cadena x5c embebida) y no necesita el shared secret.
+    const trimmed = receiptData?.trim() ?? '';
+    if (/^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(trimmed)) {
+      return this._verifyAppleJws(trimmed, planId, transactionId);
+    }
     const secret = this.configService.get<string>('APPLE_SHARED_SECRET');
     if (!secret) {
       // Fail closed in production: granting premium without receipt
@@ -930,7 +956,9 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
             password: secret,
           }),
         });
-        return res.json() as Promise<any>;
+        // await dentro del try: antes era `return res.json()` sin await y
+        // un cuerpo no-JSON escapaba como excepción no-HTTP -> 500 genérico.
+        return (await res.json()) as any;
       } catch (e) {
         this.logger.error(`Apple verifyReceipt request failed: ${e}`);
         throw new ServiceUnavailableException(
@@ -940,12 +968,12 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     };
 
     let body = await verify('https://buy.itunes.apple.com/verifyReceipt');
-    if (body.status === 21007) {
+    if (body?.status === 21007) {
       body = await verify('https://sandbox.itunes.apple.com/verifyReceipt');
     }
-    if (body.status !== 0) {
+    if (body == null || typeof body !== 'object' || body.status !== 0) {
       throw new BadRequestException(
-        `Apple receipt invalid (status=${body.status})`,
+        `Apple receipt invalid (status=${body?.status ?? 'malformed'})`,
       );
     }
 
@@ -973,6 +1001,93 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       return { verified: true, expiryMs };
     }
     return { verified: true, expiryMs: null };
+  }
+
+  /**
+   * Verifica una transacción de StoreKit 2 codificada como JWS: valida la
+   * firma ES256 contra la cadena x5c embebida y que transactionId/productId
+   * coinciden con lo declarado por el cliente.
+   * Endurecimiento futuro: fijar el fingerprint del root de Apple o migrar
+   * a la App Store Server API (requiere key .p8 de App Store Connect).
+   */
+  private _verifyAppleJws(
+    jws: string,
+    planId: string,
+    transactionId: string,
+  ): { verified: boolean; expiryMs: number | null } {
+    if (!this._verifyJwsSignature(jws)) {
+      throw new BadRequestException('Firma del recibo de Apple inválida');
+    }
+    let payload: any;
+    try {
+      payload = JSON.parse(
+        Buffer.from(jws.split('.')[1], 'base64url').toString('utf8'),
+      );
+    } catch {
+      throw new BadRequestException('Recibo JWS malformado');
+    }
+
+    const txId = payload.transactionId ?? payload.originalTransactionId;
+    if (
+      payload.transactionId !== transactionId &&
+      payload.originalTransactionId !== transactionId
+    ) {
+      this.logger.error(
+        `JWS transaction mismatch: receipt tx=${txId} originalTx=${payload.originalTransactionId} dto tx=${transactionId}`,
+      );
+      throw new BadRequestException('La transacción no coincide con el recibo');
+    }
+    if (
+      payload.productId !== planId &&
+      !payload.productId?.startsWith(planId)
+    ) {
+      throw new BadRequestException('El producto no coincide con el recibo');
+    }
+
+    const expiryMs =
+      typeof payload.expiresDate === 'number' ? payload.expiresDate : null;
+    if (expiryMs != null && expiryMs <= Date.now()) {
+      throw new BadRequestException('Subscription expired');
+    }
+    this.logger.log(
+      `JWS verified product=${payload.productId} tx=${txId} env=${payload.environment}`,
+    );
+    return { verified: true, expiryMs };
+  }
+
+  /**
+   * Verifica la firma ES256 del JWS y la cadena de certificados x5c hasta
+   * un root de Apple. Devuelve false ante cualquier fallo — el caller lo
+   * convierte en BadRequest.
+   */
+  private _verifyJwsSignature(jws: string): boolean {
+    try {
+      const [headerB64, payloadB64, signature] = jws.split('.');
+      const header = JSON.parse(
+        Buffer.from(headerB64, 'base64url').toString('utf8'),
+      );
+      const x5c: unknown = header.x5c;
+      if (!Array.isArray(x5c) || x5c.length < 2) return false;
+      const certs = x5c.map(
+        (c) => new X509Certificate(Buffer.from(c as string, 'base64')),
+      );
+      // Cada certificado debe firmar al anterior en la cadena.
+      for (let i = 0; i + 1 < certs.length; i++) {
+        if (!certs[i].verify(certs[i + 1].publicKey)) return false;
+      }
+      const root = certs[certs.length - 1];
+      if (!root.subject.includes('Apple Root CA')) return false;
+      const verifier = createVerify('SHA256');
+      verifier.update(`${headerB64}.${payloadB64}`);
+      verifier.end();
+      return verifier.verify(
+        { key: certs[0].publicKey, dsaEncoding: 'ieee-p1363' },
+        Buffer.from(signature, 'base64url'),
+      );
+    } catch (e) {
+      this.logger.warn(`JWS signature check failed: ${e}`);
+      return false;
+    }
   }
 
   /**
@@ -1040,7 +1155,14 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         `Google purchase invalid (HTTP ${res.status})`,
       );
     }
-    const body = (await res.json()) as any;
+    let body: any;
+    try {
+      body = await res.json();
+    } catch {
+      throw new ServiceUnavailableException(
+        'Google Play verification returned an invalid response',
+      );
+    }
 
     if (isSubscription) {
       const expiryMs = Number(body.expiryTimeMillis ?? 0);
@@ -1085,7 +1207,14 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         assertion: jwt,
       }),
     });
-    const body = (await res.json()) as any;
+    let body: any;
+    try {
+      body = await res.json();
+    } catch {
+      throw new ServiceUnavailableException(
+        'Google auth returned an invalid response',
+      );
+    }
     if (!body.access_token) {
       throw new ServiceUnavailableException('Google auth failed');
     }
