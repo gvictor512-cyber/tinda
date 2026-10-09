@@ -253,7 +253,8 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    const email = user?.email || tokenEmail;
+    const email =
+      user?.email || tokenEmail || (await this._lookupUserEmail(firebaseUid));
 
     const provider =
       dto.platform === 'ios'
@@ -355,6 +356,43 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     }
 
     return { sent, alreadyRecorded: false, invoiceNumber };
+  }
+
+  /**
+   * Best-effort recipient lookup for invoices when neither Postgres nor the
+   * ID token carry an email (e.g. Apple/phone sign-in, or Postgres outage).
+   * Tries the Firebase Auth record first, then the Firestore users doc.
+   */
+  private async _lookupUserEmail(firebaseUid: string): Promise<string | null> {
+    try {
+      const fbUser = await admin
+        .auth()
+        .getUser(firebaseUid)
+        .catch(() => null);
+      const authEmail =
+        fbUser?.email ??
+        fbUser?.providerData?.find((p) => p.email)?.email ??
+        null;
+      if (authEmail) return authEmail;
+    } catch (e) {
+      this.logger.warn(
+        `receipt: auth email lookup failed ${firebaseUid}: ${e}`,
+      );
+    }
+    try {
+      const doc = await admin
+        .firestore()
+        .collection('users')
+        .doc(firebaseUid)
+        .get();
+      const email = doc.data()?.email;
+      if (typeof email === 'string' && email.includes('@')) return email;
+    } catch (e) {
+      this.logger.warn(
+        `receipt: firestore email lookup failed ${firebaseUid}: ${e}`,
+      );
+    }
+    return null;
   }
 
   /** RMM-YYYYMMDD-XXXXXX (derivado del transactionId, deterministico). */
