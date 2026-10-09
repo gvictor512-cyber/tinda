@@ -2,6 +2,7 @@ import {
   CallHandler,
   ExecutionContext,
   Injectable,
+  Logger,
   NestInterceptor,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
@@ -21,6 +22,8 @@ import { finalize } from 'rxjs/operators';
  */
 @Injectable()
 export class SetFirebaseUidInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(SetFirebaseUidInterceptor.name);
+
   constructor(private readonly dataSource: DataSource) {}
 
   async intercept(
@@ -30,18 +33,37 @@ export class SetFirebaseUidInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const firebaseUid = request.user?.uid as string | undefined;
 
-    if (firebaseUid) {
-      await this.dataSource.query('SET app.firebase_uid = $1', [firebaseUid]);
+    // NOTE: `SET app.firebase_uid = $1` is invalid — PostgreSQL does not
+    // allow bound parameters in SET. set_config() accepts parameters and is
+    // equivalent here (is_local=false → session scope).
+    // Always clear first: the pool can hand us a connection that still has
+    // a previous user's uid set.
+    //
+    // Best-effort: if this query throws (pool exhausted, replica read-only,
+    // permission issue…) the request must still proceed — the alternative is
+    // an unexplained 500 on EVERY authenticated endpoint (as happened in
+    // production). We log the real error so it stays diagnosable.
+    try {
+      await this.dataSource.query(
+        `SELECT set_config('app.firebase_uid', $1, false)`,
+        [firebaseUid ?? ''],
+      );
+    } catch (e) {
+      this.logger.error(
+        `set_config('app.firebase_uid') failed — RLS uid not applied for this request: ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      );
     }
 
     return next.handle().pipe(
       finalize(async () => {
-        if (firebaseUid) {
-          try {
-            await this.dataSource.query('RESET app.firebase_uid');
-          } catch {
-            // Si falla el reset, no bloqueamos la respuesta
-          }
+        try {
+          await this.dataSource.query(
+            `SELECT set_config('app.firebase_uid', '', false)`,
+          );
+        } catch {
+          // Si falla el reset, no bloqueamos la respuesta
         }
       }),
     );
