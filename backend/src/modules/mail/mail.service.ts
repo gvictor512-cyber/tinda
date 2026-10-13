@@ -15,47 +15,63 @@ export interface PurchaseReceiptData {
 }
 
 const APP_NAME = 'RoomMate Match';
-const SELLER_NAME = 'Victor Garcia Caballero';
+const SELLER_NAME = 'RoomMate Match';
 const SELLER_LOCATION = 'Barcelona, España';
 const SUPPORT_EMAIL = 'support@roommatematchapp.com';
 const VAT_RATE = 0.21; // IVA aplicable en España para servicios digitales (incluido en el precio)
+
+// Paleta de marca (espejo de AppTheme en mobile/lib/config/theme.dart)
+const BRAND_BLUE_DARK = '#022C87';
+const BRAND_BLUE = '#1FA5F0';
+const BRAND_GREEN = '#50E3C2';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly apiKey?: string;
   private readonly from: string;
+  private readonly logoUrl?: string;
+  private readonly sellerNif?: string;
   private readonly enabled: boolean;
 
   constructor(private readonly configService: ConfigService) {
     this.apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.from =
       this.configService.get<string>('MAIL_FROM') ||
-      `${APP_NAME} <facturas@roommatematchapp.com>`;
-    this.enabled = Boolean(this.apiKey) && !this.apiKey.includes('YOUR_RESEND_API_KEY');
+      `${APP_NAME} <${SUPPORT_EMAIL}>`;
+    // Logo público para la cabecera del email (p. ej. servido por Firebase
+    // Hosting). Si no está configurado se muestra solo el nombre de la app.
+    this.logoUrl = this.configService.get<string>('MAIL_LOGO_URL') || undefined;
+    // NIF del emisor: opcional en este resumen de compra (el documento fiscal
+    // al consumidor lo emite la tienda). Se muestra solo si se configura.
+    // Va por env var para no exponer datos fiscales personales en el repo.
+    this.sellerNif =
+      this.configService.get<string>('SELLER_NIF') || undefined;
+    this.enabled =
+      Boolean(this.apiKey) && !this.apiKey.includes('YOUR_RESEND_API_KEY');
     if (!this.enabled) {
       this.logger.warn(
-        'RESEND_API_KEY no configurada: los emails de factura estan deshabilitados.',
+        'RESEND_API_KEY no configurada: los emails de resumen de compra estan deshabilitados.',
       );
     }
   }
 
   /**
-   * Envia la factura de una compra al email del usuario.
+   * Envia el resumen de una compra al email del usuario.
    * Devuelve true si el proveedor acepto el envio, false en caso contrario.
    * Nunca lanza excepciones: el envio de email es best-effort.
    */
   async sendPurchaseReceipt(data: PurchaseReceiptData): Promise<boolean> {
     if (!this.enabled) {
       this.logger.log(
-        `Factura ${data.invoiceNumber} no enviada (servicio de email deshabilitado)`,
+        `Resumen de compra ${data.invoiceNumber} no enviado (servicio de email deshabilitado)`,
       );
       return false;
     }
 
     return this.send({
       to: data.to,
-      subject: `Tu factura de ${APP_NAME} - ${data.invoiceNumber}`,
+      subject: `Tu resumen de compra de ${APP_NAME} - ${data.invoiceNumber}`,
       html: this.buildReceiptHtml(data),
       text: this.buildReceiptText(data),
     });
@@ -101,9 +117,10 @@ export class MailService {
 
   private formatAmount(cents: number, currency: string): string {
     try {
-      return new Intl.NumberFormat('es-ES', { style: 'currency', currency }).format(
-        cents / 100,
-      );
+      return new Intl.NumberFormat('es-ES', {
+        style: 'currency',
+        currency,
+      }).format(cents / 100);
     } catch {
       return `${(cents / 100).toFixed(2)} ${currency}`;
     }
@@ -143,86 +160,114 @@ export class MailService {
     const isEur = data.currency.toUpperCase() === 'EUR';
     const baseCents = Math.round(data.amountCents / (1 + VAT_RATE));
     const vatCents = data.amountCents - baseCents;
+    const greeting = data.customerName
+      ? `Gracias por tu compra, ${this.escapeHtml(data.customerName)}.`
+      : 'Gracias por tu compra.';
+
+    const logoBlock = this.logoUrl
+      ? `<img src="${this.escapeHtml(this.logoUrl)}" alt="${APP_NAME}" width="56" height="56" style="display:block;border-radius:14px;border:0;">`
+      : '';
 
     const taxRows = isEur
       ? `
             <tr>
-              <td style="padding:8px 0;color:#666;">Base imponible</td>
-              <td style="padding:8px 0;text-align:right;">${this.formatAmount(baseCents, data.currency)}</td>
+              <td style="padding:8px 0;color:#64748B;font-size:14px;">Base imponible</td>
+              <td style="padding:8px 0;text-align:right;font-size:14px;color:#1E293B;">${this.formatAmount(baseCents, data.currency)}</td>
             </tr>
             <tr>
-              <td style="padding:8px 0;color:#666;">IVA (21%) incluido</td>
-              <td style="padding:8px 0;text-align:right;">${this.formatAmount(vatCents, data.currency)}</td>
+              <td style="padding:8px 0;color:#64748B;font-size:14px;">IVA (21%) incluido</td>
+              <td style="padding:8px 0;text-align:right;font-size:14px;color:#1E293B;">${this.formatAmount(vatCents, data.currency)}</td>
             </tr>`
       : `
             <tr>
-              <td style="padding:8px 0;color:#666;">Impuestos</td>
-              <td style="padding:8px 0;text-align:right;">Incluidos</td>
+              <td style="padding:8px 0;color:#64748B;font-size:14px;">Impuestos</td>
+              <td style="padding:8px 0;text-align:right;font-size:14px;color:#1E293B;">Incluidos</td>
             </tr>`;
 
     return `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="utf-8"><title>Factura ${data.invoiceNumber}</title></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
-  <div style="max-width:560px;margin:0 auto;padding:24px;">
-    <div style="background:#ffffff;border-radius:12px;padding:32px;border:1px solid #e4e4e7;">
-      <h1 style="margin:0 0 4px;font-size:22px;color:#111;">${APP_NAME}</h1>
-      <p style="margin:0 0 24px;color:#666;font-size:14px;">Factura de compra</p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Resumen de compra ${this.escapeHtml(data.invoiceNumber)} - ${APP_NAME}</title>
+</head>
+<body style="margin:0;padding:0;background:#F1F5F9;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;">Tu resumen de compra ${this.escapeHtml(data.invoiceNumber)} de ${APP_NAME} - ${total}</div>
+  <div style="max-width:560px;margin:0 auto;padding:24px 16px;">
+
+    <!-- Cabecera de marca -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+      <tr>
+        <td bgcolor="${BRAND_BLUE_DARK}" style="background:linear-gradient(135deg,${BRAND_BLUE_DARK} 0%,${BRAND_BLUE} 100%);background-color:${BRAND_BLUE_DARK};border-radius:20px 20px 0 0;padding:32px;text-align:center;">
+          ${logoBlock}
+          ${logoBlock ? '<div style="height:14px;"></div>' : ''}
+          <div style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">${APP_NAME}</div>
+          <div style="margin-top:6px;font-size:13px;font-weight:600;color:${BRAND_GREEN};letter-spacing:1.5px;text-transform:uppercase;">Resumen de compra</div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Cuerpo -->
+    <div style="background:#ffffff;padding:32px;border-left:1px solid #E2E8F0;border-right:1px solid #E2E8F0;">
+      <p style="margin:0 0 4px;font-size:16px;color:#1E293B;font-weight:600;">${greeting}</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#64748B;line-height:1.5;">Aqui tienes el resumen de tu compra. Tu producto ya esta activo en tu cuenta.</p>
 
       <table style="width:100%;font-size:14px;border-collapse:collapse;">
         <tr>
-          <td style="padding:4px 0;color:#666;">Factura n.º</td>
-          <td style="padding:4px 0;text-align:right;font-weight:bold;">${this.escapeHtml(data.invoiceNumber)}</td>
+          <td style="padding:6px 0;color:#64748B;">Compra n.º</td>
+          <td style="padding:6px 0;text-align:right;font-weight:bold;color:#1E293B;">${this.escapeHtml(data.invoiceNumber)}</td>
         </tr>
         <tr>
-          <td style="padding:4px 0;color:#666;">Fecha</td>
-          <td style="padding:4px 0;text-align:right;">${this.formatDate(data.purchaseDate)}</td>
+          <td style="padding:6px 0;color:#64748B;">Fecha</td>
+          <td style="padding:6px 0;text-align:right;color:#1E293B;">${this.formatDate(data.purchaseDate)}</td>
         </tr>
         <tr>
-          <td style="padding:4px 0;color:#666;">Cliente</td>
-          <td style="padding:4px 0;text-align:right;">${this.escapeHtml(data.customerName || data.to)}</td>
+          <td style="padding:6px 0;color:#64748B;">Cliente</td>
+          <td style="padding:6px 0;text-align:right;color:#1E293B;">${this.escapeHtml(data.customerName || data.to)}</td>
         </tr>
       </table>
 
-      <hr style="border:none;border-top:1px solid #e4e4e7;margin:20px 0;">
+      <hr style="border:none;border-top:1px solid #E2E8F0;margin:20px 0;">
 
       <table style="width:100%;font-size:14px;border-collapse:collapse;">
-        <tr style="border-bottom:1px solid #e4e4e7;">
-          <th style="padding:8px 0;text-align:left;color:#666;font-weight:600;">Concepto</th>
-          <th style="padding:8px 0;text-align:right;color:#666;font-weight:600;">Importe</th>
+        <tr>
+          <th style="padding:8px 0;text-align:left;color:${BRAND_BLUE};font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid #E2E8F0;">Concepto</th>
+          <th style="padding:8px 0;text-align:right;color:${BRAND_BLUE};font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid #E2E8F0;">Importe</th>
         </tr>
         <tr>
-          <td style="padding:12px 0;">
-            <strong>${this.escapeHtml(data.productName)}</strong>
-            ${data.productDescription ? `<br><span style="color:#666;font-size:13px;">${this.escapeHtml(data.productDescription)}</span>` : ''}
+          <td style="padding:14px 0;">
+            <strong style="color:#1E293B;">${this.escapeHtml(data.productName)}</strong>
+            ${data.productDescription ? `<br><span style="color:#64748B;font-size:13px;">${this.escapeHtml(data.productDescription)}</span>` : ''}
           </td>
-          <td style="padding:12px 0;text-align:right;">${total}</td>
+          <td style="padding:14px 0;text-align:right;color:#1E293B;">${total}</td>
         </tr>
         ${taxRows}
-        <tr style="border-top:2px solid #111;">
-          <td style="padding:12px 0;font-weight:bold;font-size:16px;">Total</td>
-          <td style="padding:12px 0;text-align:right;font-weight:bold;font-size:16px;">${total}</td>
-        </tr>
-      </table>
-
-      <hr style="border:none;border-top:1px solid #e4e4e7;margin:20px 0;">
-
-      <table style="width:100%;font-size:13px;color:#666;border-collapse:collapse;">
         <tr>
-          <td style="padding:4px 0;">Forma de pago</td>
-          <td style="padding:4px 0;text-align:right;">${this.platformLabel(data.platform)}</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 0;">ID de transaccion</td>
-          <td style="padding:4px 0;text-align:right;word-break:break-all;">${this.escapeHtml(data.transactionId)}</td>
+          <td style="padding:14px 0 0;font-weight:800;font-size:18px;color:#1E293B;border-top:2px solid ${BRAND_BLUE};">Total</td>
+          <td style="padding:14px 0 0;text-align:right;font-weight:800;font-size:18px;color:${BRAND_BLUE_DARK};border-top:2px solid ${BRAND_BLUE};">${total}</td>
         </tr>
       </table>
     </div>
 
-    <div style="text-align:center;color:#999;font-size:12px;padding:24px 0;line-height:1.6;">
+    <!-- Detalles de pago -->
+    <div style="background:#F8FAFC;padding:20px 32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 20px 20px;">
+      <table style="width:100%;font-size:13px;color:#64748B;border-collapse:collapse;">
+        <tr>
+          <td style="padding:4px 0;">Forma de pago</td>
+          <td style="padding:4px 0;text-align:right;color:#1E293B;font-weight:600;">${this.platformLabel(data.platform)}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 0;">ID de transaccion</td>
+          <td style="padding:4px 0;text-align:right;word-break:break-all;color:#1E293B;font-weight:600;">${this.escapeHtml(data.transactionId)}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align:center;color:#94A3B8;font-size:12px;padding:24px 0;line-height:1.6;">
       <p style="margin:0;">${SELLER_NAME} - ${SELLER_LOCATION}</p>
-      <p style="margin:4px 0;">Factura simplificada generada automaticamente por ${APP_NAME}.</p>
-      <p style="margin:4px 0;">Dudas sobre esta compra: <a href="mailto:${SUPPORT_EMAIL}" style="color:#666;">${SUPPORT_EMAIL}</a></p>
+      ${this.sellerNif ? `<p style="margin:4px 0;">NIF: ${this.escapeHtml(this.sellerNif)}</p>` : ''}
+      <p style="margin:4px 0;">Resumen de compra generado automaticamente por ${APP_NAME}.</p>
+      <p style="margin:4px 0;">Dudas sobre esta compra: <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND_BLUE};text-decoration:none;">${SUPPORT_EMAIL}</a></p>
     </div>
   </div>
 </body>
@@ -239,9 +284,9 @@ export class MailService {
       ? `Base imponible: ${this.formatAmount(baseCents, data.currency)}\nIVA (21%) incluido: ${this.formatAmount(vatCents, data.currency)}`
       : 'Impuestos: incluidos';
 
-    return `${APP_NAME} - Factura de compra
+    return `${APP_NAME} - Resumen de compra
 
-Factura n.º: ${data.invoiceNumber}
+Compra n.º: ${data.invoiceNumber}
 Fecha: ${this.formatDate(data.purchaseDate)}
 Cliente: ${data.customerName || data.to}
 
@@ -253,7 +298,7 @@ Forma de pago: ${this.platformLabel(data.platform)}
 ID de transaccion: ${data.transactionId}
 
 ${SELLER_NAME} - ${SELLER_LOCATION}
-Factura simplificada generada automaticamente.
+${this.sellerNif ? `NIF: ${this.sellerNif}\n` : ''}Resumen de compra generado automaticamente.
 Soporte: ${SUPPORT_EMAIL}`;
   }
 }

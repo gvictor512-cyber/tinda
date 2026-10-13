@@ -217,7 +217,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Registra una compra IAP (App Store / Google Play) y envia la factura al
+   * Registra una compra IAP (App Store / Google Play) y envia el resumen al
    * email del usuario. Las renovaciones/restauraciones de suscripciones se
    * deduplican por transactionId y no reenvian el email.
    */
@@ -246,7 +246,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         );
       }
     } catch (e) {
-      // Postgres en caida no debe impedir el envio de la factura — seguimos
+      // Postgres en caida no debe impedir el envio del resumen — seguimos
       // y solo registramos el fallo.
       this.logger.error(
         `receipt: user lookup/create failed uid=${firebaseUid}: ${e}`,
@@ -273,9 +273,9 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
         `receipt: payment lookup failed tx=${dto.transactionId}: ${e}`,
       );
     }
-    // verifyIapPurchase ya graba el pago — si ademas marco la factura como
-    // enviada, esta llamada es una repeticion real y se deduplica. Si el
-    // pago existe pero la factura nunca llego a enviarse, seguimos y la
+    // verifyIapPurchase ya graba el pago — si ademas marco el resumen como
+    // enviado, esta llamada es una repeticion real y se deduplica. Si el
+    // pago existe pero el resumen nunca llego a enviarse, seguimos y lo
     // mandamos ahora (antes se devolvia alreadyRecorded y el email nunca
     // salia).
     const alreadySent = (existing?.metadata as any)?.receiptSent === true;
@@ -330,12 +330,12 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       });
       if (!sent) {
         this.logger.warn(
-          `No se pudo enviar la factura ${invoiceNumber} a ${email}`,
+          `No se pudo enviar el resumen ${invoiceNumber} a ${email}`,
         );
       }
     } else {
       this.logger.warn(
-        `Compra ${dto.transactionId} sin email asociado; factura ${invoiceNumber} no enviada`,
+        `Compra ${dto.transactionId} sin email asociado; resumen ${invoiceNumber} no enviado`,
       );
     }
 

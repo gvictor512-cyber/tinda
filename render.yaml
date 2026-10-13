@@ -62,7 +62,12 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM
-        value: RoomMate Match <facturas@roommatematchapp.com>
+        value: RoomMate Match <support@roommatematchapp.com>
+      - key: MAIL_LOGO_URL
+        value: https://roommate-match-eb08c.web.app/icons/Icon-512.png
+      # NIF del emisor de la factura: definir en el dashboard de Render.
+      - key: SELLER_NIF
+        sync: false
       - key: REDIS_URL
         fromService:
           type: redis
@@ -71,18 +76,14 @@ services:
     healthCheckPath: /health
     autoDeploy: true
 
+# Postgres and Redis are only reachable from Render's private network
+# (no ipAllowList = no public ingress). Never expose them to 0.0.0.0/0.
 databases:
   - name: roommatematch-db
     plan: starter
     region: frankfurt
-    ipAllowList:
-      - source: 0.0.0.0/0
-        description: everywhere
 
 redis:
   - name: roommatematch-redis
     plan: starter
     region: frankfurt
-    ipAllowList:
-      - source: 0.0.0.0/0
-        description: everywhere
