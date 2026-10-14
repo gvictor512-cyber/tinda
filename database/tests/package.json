@@ -1,0 +1,11 @@
+{
+  "name": "roommatematch-rules-tests",
+  "private": true,
+  "description": "Firestore security rules tests (runs against the Firestore emulator)",
+  "scripts": {
+    "test": "node --test firestore.rules.test.js"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1"
+  }
+}

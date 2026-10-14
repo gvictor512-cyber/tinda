@@ -25,7 +25,8 @@ export class UserCancellation {
     type: 'varchar',
     length: 50,
   })
-  cancellationType: 'account_deletion' | 'subscription_cancel' | 'manual_deactivation';
+  cancellationType:
+    'account_deletion' | 'subscription_cancel' | 'manual_deactivation';
 
   @Column({ type: 'text', nullable: true })
   reason: string;

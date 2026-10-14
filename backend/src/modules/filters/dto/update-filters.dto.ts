@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsInt, IsArray, IsString, IsBoolean, Min, Max, IsEnum } from 'class-validator';
+import {
+  IsOptional,
+  IsInt,
+  IsArray,
+  IsString,
+  IsBoolean,
+  Min,
+  Max,
+  IsEnum,
+} from 'class-validator';
 
 export class UpdateFiltersDto {
   @ApiProperty({ example: 18, required: false })

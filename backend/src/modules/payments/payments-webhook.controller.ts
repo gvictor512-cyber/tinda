@@ -1,4 +1,11 @@
-import { Controller, Post, Req, Res, Headers, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Req,
+  Res,
+  Headers,
+  HttpStatus,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { PaymentsService } from './payments.service';
 
@@ -17,7 +24,9 @@ export class PaymentsWebhookController {
       await this.paymentsService.handleWebhook(rawBody, signature);
       return res.status(HttpStatus.OK).json({ received: true });
     } catch (e) {
-      return res.status(HttpStatus.BAD_REQUEST).send(`Webhook Error: ${e.message}`);
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .send(`Webhook Error: ${e.message}`);
     }
   }
 }

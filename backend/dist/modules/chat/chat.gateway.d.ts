@@ -1,10 +1,14 @@
 import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { Repository } from 'typeorm';
 import { ChatService } from './chat.service';
+import { User } from '../users/entities/user.entity';
 export declare class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     private readonly chatService;
+    private readonly usersRepository;
     server: Server;
-    constructor(chatService: ChatService);
+    constructor(chatService: ChatService, usersRepository: Repository<User>);
+    private resolveUserId;
     afterInit(server: Server): Promise<void>;
     handleConnection(client: Socket): Promise<void>;
     handleDisconnect(client: Socket): void;

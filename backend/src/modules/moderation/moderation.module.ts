@@ -116,10 +116,14 @@ export class ModerationService {
   }
 
   async resolve(id: string, action: 'approve' | 'reject') {
-    await admin.firestore().collection('moderation_queue').doc(id).update({
-      status: action === 'approve' ? 'resolved_ok' : 'resolved_removed',
-      resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    await admin
+      .firestore()
+      .collection('moderation_queue')
+      .doc(id)
+      .update({
+        status: action === 'approve' ? 'resolved_ok' : 'resolved_removed',
+        resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
     return { id, action };
   }
 }

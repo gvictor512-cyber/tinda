@@ -142,7 +142,8 @@ let GroupsService = class GroupsService {
         const membership = await this.groupMembersRepository.findOne({
             where: { groupId, userId: user.id },
         });
-        if (!membership || (membership.role !== 'creator' && membership.role !== 'admin')) {
+        if (!membership ||
+            (membership.role !== 'creator' && membership.role !== 'admin')) {
             throw new common_1.BadRequestException('Access denied');
         }
         Object.assign(group, updateGroupDto);
@@ -185,7 +186,8 @@ let GroupsService = class GroupsService {
         const membership = await this.groupMembersRepository.findOne({
             where: { groupId, userId: user.id },
         });
-        if (!membership || (membership.role !== 'creator' && membership.role !== 'admin')) {
+        if (!membership ||
+            (membership.role !== 'creator' && membership.role !== 'admin')) {
             throw new common_1.BadRequestException('Access denied');
         }
         const currentMembers = await this.groupMembersRepository.count({
@@ -289,7 +291,10 @@ let GroupsService = class GroupsService {
         if (members.length < 2) {
             group.compatibilityScore = 100;
             await this.groupsRepository.save(group);
-            return { score: 100, explanation: 'Need more members to calculate compatibility' };
+            return {
+                score: 100,
+                explanation: 'Need more members to calculate compatibility',
+            };
         }
         let totalScore = 0;
         let pairCount = 0;
@@ -314,13 +319,16 @@ let GroupsService = class GroupsService {
             explanation = 'Excelente compatibilidad grupal. ¡Formáis un gran equipo!';
         }
         else if (averageScore >= 70) {
-            explanation = 'Buena compatibilidad grupal. Podríais convivir bien juntos.';
+            explanation =
+                'Buena compatibilidad grupal. Podríais convivir bien juntos.';
         }
         else if (averageScore >= 50) {
-            explanation = 'Compatibilidad moderada. Algunas diferencias pero manejables.';
+            explanation =
+                'Compatibilidad moderada. Algunas diferencias pero manejables.';
         }
         else {
-            explanation = 'Baja compatibilidad grupal. Considerad revisar la dinámica del grupo.';
+            explanation =
+                'Baja compatibilidad grupal. Considerad revisar la dinámica del grupo.';
         }
         return {
             score: averageScore,

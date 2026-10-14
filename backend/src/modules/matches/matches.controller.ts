@@ -1,4 +1,19 @@
-import { Controller, Get, Post, Delete, Body, UseGuards, Request, Query, Param, ParseUUIDPipe, ParseIntPipe, DefaultValuePipe, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  UseGuards,
+  Request,
+  Query,
+  Param,
+  ParseUUIDPipe,
+  ParseIntPipe,
+  DefaultValuePipe,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { MatchesService } from './matches.service';
 import { SwipeDto } from './dto/swipe.dto';
 import { FirebaseAuthGuard } from '../../common/guards/auth.guard';
@@ -24,13 +39,19 @@ export class MatchesController {
   }
 
   @Get(':matchId')
-  async getMatch(@Request() req, @Param('matchId', ParseUUIDPipe) matchId: string) {
+  async getMatch(
+    @Request() req,
+    @Param('matchId', ParseUUIDPipe) matchId: string,
+  ) {
     return this.matchesService.getMatch(req.user.uid, matchId);
   }
 
   @Delete(':matchId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async unmatch(@Request() req, @Param('matchId', ParseUUIDPipe) matchId: string) {
+  async unmatch(
+    @Request() req,
+    @Param('matchId', ParseUUIDPipe) matchId: string,
+  ) {
     return this.matchesService.unmatch(req.user.uid, matchId);
   }
 

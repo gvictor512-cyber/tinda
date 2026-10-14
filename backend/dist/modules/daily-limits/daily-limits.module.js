@@ -17,9 +17,7 @@ let DailyLimitsModule = class DailyLimitsModule {
 exports.DailyLimitsModule = DailyLimitsModule;
 exports.DailyLimitsModule = DailyLimitsModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            typeorm_1.TypeOrmModule.forFeature([daily_limits_entity_1.DailyLimits, user_entity_1.User]),
-        ],
+        imports: [typeorm_1.TypeOrmModule.forFeature([daily_limits_entity_1.DailyLimits, user_entity_1.User])],
         providers: [daily_limits_service_1.DailyLimitsService],
         exports: [daily_limits_service_1.DailyLimitsService],
     })

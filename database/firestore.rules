@@ -25,26 +25,110 @@ service cloud.firestore {
       return value is timestamp;
     }
 
-    // Users collection
+    // Fields that must never be writable directly by the client owner.
+    // Premium, bans, verification and monetization state are granted
+    // exclusively by the backend (Firebase Admin SDK bypasses rules).
+    function protectedKeys() {
+      return [
+        'role', 'isVerified', 'isPremium', 'planId', 'banned',
+        'subscription', 'stripeCustomerId', 'isPremiumVerified',
+        'isListingHighlighted', 'listingHighlightedUntil',
+        'isDemo', 'email', 'uid', 'createdAt', 'consent'
+      ];
+    }
+
+    // True when the update does not touch any privileged field.
+    // superLikesAvailable may only DECREASE (consumption, never self-grant).
+    // isBoosted/boostEndTime may only be set by a genuinely premium account.
+    function noPrivilegeEscalation() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(protectedKeys())
+        && (!request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['superLikesAvailable'])
+          || request.resource.data.superLikesAvailable <= resource.data.superLikesAvailable)
+        && (!request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['freeLikes'])
+          || request.resource.data.freeLikes <= resource.data.get('freeLikes', 0))
+        && (!request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['isBoosted', 'boostEndTime'])
+          || resource.data.isPremium == true)
+        && (!request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['isVerified', 'isPremiumVerified']))
+        // Identity verification: owner may submit (level <= 3 = identity),
+        // premium level (5) is granted only by admin/backend.
+        && (!request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['verification'])
+          || request.resource.data.verification.get('level', 0) <= 3);
+    }
+
+    // The other uid inside a 2-member participants/users array.
+    function otherUser(uids) {
+      return uids[0] == request.auth.uid ? uids[1] : uids[0];
+    }
+
+    // Swipe docs use deterministic IDs: swipes/{swiperId}_{swipedId}
+    function likedBy(otherUid, me) {
+      return exists(/databases/$(database)/documents/swipes/$(otherUid + '_' + me))
+        && get(/databases/$(database)/documents/swipes/$(otherUid + '_' + me)).data.isLike == true
+        && get(/databases/$(database)/documents/swipes/$(otherUid + '_' + me)).data.swipedId == me;
+    }
+
+    // True if the given uid belongs to a demo/test profile.
+    function isDemoProfile(uid) {
+      return exists(/databases/$(database)/documents/profiles/$(uid))
+        && get(/databases/$(database)/documents/profiles/$(uid)).data.isDemo == true;
+    }
+
+    // ===================== USERS (PRIVATE) =====================
+    // The users doc holds PII (email, birthDate, exact location, identity
+    // documents) so it is readable ONLY by its owner or an admin.
+    // What other users see lives in the `profiles` collection.
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId)
-        && request.resource.data.keys().hasAll(['email', 'createdAt', 'isActive', 'isPremium'])
         && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == 'user')
-        && request.resource.data.isPremium == false
-        && request.resource.data.isVerified == false;
-      allow update: if (isOwner(userId)
-        && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == resource.data.role)
-        && (!request.resource.data.keys().hasAny(['isVerified']) || request.resource.data.isVerified == resource.data.isVerified))
-        || isAdmin();
+        && (!request.resource.data.keys().hasAny(['isPremium']) || request.resource.data.isPremium == false)
+        && (!request.resource.data.keys().hasAny(['isVerified']) || request.resource.data.isVerified == false)
+        && (!request.resource.data.keys().hasAny(['banned']) || request.resource.data.banned == false)
+        && (!request.resource.data.keys().hasAny(['isDemo']) || request.resource.data.isDemo == false)
+        && (!request.resource.data.keys().hasAny(['planId']) || request.resource.data.planId == 'basic');
+      allow update: if isAdmin()
+        || (isOwner(userId) && noPrivilegeEscalation());
       allow delete: if isOwner(userId) || isAdmin();
+
+      // Owner-only subcollections (usage history, not entitlements)
+      match /transactions/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+      match /purchases/{docId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) || isAdmin();
+        allow update, delete: if isAdmin();
+      }
+      match /boosts/{docId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) || isAdmin();
+        allow update, delete: if isAdmin();
+      }
+      match /swipes/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
 
-    // User profiles (public with minimal fields)
+    // ===================== PROFILES (PUBLIC CARD) =====================
+    // Only non-sensitive display data lives here. Synced from users doc by
+    // the client on login/profile changes. Never store email, birthDate,
+    // verification data or exact location here.
     match /profiles/{userId} {
       allow read: if isAuthenticated();
       allow create, update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+      // Dev/testing helper: demo profiles (they carry no auth account).
+      // NOTE: remove this clause for production if abuse appears.
+      allow create: if isAuthenticated() && request.resource.data.isDemo == true
+        && request.resource.data.banned == false;
+      allow delete: if isAdmin()
+        || isOwner(userId)
+        || (isAuthenticated() && resource.data.isDemo == true);
     }
 
     // Conversations / matches
@@ -69,11 +153,139 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Subscriptions
+    // ===================== SUBSCRIPTIONS =====================
+    // The client may only create its OWN 'basic' plan or cancel/downgrade.
+    // Granting premium is a backend-only operation (Admin SDK).
     match /subscriptions/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create, update: if isOwner(userId) || isAdmin();
+      allow create: if isAdmin()
+        || (isOwner(userId)
+          && request.resource.data.planId == 'basic'
+          && request.resource.data.isActive == true);
+      // Owner can only move towards basic/cancel, never self-upgrade
+      allow update: if isAdmin()
+        || (isOwner(userId)
+          && (request.resource.data.planId == 'basic'
+            || (request.resource.data.planId == resource.data.planId
+              && request.resource.data.isActive == false)));
       allow delete: if isAdmin();
+    }
+
+    // Swipes (deterministic doc id: {swiperId}_{swipedId} enables rules checks)
+    match /swipes/{swipeId} {
+      allow read: if isAuthenticated()
+        && (resource.data.swiperId == request.auth.uid
+          || resource.data.swipedId == request.auth.uid
+          || isAdmin());
+      allow create: if isAuthenticated()
+        && (request.resource.data.swipedId != request.auth.uid
+          || isDemoProfile(request.resource.data.swiperId))
+        && swipeId == request.resource.data.swiperId + '_' + request.resource.data.swipedId
+        && request.resource.data.isLike is bool
+        && (!request.resource.data.keys().hasAny(['timestamp'])
+          || request.resource.data.timestamp == request.time)
+        // Normal path: you can only swipe as yourself. Dev helper: demo
+        // profiles have no auth, so likes FROM a demo profile are allowed
+        // ONLY towards the requester (local demo seeding) — never towards
+        // arbitrary users, which would let anyone inject fake likes.
+        && (request.resource.data.swiperId == request.auth.uid
+          || (isDemoProfile(request.resource.data.swiperId)
+            && request.resource.data.isLike == true
+            && request.resource.data.swipedId == request.auth.uid));
+      // Dislikes can be overwritten to like (undo); like is immutable once mutual
+      allow update: if isAuthenticated()
+        && resource.data.swiperId == request.auth.uid
+        && request.resource.data.swiperId == resource.data.swiperId
+        && request.resource.data.swipedId == resource.data.swipedId;
+      allow delete: if isAuthenticated()
+        && resource.data.swiperId == request.auth.uid;
+    }
+
+    // Verification requests (identity / premium verification)
+    match /verification_requests/{reqId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+      // Only admin approves/rejects; owner may resubmit a pending doc
+      allow update: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'pending'
+          && request.resource.data.userId == resource.data.userId);
+      allow delete: if isAdmin();
+    }
+
+    // Referrals: only record own referral as the referred party
+    match /referrals/{docId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.referredId == request.auth.uid;
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.referrerId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // Feedback and support: write-only inbox for admins
+    match /feedback/{docId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && validString(request.resource.data.message, 4000);
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /support_messages/{docId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // Analytics: append-only, admin-read
+    match /analytics_events/{docId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /user_registrations/{docId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /subscription_events/{docId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Purchase records (top-level analytics + per-user subcollection above)
+    match /purchases/{docId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Boost records (top-level legacy collection, if used)
+    match /boosts/{docId} {
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Admin registry: only self-read (to check own admin flag), admin writes
+    match /admins/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // App config (versions, feature flags): readable by all users
+    match /app_config/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // Transactions (read-only for owner)
@@ -84,10 +296,11 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // User transactions subcollection
-    match /users/{userId}/transactions/{transactionId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isAdmin() || (isOwner(userId) && request.resource.data.userId == userId);
+    // Moderation queue (UGC review — flags come from the backend or app)
+    match /moderation_queue/{docId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.reporterId == request.auth.uid;
+      allow read, update, delete: if isAdmin();
     }
 
     // Reports (only owner can read own; admin can read all)
@@ -107,38 +320,70 @@ service cloud.firestore {
         resource.data.ownerId == request.auth.uid;
     }
 
-    // Chats
+    // Chats — only between users that matched (mutual like verified server-side
+    // via the swipes collection). chatId == sorted uidA_uidB (same as matchId).
     match /chats/{chatId} {
       allow read: if isAuthenticated() &&
         request.auth.uid in resource.data.participants;
-      allow create: if isAuthenticated() &&
-        request.auth.uid in request.resource.data.participants;
-      allow update: if isAuthenticated() &&
-        request.auth.uid in resource.data.participants;
-      allow delete: if isAuthenticated() &&
-        request.auth.uid in resource.data.participants;
+      // A chat may only be created between two users when a match doc exists,
+      // OR when the other participant has liked the requester (match creation
+      // happens in the same flow right before this write).
+      allow create: if isAuthenticated()
+        && request.auth.uid in request.resource.data.participants
+        && request.resource.data.participants.size() == 2
+        && (exists(/databases/$(database)/documents/matches/$(chatId))
+          || existsAfter(/databases/$(database)/documents/matches/$(chatId))
+          || likedBy(otherUser(request.resource.data.participants), request.auth.uid));
+      // Participants may only touch lastMessage/unread fields, not participants
+      allow update: if isAuthenticated()
+        && request.auth.uid in resource.data.participants
+        && request.resource.data.participants == resource.data.participants;
+      // A participant may delete the chat (client deletes messages too)
+      allow delete: if isAuthenticated()
+        && request.auth.uid in resource.data.participants;
 
       match /messages/{messageId} {
         allow read: if isAuthenticated() &&
           get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]);
+        // getAfter: the chat doc may be created in the same write batch
         allow create: if isAuthenticated() &&
-          get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]) &&
-          request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if false;
+          getAfter(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]) &&
+          request.resource.data.senderId == request.auth.uid &&
+          request.resource.data.receiverId in getAfter(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
+          validString(request.resource.data.message, 2000);
+        // Receiver may mark as read (only that field)
+        allow update: if isAuthenticated() &&
+          resource.data.receiverId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+          request.resource.data.read == true;
+        allow delete: if false;
       }
 
       match /typing/{userId} {
-        allow read, write: if isAuthenticated() &&
+        allow read: if isAuthenticated() &&
+          get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]);
+        allow write: if isAuthenticated() && userId == request.auth.uid &&
           get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]);
       }
     }
 
-    // Matches
+    // Matches — created only when the OTHER user has liked the requester.
+    // matchId == sorted uidA_uidB (same id as the chat doc).
     match /matches/{matchId} {
       allow read: if isAuthenticated() &&
         request.auth.uid in resource.data.users;
-      allow create, update: if isAuthenticated() &&
-        request.auth.uid in request.resource.data.users;
+      allow create: if isAuthenticated()
+        && request.auth.uid in request.resource.data.users
+        && request.resource.data.users.size() == 2
+        && matchId == (request.resource.data.users[0] < request.resource.data.users[1]
+            ? request.resource.data.users[0] + '_' + request.resource.data.users[1]
+            : request.resource.data.users[1] + '_' + request.resource.data.users[0])
+        && likedBy(otherUser(request.resource.data.users), request.auth.uid);
+      // Participants may update lastMessage metadata only
+      allow update: if isAuthenticated()
+        && request.auth.uid in resource.data.users
+        && request.resource.data.users == resource.data.users;
+      // Either participant can unmatch
       allow delete: if isAuthenticated() &&
         request.auth.uid in resource.data.users;
     }

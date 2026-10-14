@@ -7,7 +7,7 @@ import { admin } from '../config/firebase.config';
 export class FirebaseStrategy extends PassportStrategy(Strategy, 'firebase') {
   async validate(req: any) {
     const idToken = req.headers?.authorization?.replace('Bearer ', '');
-    
+
     if (!idToken) {
       throw new UnauthorizedException('No token provided');
     }
@@ -22,11 +22,17 @@ export class FirebaseStrategy extends PassportStrategy(Strategy, 'firebase') {
       if (!role) {
         try {
           const db = admin.firestore();
-          const adminDoc = await db.collection('admins').doc(decodedToken.uid).get();
+          const adminDoc = await db
+            .collection('admins')
+            .doc(decodedToken.uid)
+            .get();
           if (adminDoc.exists) {
             role = 'admin';
           } else {
-            const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+            const userDoc = await db
+              .collection('users')
+              .doc(decodedToken.uid)
+              .get();
             role = (userDoc.data()?.role as string | undefined) ?? 'user';
           }
         } catch {

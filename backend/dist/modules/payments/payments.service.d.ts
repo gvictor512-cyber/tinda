@@ -28,13 +28,14 @@ export declare class PaymentsService implements OnModuleInit, OnModuleDestroy {
     createCustomer(dto: CreateCustomerDto): Promise<Stripe.Response<Stripe.Customer>>;
     createPaymentIntent(firebaseUid: string, dto: CreatePaymentIntentDto): Promise<Stripe.Response<Stripe.PaymentIntent>>;
     setupSubscription(firebaseUid: string, dto: SetupSubscriptionDto): Promise<Stripe.Response<Stripe.Subscription>>;
-    cancelSubscription(subscriptionId: string): Promise<Stripe.Response<Stripe.Subscription>>;
+    cancelSubscription(firebaseUid: string, subscriptionId: string): Promise<Stripe.Response<Stripe.Subscription>>;
     getCustomerTransactions(customerId: string, limit?: number): Promise<Stripe.Response<Stripe.ApiList<Stripe.Charge>>>;
     sendPurchaseReceipt(firebaseUid: string, tokenEmail: string | undefined, dto: SendReceiptDto): Promise<{
         sent: boolean;
         alreadyRecorded: boolean;
-        invoiceNumber: string;
+        invoiceNumber: any;
     }>;
+    private _lookupUserEmail;
     private buildInvoiceNumber;
     handleWebhook(payload: Buffer, signature: string | undefined): Promise<{
         received: boolean;
@@ -61,6 +62,8 @@ export declare class PaymentsService implements OnModuleInit, OnModuleDestroy {
     private _writeFirestoreEntitlement;
     private _revokeFirestoreEntitlement;
     private _verifyAppleReceipt;
+    private _verifyAppleJws;
+    private _verifyJwsSignature;
     private _verifyGooglePurchase;
     private _googleAccessToken;
 }

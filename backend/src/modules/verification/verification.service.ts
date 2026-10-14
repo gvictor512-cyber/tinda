@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, NotImplementedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  NotImplementedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as admin from 'firebase-admin';
@@ -66,7 +71,7 @@ export class VerificationService {
     if (!firebaseUser.emailVerified) {
       throw new BadRequestException('Email not verified in Firebase');
     }
-    
+
     let verification = await this.verificationRepository.findOne({
       where: { userId: user.id },
     });
@@ -80,7 +85,7 @@ export class VerificationService {
     verification.emailVerified = true;
     verification.emailVerifiedAt = new Date();
     verification.verificationLevel = 'standard';
-    
+
     await this.verificationRepository.save(verification);
 
     // Update overall verification status
@@ -126,7 +131,7 @@ export class VerificationService {
     verification.selfieSubmittedAt = new Date();
     verification.selfieVerified = false;
     verification.verificationLevel = 'pending_review';
-    
+
     await this.verificationRepository.save(verification);
 
     // Update overall verification status
@@ -136,6 +141,27 @@ export class VerificationService {
   }
 
   async verifyDocument(firebaseUid: string, documentUrl: string) {
+    // Only accept documents hosted on Firebase Storage — an arbitrary URL
+    // could point to phishing/malware and would surface in the admin queue.
+    let parsed: URL;
+    try {
+      parsed = new URL(documentUrl);
+    } catch {
+      throw new BadRequestException('Invalid document URL');
+    }
+    const allowedHosts = [
+      'firebasestorage.googleapis.com',
+      'storage.googleapis.com',
+    ];
+    if (
+      parsed.protocol !== 'https:' ||
+      !allowedHosts.includes(parsed.hostname)
+    ) {
+      throw new BadRequestException(
+        'Document must be hosted on Firebase Storage',
+      );
+    }
+
     const user = await this.usersRepository.findOne({
       where: { firebaseUid },
     });
@@ -157,7 +183,7 @@ export class VerificationService {
     verification.documentVerified = false;
     verification.documentUrl = documentUrl;
     verification.verificationLevel = 'pending_review';
-    
+
     await this.verificationRepository.save(verification);
 
     // Update overall verification status
@@ -175,7 +201,7 @@ export class VerificationService {
       throw new NotFoundException('User not found');
     }
 
-    let verification = await this.verificationRepository.findOne({
+    const verification = await this.verificationRepository.findOne({
       where: { userId: user.id },
     });
 

@@ -13,8 +13,23 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  /** Clamps pagination params to sane bounds (take ≤ 100, skip ≥ 0). */
+  private static takeSkip(take: unknown, skip: unknown): [number, number] {
+    const t = Number(take);
+    const s = Number(skip);
+    return [
+      Number.isFinite(t) ? Math.min(Math.max(t, 1), 100) : 20,
+      Number.isFinite(s) ? Math.max(s, 0) : 0,
+    ];
+  }
+
   @Get('dashboard')
-  @ApiQuery({ name: 'period', required: false, description: 'today | week | month | year | all', example: 'month' })
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    description: 'today | week | month | year | all',
+    example: 'month',
+  })
   getDashboard(@Query('period') period = 'month') {
     return this.adminService.getDashboard(period);
   }
@@ -22,15 +37,18 @@ export class AdminController {
   @Get('users')
   @ApiQuery({ name: 'take', required: false, type: 'number', example: 20 })
   @ApiQuery({ name: 'skip', required: false, type: 'number', example: 0 })
-  getUsers(
-    @Query('take') take = 20,
-    @Query('skip') skip = 0,
-  ) {
-    return this.adminService.getUsers(Number(take), Number(skip));
+  getUsers(@Query('take') take = 20, @Query('skip') skip = 0) {
+    const [t, s] = AdminController.takeSkip(take, skip);
+    return this.adminService.getUsers(t, s);
   }
 
   @Get('users/new')
-  @ApiQuery({ name: 'period', required: false, description: 'today | week | month | year | all', example: 'week' })
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    description: 'today | week | month | year | all',
+    example: 'week',
+  })
   @ApiQuery({ name: 'take', required: false, type: 'number', example: 20 })
   @ApiQuery({ name: 'skip', required: false, type: 'number', example: 0 })
   getNewUsers(
@@ -38,26 +56,23 @@ export class AdminController {
     @Query('take') take = 20,
     @Query('skip') skip = 0,
   ) {
-    return this.adminService.getNewUsers(period, Number(take), Number(skip));
+    const [t, s] = AdminController.takeSkip(take, skip);
+    return this.adminService.getNewUsers(period, t, s);
   }
 
   @Get('payments')
   @ApiQuery({ name: 'take', required: false, type: 'number', example: 20 })
   @ApiQuery({ name: 'skip', required: false, type: 'number', example: 0 })
-  getPayments(
-    @Query('take') take = 20,
-    @Query('skip') skip = 0,
-  ) {
-    return this.adminService.getPayments(Number(take), Number(skip));
+  getPayments(@Query('take') take = 20, @Query('skip') skip = 0) {
+    const [t, s] = AdminController.takeSkip(take, skip);
+    return this.adminService.getPayments(t, s);
   }
 
   @Get('cancellations')
   @ApiQuery({ name: 'take', required: false, type: 'number', example: 20 })
   @ApiQuery({ name: 'skip', required: false, type: 'number', example: 0 })
-  getCancellations(
-    @Query('take') take = 20,
-    @Query('skip') skip = 0,
-  ) {
-    return this.adminService.getCancellations(Number(take), Number(skip));
+  getCancellations(@Query('take') take = 20, @Query('skip') skip = 0) {
+    const [t, s] = AdminController.takeSkip(take, skip);
+    return this.adminService.getCancellations(t, s);
   }
 }

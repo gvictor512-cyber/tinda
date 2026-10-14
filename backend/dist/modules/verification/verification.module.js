@@ -18,9 +18,7 @@ let VerificationModule = class VerificationModule {
 exports.VerificationModule = VerificationModule;
 exports.VerificationModule = VerificationModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            typeorm_1.TypeOrmModule.forFeature([verification_entity_1.Verification, user_entity_1.User]),
-        ],
+        imports: [typeorm_1.TypeOrmModule.forFeature([verification_entity_1.Verification, user_entity_1.User])],
         controllers: [verification_controller_1.VerificationController],
         providers: [verification_service_1.VerificationService],
         exports: [verification_service_1.VerificationService],

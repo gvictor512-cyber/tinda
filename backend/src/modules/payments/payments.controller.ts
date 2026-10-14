@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Request, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Request,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
@@ -32,10 +40,7 @@ export class PaymentsController {
 
   @Post('subscription')
   @HttpCode(HttpStatus.OK)
-  async setupSubscription(
-    @Request() req,
-    @Body() dto: SetupSubscriptionDto,
-  ) {
+  async setupSubscription(@Request() req, @Body() dto: SetupSubscriptionDto) {
     return this.paymentsService.setupSubscription(req.user.uid, dto);
   }
 
@@ -45,7 +50,10 @@ export class PaymentsController {
     @Request() req,
     @Body('subscriptionId') subscriptionId: string,
   ) {
-    return this.paymentsService.cancelSubscription(req.user.uid, subscriptionId);
+    return this.paymentsService.cancelSubscription(
+      req.user.uid,
+      subscriptionId,
+    );
   }
 
   /**
@@ -55,7 +63,11 @@ export class PaymentsController {
   @Post('receipt')
   @HttpCode(HttpStatus.OK)
   async sendPurchaseReceipt(@Request() req, @Body() dto: SendReceiptDto) {
-    return this.paymentsService.sendPurchaseReceipt(req.user.uid, req.user.email, dto);
+    return this.paymentsService.sendPurchaseReceipt(
+      req.user.uid,
+      req.user.email,
+      dto,
+    );
   }
 
   /**

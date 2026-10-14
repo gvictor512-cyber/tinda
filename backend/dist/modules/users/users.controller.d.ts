@@ -23,4 +23,11 @@ export declare class UsersController {
         matches: number;
         messages: number;
     }>;
+    recordSwipe(req: any, body: {
+        swipedId: string;
+        isLike: boolean;
+        isSuperLike?: boolean;
+    }): Promise<{
+        matched: boolean;
+    }>;
 }

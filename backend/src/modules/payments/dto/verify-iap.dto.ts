@@ -2,7 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class VerifyIapDto {
-  @ApiProperty({ description: 'Product/plan identifier', example: 'premium_monthly' })
+  @ApiProperty({
+    description: 'Product/plan identifier',
+    example: 'premium_monthly',
+  })
   @IsString()
   @IsNotEmpty()
   productId: string;
@@ -12,7 +15,10 @@ export class VerifyIapDto {
   @IsNotEmpty()
   transactionId: string;
 
-  @ApiProperty({ description: 'Purchase platform', enum: ['ios', 'android', 'internal'] })
+  @ApiProperty({
+    description: 'Purchase platform',
+    enum: ['ios', 'android', 'internal'],
+  })
   @IsIn(['ios', 'android', 'internal'])
   platform: string;
 

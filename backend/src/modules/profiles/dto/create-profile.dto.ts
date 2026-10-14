@@ -1,5 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsArray, IsEnum, Min, Max, IsBoolean, IsUrl, Length, MaxLength, Matches } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+  IsArray,
+  IsEnum,
+  Min,
+  Max,
+  IsBoolean,
+  IsUrl,
+  Length,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 
 export class CompatibilitySettingsDto {
   @ApiProperty({ example: 'madrugador', required: false })
@@ -24,7 +38,12 @@ export class CompatibilitySettingsDto {
   @ApiProperty({ example: 'me_encantan', required: false })
   @IsString()
   @IsOptional()
-  @IsEnum(['me_encantan', 'tengo_mascotas', 'no_quiero_mascotas', 'soy_alergico'])
+  @IsEnum([
+    'me_encantan',
+    'tengo_mascotas',
+    'no_quiero_mascotas',
+    'soy_alergico',
+  ])
   petsPreference?: string;
 
   @ApiProperty({ example: ['deportista', 'tranquilo'], required: false })
@@ -93,7 +112,10 @@ export class CreateProfileDto {
   @Length(1, 100)
   city: string;
 
-  @ApiProperty({ example: 'Busco compañeros tranquilos y ordenados', required: false })
+  @ApiProperty({
+    example: 'Busco compañeros tranquilos y ordenados',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   @MaxLength(2000)

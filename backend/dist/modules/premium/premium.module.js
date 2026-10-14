@@ -19,9 +19,7 @@ let PremiumModule = class PremiumModule {
 exports.PremiumModule = PremiumModule;
 exports.PremiumModule = PremiumModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            typeorm_1.TypeOrmModule.forFeature([subscription_entity_1.Subscription, user_entity_1.User, daily_limits_entity_1.DailyLimits]),
-        ],
+        imports: [typeorm_1.TypeOrmModule.forFeature([subscription_entity_1.Subscription, user_entity_1.User, daily_limits_entity_1.DailyLimits])],
         controllers: [premium_controller_1.PremiumController],
         providers: [premium_service_1.PremiumService],
         exports: [premium_service_1.PremiumService],

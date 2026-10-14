@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -30,8 +34,10 @@ export class AuthService {
 
   async authenticateWithFirebase(firebaseAuthDto: FirebaseAuthDto) {
     try {
-      const decodedToken = await admin.auth().verifyIdToken(firebaseAuthDto.token);
-      
+      const decodedToken = await admin
+        .auth()
+        .verifyIdToken(firebaseAuthDto.token);
+
       let user = await this.usersRepository.findOne({
         where: { firebaseUid: decodedToken.uid },
       });
@@ -144,7 +150,15 @@ export class AuthService {
   }
 
   private sanitizeUser(user: User) {
-    const { id, email, phone, isActive, isPremium, premiumExpiresAt, createdAt } = user;
+    const {
+      id,
+      email,
+      phone,
+      isActive,
+      isPremium,
+      premiumExpiresAt,
+      createdAt,
+    } = user;
     return {
       id,
       email,

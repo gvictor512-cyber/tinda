@@ -17,10 +17,30 @@ const websockets_1 = require("@nestjs/websockets");
 const socket_io_1 = require("socket.io");
 const redis_1 = require("redis");
 const redis_adapter_1 = require("@socket.io/redis-adapter");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
 const chat_service_1 = require("./chat.service");
+const user_entity_1 = require("../users/entities/user.entity");
+const firebase_config_1 = require("../../common/config/firebase.config");
 let ChatGateway = class ChatGateway {
-    constructor(chatService) {
+    constructor(chatService, usersRepository) {
         this.chatService = chatService;
+        this.usersRepository = usersRepository;
+    }
+    async resolveUserId(client) {
+        const token = client.handshake.auth?.token;
+        if (!token)
+            return null;
+        try {
+            const decoded = await firebase_config_1.admin.auth().verifyIdToken(token);
+            const user = await this.usersRepository.findOne({
+                where: { firebaseUid: decoded.uid },
+            });
+            return user?.id ?? null;
+        }
+        catch {
+            return null;
+        }
     }
     async afterInit(server) {
         const redisUrl = process.env.REDIS_URL;
@@ -33,22 +53,19 @@ let ChatGateway = class ChatGateway {
         server.adapter((0, redis_adapter_1.createAdapter)(pubClient, subClient));
     }
     async handleConnection(client) {
-        try {
-            const userId = client.handshake.auth.userId;
-            if (userId) {
-                client.join(`user_${userId}`);
-                console.log(`User ${userId} connected`);
-            }
+        const userId = await this.resolveUserId(client);
+        if (!userId) {
+            client.disconnect(true);
+            return;
         }
-        catch (error) {
-            client.disconnect();
-        }
+        client.data.userId = userId;
+        client.join(`user_${userId}`);
     }
     handleDisconnect(client) {
         console.log(`Client disconnected: ${client.id}`);
     }
     async handleJoinMatch(client, data) {
-        const userId = client.handshake.auth.userId;
+        const userId = client.data.userId;
         const match = await this.chatService.verifyMatchAccess(userId, data.matchId);
         if (match) {
             client.join(`match_${data.matchId}`);
@@ -63,7 +80,7 @@ let ChatGateway = class ChatGateway {
         client.emit('leftMatch', { matchId: data.matchId });
     }
     async handleSendMessage(client, data) {
-        const userId = client.handshake.auth.userId;
+        const userId = client.data.userId;
         try {
             const message = await this.chatService.createMessage({
                 matchId: data.matchId,
@@ -76,7 +93,9 @@ let ChatGateway = class ChatGateway {
             this.server.to(`match_${data.matchId}`).emit('newMessage', message);
             const match = await this.chatService.getMatch(data.matchId);
             const receiverId = match.user1Id === userId ? match.user2Id : match.user1Id;
-            const receiverSockets = await this.server.in(`user_${receiverId}`).allSockets();
+            const receiverSockets = await this.server
+                .in(`user_${receiverId}`)
+                .allSockets();
             if (receiverSockets.size === 0) {
                 await this.chatService.sendNewMessageNotification(receiverId, userId, data.matchId);
             }
@@ -87,7 +106,7 @@ let ChatGateway = class ChatGateway {
         }
     }
     async handleMarkAsRead(client, data) {
-        const userId = client.handshake.auth.userId;
+        const userId = client.data.userId;
         await this.chatService.markMessagesAsRead(data.matchId, userId);
         const match = await this.chatService.getMatch(data.matchId);
         const otherUserId = match.user1Id === userId ? match.user2Id : match.user1Id;
@@ -97,7 +116,7 @@ let ChatGateway = class ChatGateway {
         });
     }
     async handleTyping(client, data) {
-        const userId = client.handshake.auth.userId;
+        const userId = client.data.userId;
         client.to(`match_${data.matchId}`).emit('userTyping', {
             matchId: data.matchId,
             userId,
@@ -153,9 +172,12 @@ __decorate([
 exports.ChatGateway = ChatGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({
         cors: {
-            origin: '*',
+            origin: process.env.CORS_ORIGIN?.split(',') ?? '*',
+            credentials: true,
         },
     }),
-    __metadata("design:paramtypes", [chat_service_1.ChatService])
+    __param(1, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __metadata("design:paramtypes", [chat_service_1.ChatService,
+        typeorm_2.Repository])
 ], ChatGateway);
 //# sourceMappingURL=chat.gateway.js.map

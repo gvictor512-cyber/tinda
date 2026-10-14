@@ -42,16 +42,17 @@ export class AdminService {
   async getDashboard(period = 'all') {
     const { start, end } = this.getDateRange(period);
 
-    const [totalUsers, newUsers, activeSubscriptions, payments] = await Promise.all([
-      this.userRepository.count(),
-      this.userRepository.count({
-        where: { createdAt: Between(start, end) },
-      }),
-      this.userRepository.count({ where: { isPremium: true } }),
-      this.paymentRepository.find({
-        where: { createdAt: Between(start, end) },
-      }),
-    ]);
+    const [totalUsers, newUsers, activeSubscriptions, payments] =
+      await Promise.all([
+        this.userRepository.count(),
+        this.userRepository.count({
+          where: { createdAt: Between(start, end) },
+        }),
+        this.userRepository.count({ where: { isPremium: true } }),
+        this.paymentRepository.find({
+          where: { createdAt: Between(start, end) },
+        }),
+      ]);
 
     const totalRevenue = payments.reduce((sum, payment) => {
       return payment.status === 'succeeded' ? sum + (payment.amount || 0) : sum;

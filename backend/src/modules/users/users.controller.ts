@@ -4,6 +4,7 @@ import {
   Delete,
   Post,
   Body,
+  ForbiddenException,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -33,11 +34,16 @@ export class UsersController {
 
   @Post('me/consent')
   async logConsent(@Request() req, @Body() consentDto: ConsentDto) {
-    return this.usersService.logConsent(req.user.uid, consentDto.consentType, consentDto.accepted, {
-      ip: req.ip,
-      userAgent: req.get('user-agent'),
-      version: consentDto.version,
-    });
+    return this.usersService.logConsent(
+      req.user.uid,
+      consentDto.consentType,
+      consentDto.accepted,
+      {
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+        version: consentDto.version,
+      },
+    );
   }
 
   /**
@@ -57,6 +63,15 @@ export class UsersController {
    */
   @Post('me/seed-demo')
   async seedDemo(@Request() req) {
+    // Demo seeding injects fake profiles/likes/matches — it exists for
+    // development and store-review testing only. In production it must be
+    // explicitly enabled via DEMO_SEED_ENABLED=true.
+    const enabled =
+      process.env.NODE_ENV !== 'production' ||
+      process.env.DEMO_SEED_ENABLED === 'true';
+    if (!enabled) {
+      throw new ForbiddenException('Demo seeding is disabled');
+    }
     return this.usersService.seedDemoData(req.user.uid);
   }
 

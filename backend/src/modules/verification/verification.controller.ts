@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { VerificationService } from './verification.service';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { VerifyPhoneDto } from './dto/verify-phone.dto';
@@ -37,7 +46,10 @@ export class VerificationController {
 
   @Post('document')
   @HttpCode(HttpStatus.OK)
-  async verifyDocument(@Request() req, @Body('documentUrl') documentUrl: string) {
+  async verifyDocument(
+    @Request() req,
+    @Body('documentUrl') documentUrl: string,
+  ) {
     return this.verificationService.verifyDocument(req.user.uid, documentUrl);
   }
 

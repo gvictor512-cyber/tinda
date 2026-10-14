@@ -34,10 +34,13 @@ let ChatService = class ChatService {
         if (!match) {
             throw new common_1.NotFoundException('Match not found');
         }
-        if (match.user1Id !== createMessageDto.senderId && match.user2Id !== createMessageDto.senderId) {
+        if (match.user1Id !== createMessageDto.senderId &&
+            match.user2Id !== createMessageDto.senderId) {
             throw new common_1.BadRequestException('Sender is not part of this match');
         }
-        const receiverId = match.user1Id === createMessageDto.senderId ? match.user2Id : match.user1Id;
+        const receiverId = match.user1Id === createMessageDto.senderId
+            ? match.user2Id
+            : match.user1Id;
         const message = this.messagesRepository.create({
             matchId: createMessageDto.matchId,
             senderId: createMessageDto.senderId,

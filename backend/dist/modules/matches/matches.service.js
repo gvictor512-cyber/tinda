@@ -67,7 +67,7 @@ let MatchesService = class MatchesService {
                 where: {
                     swiperId: targetUser.id,
                     swipedId: user.id,
-                    swipeType: ['like', 'super_like'],
+                    swipeType: (0, typeorm_2.In)(['like', 'super_like']),
                 },
             });
             if (reciprocalSwipe) {
@@ -77,8 +77,12 @@ let MatchesService = class MatchesService {
         return { success: true, matched: false };
     }
     async createMatch(user1Id, user2Id) {
-        const user1 = await this.usersRepository.findOne({ where: { id: user1Id } });
-        const user2 = await this.usersRepository.findOne({ where: { id: user2Id } });
+        const user1 = await this.usersRepository.findOne({
+            where: { id: user1Id },
+        });
+        const user2 = await this.usersRepository.findOne({
+            where: { id: user2Id },
+        });
         const compatibility = await this.compatibilityService.calculateCompatibility(user1.firebaseUid, user2Id);
         const [smallerId, largerId] = [user1Id, user2Id].sort();
         const existingMatch = await this.matchesRepository.findOne({
@@ -120,7 +124,9 @@ let MatchesService = class MatchesService {
             .createQueryBuilder('match')
             .leftJoinAndSelect('match.user1', 'user1')
             .leftJoinAndSelect('match.user2', 'user2')
-            .where('(match.user1Id = :userId OR match.user2Id = :userId)', { userId: user.id })
+            .where('(match.user1Id = :userId OR match.user2Id = :userId)', {
+            userId: user.id,
+        })
             .andWhere('match.isActive = :isActive', { isActive: true })
             .orderBy('match.createdAt', 'DESC')
             .skip(skip)
@@ -201,7 +207,9 @@ let MatchesService = class MatchesService {
             .createQueryBuilder('swipe')
             .leftJoinAndSelect('swipe.swiper', 'swiper')
             .where('swipe.swipedId = :userId', { userId: user.id })
-            .andWhere('swipe.swipeType IN (:...types)', { types: ['like', 'super_like'] })
+            .andWhere('swipe.swipeType IN (:...types)', {
+            types: ['like', 'super_like'],
+        })
             .orderBy('swipe.createdAt', 'DESC')
             .skip(skip)
             .take(safeLimit)

@@ -41,7 +41,15 @@ let UsersController = class UsersController {
         return this.usersService.claimReferralRewards(req.user.uid);
     }
     async seedDemo(req) {
+        const enabled = process.env.NODE_ENV !== 'production' ||
+            process.env.DEMO_SEED_ENABLED === 'true';
+        if (!enabled) {
+            throw new common_1.ForbiddenException('Demo seeding is disabled');
+        }
         return this.usersService.seedDemoData(req.user.uid);
+    }
+    async recordSwipe(req, body) {
+        return this.usersService.recordSwipe(req.user.uid, body.swipedId, body.isLike, body.isSuperLike);
     }
 };
 exports.UsersController = UsersController;
@@ -88,6 +96,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "seedDemo", null);
+__decorate([
+    (0, common_1.Post)('me/swipe'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "recordSwipe", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(auth_guard_1.FirebaseAuthGuard),

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { PremiumService } from './premium.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { FirebaseAuthGuard } from '../../common/guards/auth.guard';
@@ -20,8 +29,14 @@ export class PremiumController {
 
   @Post('subscribe')
   @HttpCode(HttpStatus.OK)
-  async subscribe(@Request() req, @Body() createSubscriptionDto: CreateSubscriptionDto) {
-    return this.premiumService.createSubscription(req.user.uid, createSubscriptionDto);
+  async subscribe(
+    @Request() req,
+    @Body() createSubscriptionDto: CreateSubscriptionDto,
+  ) {
+    return this.premiumService.createSubscription(
+      req.user.uid,
+      createSubscriptionDto,
+    );
   }
 
   @Post('cancel')

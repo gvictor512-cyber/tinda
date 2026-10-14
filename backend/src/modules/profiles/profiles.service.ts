@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Profile } from './entities/profile.entity';
@@ -46,11 +50,14 @@ export class ProfilesService {
 
     // Create compatibility settings
     if (createProfileDto.compatibilitySettings) {
-      const compatibilitySettings = this.compatibilitySettingsRepository.create({
-        userId: user.id,
-        ...createProfileDto.compatibilitySettings,
-        personalityTraits: createProfileDto.compatibilitySettings.personalityTraits || [],
-      });
+      const compatibilitySettings = this.compatibilitySettingsRepository.create(
+        {
+          userId: user.id,
+          ...createProfileDto.compatibilitySettings,
+          personalityTraits:
+            createProfileDto.compatibilitySettings.personalityTraits || [],
+        },
+      );
       await this.compatibilitySettingsRepository.save(compatibilitySettings);
     }
 
@@ -75,9 +82,10 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    const compatibilitySettings = await this.compatibilitySettingsRepository.findOne({
-      where: { userId: user.id },
-    });
+    const compatibilitySettings =
+      await this.compatibilitySettingsRepository.findOne({
+        where: { userId: user.id },
+      });
 
     return {
       ...profile,
@@ -95,9 +103,10 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    const compatibilitySettings = await this.compatibilitySettingsRepository.findOne({
-      where: { userId: profile.userId },
-    });
+    const compatibilitySettings =
+      await this.compatibilitySettingsRepository.findOne({
+        where: { userId: profile.userId },
+      });
 
     return {
       ...profile,
@@ -136,14 +145,19 @@ export class ProfilesService {
 
     // Update compatibility settings if provided
     if (updateProfileDto.compatibilitySettings) {
-      const compatibilitySettings = await this.compatibilitySettingsRepository.findOne({
-        where: { userId: user.id },
-      });
+      const compatibilitySettings =
+        await this.compatibilitySettingsRepository.findOne({
+          where: { userId: user.id },
+        });
 
       if (compatibilitySettings) {
-        Object.assign(compatibilitySettings, updateProfileDto.compatibilitySettings);
+        Object.assign(
+          compatibilitySettings,
+          updateProfileDto.compatibilitySettings,
+        );
         if (updateProfileDto.compatibilitySettings.personalityTraits) {
-          compatibilitySettings.personalityTraits = updateProfileDto.compatibilitySettings.personalityTraits;
+          compatibilitySettings.personalityTraits =
+            updateProfileDto.compatibilitySettings.personalityTraits;
         }
         await this.compatibilitySettingsRepository.save(compatibilitySettings);
       }
@@ -262,7 +276,8 @@ export class ProfilesService {
     const safeLimit = Math.min(limit, 100);
     const skip = (Math.max(page, 1) - 1) * safeLimit;
 
-    const queryBuilder = this.profilesRepository.createQueryBuilder('profile')
+    const queryBuilder = this.profilesRepository
+      .createQueryBuilder('profile')
       .leftJoinAndSelect('profile.user', 'user')
       .where('user.isActive = :isActive', { isActive: true });
 
@@ -271,24 +286,35 @@ export class ProfilesService {
     }
 
     if (filters.ageMin && filters.ageMax) {
-      queryBuilder.andWhere('profile.age >= :ageMin AND profile.age <= :ageMax', {
-        ageMin: filters.ageMin,
-        ageMax: filters.ageMax,
-      });
+      queryBuilder.andWhere(
+        'profile.age >= :ageMin AND profile.age <= :ageMax',
+        {
+          ageMin: filters.ageMin,
+          ageMax: filters.ageMax,
+        },
+      );
     }
 
     if (filters.budgetMin && filters.budgetMax) {
-      queryBuilder.andWhere('profile.budgetMin >= :budgetMin AND profile.budgetMax <= :budgetMax', {
-        budgetMin: filters.budgetMin,
-        budgetMax: filters.budgetMax,
-      });
+      // Range overlap: the profile is relevant when its budget range
+      // intersects the requested range, not only when fully inside it.
+      queryBuilder.andWhere(
+        'profile.budgetMin <= :budgetMax AND profile.budgetMax >= :budgetMin',
+        {
+          budgetMin: filters.budgetMin,
+          budgetMax: filters.budgetMax,
+        },
+      );
     }
 
     if (filters.gender) {
-      queryBuilder.andWhere('profile.gender = :gender', { gender: filters.gender });
+      queryBuilder.andWhere('profile.gender = :gender', {
+        gender: filters.gender,
+      });
     }
 
-    queryBuilder.orderBy('profile.createdAt', 'DESC')
+    queryBuilder
+      .orderBy('profile.createdAt', 'DESC')
       .skip(skip)
       .take(safeLimit);
 

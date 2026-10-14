@@ -28,7 +28,7 @@ let DailyLimitsService = class DailyLimitsService {
             where: { id: userId },
         });
         if (!user) {
-            throw new Error('User not found');
+            throw new common_1.NotFoundException('User not found');
         }
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -45,7 +45,8 @@ let DailyLimitsService = class DailyLimitsService {
             });
             await this.dailyLimitsRepository.save(dailyLimits);
         }
-        const isPremium = user.isPremium && (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
+        const isPremium = user.isPremium &&
+            (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
         return {
             isPremium,
             likesUsed: dailyLimits.likesUsed,
@@ -60,7 +61,11 @@ let DailyLimitsService = class DailyLimitsService {
         const user = await this.usersRepository.findOne({
             where: { id: userId },
         });
-        const isPremium = user.isPremium && (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        const isPremium = user.isPremium &&
+            (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
         if (isPremium) {
             return { success: true, remaining: -1 };
         }
@@ -89,7 +94,11 @@ let DailyLimitsService = class DailyLimitsService {
         const user = await this.usersRepository.findOne({
             where: { id: userId },
         });
-        const isPremium = user.isPremium && (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        const isPremium = user.isPremium &&
+            (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
         if (isPremium) {
             return { success: true, remaining: -1 };
         }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Group } from './entities/group.entity';
@@ -154,7 +158,11 @@ export class GroupsService {
     };
   }
 
-  async updateGroup(firebaseUid: string, groupId: string, updateGroupDto: UpdateGroupDto) {
+  async updateGroup(
+    firebaseUid: string,
+    groupId: string,
+    updateGroupDto: UpdateGroupDto,
+  ) {
     const user = await this.usersRepository.findOne({
       where: { firebaseUid },
     });
@@ -176,7 +184,10 @@ export class GroupsService {
       where: { groupId, userId: user.id },
     });
 
-    if (!membership || (membership.role !== 'creator' && membership.role !== 'admin')) {
+    if (
+      !membership ||
+      (membership.role !== 'creator' && membership.role !== 'admin')
+    ) {
       throw new BadRequestException('Access denied');
     }
 
@@ -214,7 +225,11 @@ export class GroupsService {
     return { message: 'Group deleted successfully' };
   }
 
-  async addMember(firebaseUid: string, groupId: string, addMemberDto: AddMemberDto) {
+  async addMember(
+    firebaseUid: string,
+    groupId: string,
+    addMemberDto: AddMemberDto,
+  ) {
     const user = await this.usersRepository.findOne({
       where: { firebaseUid },
     });
@@ -236,7 +251,10 @@ export class GroupsService {
       where: { groupId, userId: user.id },
     });
 
-    if (!membership || (membership.role !== 'creator' && membership.role !== 'admin')) {
+    if (
+      !membership ||
+      (membership.role !== 'creator' && membership.role !== 'admin')
+    ) {
       throw new BadRequestException('Access denied');
     }
 
@@ -351,7 +369,9 @@ export class GroupsService {
 
     // Creator cannot leave, must delete group instead
     if (group.creatorId === user.id) {
-      throw new BadRequestException('Creator cannot leave. Delete the group instead.');
+      throw new BadRequestException(
+        'Creator cannot leave. Delete the group instead.',
+      );
     }
 
     const membership = await this.groupMembersRepository.findOne({
@@ -386,7 +406,10 @@ export class GroupsService {
     if (members.length < 2) {
       group.compatibilityScore = 100;
       await this.groupsRepository.save(group);
-      return { score: 100, explanation: 'Need more members to calculate compatibility' };
+      return {
+        score: 100,
+        explanation: 'Need more members to calculate compatibility',
+      };
     }
 
     // Calculate pairwise compatibility between all members
@@ -402,10 +425,11 @@ export class GroupsService {
           where: { id: members[j].userId },
         });
 
-        const compatibility = await this.compatibilityService.calculateCompatibility(
-          user1.firebaseUid,
-          user2.id,
-        );
+        const compatibility =
+          await this.compatibilityService.calculateCompatibility(
+            user1.firebaseUid,
+            user2.id,
+          );
 
         totalScore += compatibility.score;
         pairCount++;
@@ -421,11 +445,14 @@ export class GroupsService {
     if (averageScore >= 85) {
       explanation = 'Excelente compatibilidad grupal. ¡Formáis un gran equipo!';
     } else if (averageScore >= 70) {
-      explanation = 'Buena compatibilidad grupal. Podríais convivir bien juntos.';
+      explanation =
+        'Buena compatibilidad grupal. Podríais convivir bien juntos.';
     } else if (averageScore >= 50) {
-      explanation = 'Compatibilidad moderada. Algunas diferencias pero manejables.';
+      explanation =
+        'Compatibilidad moderada. Algunas diferencias pero manejables.';
     } else {
-      explanation = 'Baja compatibilidad grupal. Considerad revisar la dinámica del grupo.';
+      explanation =
+        'Baja compatibilidad grupal. Considerad revisar la dinámica del grupo.';
     }
 
     return {

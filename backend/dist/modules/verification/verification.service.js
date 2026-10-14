@@ -147,6 +147,21 @@ let VerificationService = class VerificationService {
         return { success: true, message: 'Selfie submitted for manual review' };
     }
     async verifyDocument(firebaseUid, documentUrl) {
+        let parsed;
+        try {
+            parsed = new URL(documentUrl);
+        }
+        catch {
+            throw new common_1.BadRequestException('Invalid document URL');
+        }
+        const allowedHosts = [
+            'firebasestorage.googleapis.com',
+            'storage.googleapis.com',
+        ];
+        if (parsed.protocol !== 'https:' ||
+            !allowedHosts.includes(parsed.hostname)) {
+            throw new common_1.BadRequestException('Document must be hosted on Firebase Storage');
+        }
         const user = await this.usersRepository.findOne({
             where: { firebaseUid },
         });
@@ -175,7 +190,7 @@ let VerificationService = class VerificationService {
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
-        let verification = await this.verificationRepository.findOne({
+        const verification = await this.verificationRepository.findOne({
             where: { userId: user.id },
         });
         if (!verification) {

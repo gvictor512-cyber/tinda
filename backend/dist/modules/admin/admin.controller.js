@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var AdminController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminController = void 0;
 const common_1 = require("@nestjs/common");
@@ -19,30 +20,47 @@ const admin_service_1 = require("./admin.service");
 const auth_guard_1 = require("../../common/guards/auth.guard");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const roles_guard_1 = require("../../common/guards/roles.guard");
-let AdminController = class AdminController {
+let AdminController = AdminController_1 = class AdminController {
     constructor(adminService) {
         this.adminService = adminService;
+    }
+    static takeSkip(take, skip) {
+        const t = Number(take);
+        const s = Number(skip);
+        return [
+            Number.isFinite(t) ? Math.min(Math.max(t, 1), 100) : 20,
+            Number.isFinite(s) ? Math.max(s, 0) : 0,
+        ];
     }
     getDashboard(period = 'month') {
         return this.adminService.getDashboard(period);
     }
     getUsers(take = 20, skip = 0) {
-        return this.adminService.getUsers(Number(take), Number(skip));
+        const [t, s] = AdminController_1.takeSkip(take, skip);
+        return this.adminService.getUsers(t, s);
     }
     getNewUsers(period = 'week', take = 20, skip = 0) {
-        return this.adminService.getNewUsers(period, Number(take), Number(skip));
+        const [t, s] = AdminController_1.takeSkip(take, skip);
+        return this.adminService.getNewUsers(period, t, s);
     }
     getPayments(take = 20, skip = 0) {
-        return this.adminService.getPayments(Number(take), Number(skip));
+        const [t, s] = AdminController_1.takeSkip(take, skip);
+        return this.adminService.getPayments(t, s);
     }
     getCancellations(take = 20, skip = 0) {
-        return this.adminService.getCancellations(Number(take), Number(skip));
+        const [t, s] = AdminController_1.takeSkip(take, skip);
+        return this.adminService.getCancellations(t, s);
     }
 };
 exports.AdminController = AdminController;
 __decorate([
     (0, common_1.Get)('dashboard'),
-    (0, swagger_1.ApiQuery)({ name: 'period', required: false, description: 'today | week | month | year | all', example: 'month' }),
+    (0, swagger_1.ApiQuery)({
+        name: 'period',
+        required: false,
+        description: 'today | week | month | year | all',
+        example: 'month',
+    }),
     __param(0, (0, common_1.Query)('period')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -60,7 +78,12 @@ __decorate([
 ], AdminController.prototype, "getUsers", null);
 __decorate([
     (0, common_1.Get)('users/new'),
-    (0, swagger_1.ApiQuery)({ name: 'period', required: false, description: 'today | week | month | year | all', example: 'week' }),
+    (0, swagger_1.ApiQuery)({
+        name: 'period',
+        required: false,
+        description: 'today | week | month | year | all',
+        example: 'week',
+    }),
     (0, swagger_1.ApiQuery)({ name: 'take', required: false, type: 'number', example: 20 }),
     (0, swagger_1.ApiQuery)({ name: 'skip', required: false, type: 'number', example: 0 }),
     __param(0, (0, common_1.Query)('period')),
@@ -90,7 +113,7 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getCancellations", null);
-exports.AdminController = AdminController = __decorate([
+exports.AdminController = AdminController = AdminController_1 = __decorate([
     (0, swagger_1.ApiTags)('admin'),
     (0, common_1.Controller)('admin'),
     (0, common_1.UseGuards)(auth_guard_1.FirebaseAuthGuard, roles_guard_1.RolesGuard),

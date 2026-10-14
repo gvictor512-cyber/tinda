@@ -5,14 +5,14 @@ class CompatibilityCalculator {
     constructor() {
         this.weights = {
             schedule: 0.15,
-            cleanliness: 0.20,
+            cleanliness: 0.2,
             smoking: 0.15,
-            pets: 0.10,
+            pets: 0.1,
             personality: 0.15,
             guests: 0.05,
             cooking: 0.05,
             music: 0.05,
-            workFromHome: 0.10,
+            workFromHome: 0.1,
         };
     }
     calculate(user1, user2) {
@@ -108,7 +108,10 @@ class CompatibilityCalculator {
         const pref2 = s2.smokingPreference || 'no_fuma';
         if (pref1 === pref2) {
             score = 100;
-            details = pref1 === 'no_fuma' ? 'Ambos no fumáis' : 'Tenéis el mismo hábito con el tabaco';
+            details =
+                pref1 === 'no_fuma'
+                    ? 'Ambos no fumáis'
+                    : 'Tenéis el mismo hábito con el tabaco';
         }
         else if (pref1 === 'no_fuma' && pref2 === 'fuma_fuera') {
             score = 85;
@@ -140,11 +143,13 @@ class CompatibilityCalculator {
         let details = '';
         const pref1 = s1.petsPreference || 'me_encantan';
         const pref2 = s2.petsPreference || 'me_encantan';
-        if (pref1 === 'soy_alergico' && (pref2 === 'tengo_mascotas' || pref2 === 'me_encantan')) {
+        if (pref1 === 'soy_alergico' &&
+            (pref2 === 'tengo_mascotas' || pref2 === 'me_encantan')) {
             score = 0;
             details = 'Incompatible: uno es alérgico';
         }
-        else if (pref2 === 'soy_alergico' && (pref1 === 'tengo_mascotas' || pref1 === 'me_encantan')) {
+        else if (pref2 === 'soy_alergico' &&
+            (pref1 === 'tengo_mascotas' || pref1 === 'me_encantan')) {
             score = 0;
             details = 'Incompatible: uno es alérgico';
         }
@@ -315,8 +320,12 @@ class CompatibilityCalculator {
         };
     }
     generateExplanation(factors, totalScore) {
-        const highScoreFactors = factors.filter((f) => f.score >= 70).map((f) => f.details);
-        const lowScoreFactors = factors.filter((f) => f.score < 50).map((f) => f.details);
+        const highScoreFactors = factors
+            .filter((f) => f.score >= 70)
+            .map((f) => f.details);
+        const lowScoreFactors = factors
+            .filter((f) => f.score < 50)
+            .map((f) => f.details);
         let explanation = '';
         if (totalScore >= 85) {
             explanation = `¡Excelente compatibilidad! ${highScoreFactors.slice(0, 2).join('. ')}. `;

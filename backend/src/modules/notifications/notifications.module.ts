@@ -6,9 +6,7 @@ import { Notification } from './entities/notification.entity';
 import { User } from '../users/entities/user.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Notification, User]),
-  ],
+  imports: [TypeOrmModule.forFeature([Notification, User])],
   controllers: [NotificationsController],
   providers: [NotificationsService],
   exports: [NotificationsService],

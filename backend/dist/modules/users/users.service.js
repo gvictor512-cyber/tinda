@@ -64,7 +64,10 @@ let UsersService = UsersService_1 = class UsersService {
             ipAddress: metadata?.ip,
             userAgent: metadata?.userAgent,
         });
-        return { user: await this.findByFirebaseUid(firebaseUid), log: await this.consentLogRepository.save(log) };
+        return {
+            user: await this.findByFirebaseUid(firebaseUid),
+            log: await this.consentLogRepository.save(log),
+        };
     }
     async exportData(firebaseUid) {
         const user = await this.findByFirebaseUid(firebaseUid);
@@ -196,7 +199,10 @@ let UsersService = UsersService_1 = class UsersService {
             `${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app`;
         await safe('storage', async () => {
             const bucket = firebase_config_1.admin.storage().bucket(bucketName);
-            for (const prefix of [`users/${firebaseUid}/`, `user_photos/${firebaseUid}/`]) {
+            for (const prefix of [
+                `users/${firebaseUid}/`,
+                `user_photos/${firebaseUid}/`,
+            ]) {
                 await bucket.deleteFiles({ prefix });
             }
         });
@@ -222,7 +228,10 @@ let UsersService = UsersService_1 = class UsersService {
         }
         const likesPerReferral = 5;
         const totalLikes = unrewarded.length * likesPerReferral;
-        await db.collection('users').doc(firebaseUid).set({ freeLikes: firebase_config_1.admin.firestore.FieldValue.increment(totalLikes) }, { merge: true });
+        await db
+            .collection('users')
+            .doc(firebaseUid)
+            .set({ freeLikes: firebase_config_1.admin.firestore.FieldValue.increment(totalLikes) }, { merge: true });
         const batch = db.batch();
         for (const doc of unrewarded) {
             batch.update(doc.ref, {
@@ -302,9 +311,18 @@ let UsersService = UsersService_1 = class UsersService {
             await purge.commit();
         }
         const names = [
-            'Lucía', 'Marcos', 'Sofía', 'Daniel', 'Valeria',
-            'Pablo', 'Carmen', 'Alejandro', 'Elena', 'Hugo',
-            'Marta', 'Adrián',
+            'Lucía',
+            'Marcos',
+            'Sofía',
+            'Daniel',
+            'Valeria',
+            'Pablo',
+            'Carmen',
+            'Alejandro',
+            'Elena',
+            'Hugo',
+            'Marta',
+            'Adrián',
         ];
         const bios = [
             'Estudiante de arquitectura, tranquila y ordenada.',
@@ -321,8 +339,16 @@ let UsersService = UsersService_1 = class UsersService {
             'Ciclista y senderista los fines de semana.',
         ];
         const interestPool = [
-            'Música', 'Cine', 'Deporte', 'Viajes', 'Cocinar',
-            'Lectura', 'Senderismo', 'Fotografía', 'Yoga', 'Arte',
+            'Música',
+            'Cine',
+            'Deporte',
+            'Viajes',
+            'Cocinar',
+            'Lectura',
+            'Senderismo',
+            'Fotografía',
+            'Yoga',
+            'Arte',
         ];
         const femalePortraits = [
             'photo-1494790108377-be9c29b29330',
@@ -450,10 +476,7 @@ let UsersService = UsersService_1 = class UsersService {
             const pairId = firebaseUid < demoId
                 ? `${firebaseUid}_${demoId}`
                 : `${demoId}_${firebaseUid}`;
-            await db
-                .collection('swipes')
-                .doc(`${firebaseUid}_${demoId}`)
-                .set({
+            await db.collection('swipes').doc(`${firebaseUid}_${demoId}`).set({
                 swiperId: firebaseUid,
                 swipedId: demoId,
                 isLike: true,
@@ -502,6 +525,101 @@ let UsersService = UsersService_1 = class UsersService {
             matches: matchCount,
             messages: messagesCreated,
         };
+    }
+    async recordSwipe(firebaseUid, swipedId, isLike, isSuperLike = false) {
+        if (!swipedId || swipedId === firebaseUid) {
+            throw new common_1.BadRequestException('Invalid swipedId');
+        }
+        const db = firebase_config_1.admin.firestore();
+        const fv = firebase_config_1.admin.firestore.FieldValue;
+        await this._enforceSwipeLimits(db, fv, firebaseUid, isSuperLike);
+        await db
+            .collection('swipes')
+            .doc(`${firebaseUid}_${swipedId}`)
+            .set({
+            swiperId: firebaseUid,
+            swipedId,
+            isLike,
+            ...(isSuperLike ? { isSuperLike: true } : {}),
+            timestamp: fv.serverTimestamp(),
+        });
+        if (!isLike)
+            return { matched: false };
+        const mutual = await db
+            .collection('swipes')
+            .doc(`${swipedId}_${firebaseUid}`)
+            .get();
+        const mutualData = mutual.data();
+        if (!mutual.exists || mutualData?.isLike !== true) {
+            return { matched: false };
+        }
+        const pairId = firebaseUid < swipedId
+            ? `${firebaseUid}_${swipedId}`
+            : `${swipedId}_${firebaseUid}`;
+        const batch = db.batch();
+        batch.set(db.collection('matches').doc(pairId), {
+            users: [firebaseUid, swipedId],
+            timestamp: fv.serverTimestamp(),
+            lastMessage: null,
+            unreadCount: { [firebaseUid]: 0, [swipedId]: 0 },
+        }, { merge: true });
+        batch.set(db.collection('chats').doc(pairId), {
+            participants: [firebaseUid, swipedId],
+            lastMessage: null,
+            lastMessageTimestamp: null,
+            createdAt: fv.serverTimestamp(),
+        }, { merge: true });
+        await batch.commit();
+        this.logger.log(`Swipe ${firebaseUid} -> ${swipedId} like=${isLike} matched=true`);
+        return { matched: true };
+    }
+    async _enforceSwipeLimits(db, fv, firebaseUid, isSuperLike) {
+        const FREE_DAILY_SWIPES = 15;
+        const FREE_DAILY_SUPER_LIKES = 1;
+        const userSnap = await db.collection('users').doc(firebaseUid).get();
+        const userData = userSnap.data() ?? {};
+        const subscription = userData.subscription;
+        const endMs = subscription?.endDate?.toMillis?.() ?? 0;
+        const isPremium = userData.isPremium === true && endMs > Date.now();
+        if (isPremium)
+            return;
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const startTs = firebase_config_1.admin.firestore.Timestamp.fromDate(startOfDay);
+        if (isSuperLike) {
+            const superLikesToday = await db
+                .collection('swipes')
+                .where('swiperId', '==', firebaseUid)
+                .where('isSuperLike', '==', true)
+                .where('timestamp', '>=', startTs)
+                .get();
+            if (superLikesToday.size < FREE_DAILY_SUPER_LIKES)
+                return;
+            const available = userData.superLikesAvailable ?? 0;
+            if (available <= 0) {
+                throw new common_1.ForbiddenException('Daily super like limit reached');
+            }
+            await db
+                .collection('users')
+                .doc(firebaseUid)
+                .set({ superLikesAvailable: fv.increment(-1) }, { merge: true });
+            return;
+        }
+        const swipesToday = await db
+            .collection('swipes')
+            .where('swiperId', '==', firebaseUid)
+            .where('timestamp', '>=', startTs)
+            .get();
+        if (swipesToday.size < FREE_DAILY_SWIPES)
+            return;
+        const freeLikes = userData.freeLikes ?? 0;
+        if (freeLikes <= 0) {
+            throw new common_1.ForbiddenException('Daily swipe limit reached');
+        }
+        await db
+            .collection('users')
+            .doc(firebaseUid)
+            .set({ freeLikes: fv.increment(-1) }, { merge: true });
     }
     encodeGeohash(latitude, longitude, precision = 6) {
         const base32 = '0123456789bcdefghjkmnpqrstuvwxyz';

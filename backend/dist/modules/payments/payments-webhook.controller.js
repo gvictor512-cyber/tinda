@@ -26,7 +26,9 @@ let PaymentsWebhookController = class PaymentsWebhookController {
             return res.status(common_1.HttpStatus.OK).json({ received: true });
         }
         catch (e) {
-            return res.status(common_1.HttpStatus.BAD_REQUEST).send(`Webhook Error: ${e.message}`);
+            return res
+                .status(common_1.HttpStatus.BAD_REQUEST)
+                .send(`Webhook Error: ${e.message}`);
         }
     }
 };

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
@@ -37,11 +41,17 @@ export class ChatService {
     }
 
     // Verify sender is part of the match
-    if (match.user1Id !== createMessageDto.senderId && match.user2Id !== createMessageDto.senderId) {
+    if (
+      match.user1Id !== createMessageDto.senderId &&
+      match.user2Id !== createMessageDto.senderId
+    ) {
       throw new BadRequestException('Sender is not part of this match');
     }
 
-    const receiverId = match.user1Id === createMessageDto.senderId ? match.user2Id : match.user1Id;
+    const receiverId =
+      match.user1Id === createMessageDto.senderId
+        ? match.user2Id
+        : match.user1Id;
 
     const message = this.messagesRepository.create({
       matchId: createMessageDto.matchId,
@@ -57,7 +67,12 @@ export class ChatService {
     return this.messagesRepository.save(message);
   }
 
-  async getMatchMessages(matchId: string, userId: string, page: number = 1, limit: number = 50) {
+  async getMatchMessages(
+    matchId: string,
+    userId: string,
+    page: number = 1,
+    limit: number = 50,
+  ) {
     const match = await this.matchesRepository.findOne({
       where: { id: matchId },
     });
@@ -119,7 +134,8 @@ export class ChatService {
     }
 
     // Mark messages from the other user as read
-    const otherUserId = match.user1Id === userId ? match.user2Id : match.user1Id;
+    const otherUserId =
+      match.user1Id === userId ? match.user2Id : match.user1Id;
 
     await this.messagesRepository.update(
       {
@@ -133,7 +149,11 @@ export class ChatService {
     return { success: true };
   }
 
-  async sendNewMessageNotification(receiverId: string, senderId: string, matchId: string) {
+  async sendNewMessageNotification(
+    receiverId: string,
+    senderId: string,
+    matchId: string,
+  ) {
     await this.notificationsService.sendNewMessageNotification(
       senderId,
       receiverId,

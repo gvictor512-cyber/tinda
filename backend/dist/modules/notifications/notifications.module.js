@@ -18,9 +18,7 @@ let NotificationsModule = class NotificationsModule {
 exports.NotificationsModule = NotificationsModule;
 exports.NotificationsModule = NotificationsModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            typeorm_1.TypeOrmModule.forFeature([notification_entity_1.Notification, user_entity_1.User]),
-        ],
+        imports: [typeorm_1.TypeOrmModule.forFeature([notification_entity_1.Notification, user_entity_1.User])],
         controllers: [notifications_controller_1.NotificationsController],
         providers: [notifications_service_1.NotificationsService],
         exports: [notifications_service_1.NotificationsService],

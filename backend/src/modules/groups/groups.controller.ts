@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Put, Delete, Body, UseGuards, Request, Param, ParseUUIDPipe, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  UseGuards,
+  Request,
+  Param,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
@@ -27,7 +40,11 @@ export class GroupsController {
   }
 
   @Put(':id')
-  async updateGroup(@Request() req, @Param('id', ParseUUIDPipe) id: string, @Body() updateGroupDto: UpdateGroupDto) {
+  async updateGroup(
+    @Request() req,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateGroupDto: UpdateGroupDto,
+  ) {
     return this.groupsService.updateGroup(req.user.uid, id, updateGroupDto);
   }
 
@@ -38,13 +55,21 @@ export class GroupsController {
   }
 
   @Post(':id/members')
-  async addMember(@Request() req, @Param('id', ParseUUIDPipe) id: string, @Body() addMemberDto: AddMemberDto) {
+  async addMember(
+    @Request() req,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() addMemberDto: AddMemberDto,
+  ) {
     return this.groupsService.addMember(req.user.uid, id, addMemberDto);
   }
 
   @Delete(':id/members/:memberId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async removeMember(@Request() req, @Param('id', ParseUUIDPipe) id: string, @Param('memberId', ParseUUIDPipe) memberId: string) {
+  async removeMember(
+    @Request() req,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('memberId', ParseUUIDPipe) memberId: string,
+  ) {
     return this.groupsService.removeMember(req.user.uid, id, memberId);
   }
 
@@ -55,7 +80,10 @@ export class GroupsController {
   }
 
   @Get(':id/compatibility')
-  async getGroupCompatibility(@Request() req, @Param('id', ParseUUIDPipe) id: string) {
+  async getGroupCompatibility(
+    @Request() req,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.groupsService.calculateGroupCompatibility(req.user.uid, id);
   }
 }

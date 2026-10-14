@@ -7,9 +7,7 @@ import { Profile } from '../profiles/entities/profile.entity';
 import { User } from '../users/entities/user.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([CompatibilitySettings, Profile, User]),
-  ],
+  imports: [TypeOrmModule.forFeature([CompatibilitySettings, Profile, User])],
   controllers: [CompatibilityController],
   providers: [CompatibilityService],
   exports: [CompatibilityService],

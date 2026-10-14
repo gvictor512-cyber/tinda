@@ -18,9 +18,7 @@ let FiltersModule = class FiltersModule {
 exports.FiltersModule = FiltersModule;
 exports.FiltersModule = FiltersModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            typeorm_1.TypeOrmModule.forFeature([user_filters_entity_1.UserFilters, user_entity_1.User]),
-        ],
+        imports: [typeorm_1.TypeOrmModule.forFeature([user_filters_entity_1.UserFilters, user_entity_1.User])],
         controllers: [filters_controller_1.FiltersController],
         providers: [filters_service_1.FiltersService],
         exports: [filters_service_1.FiltersService],

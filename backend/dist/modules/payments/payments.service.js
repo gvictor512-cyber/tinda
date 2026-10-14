@@ -116,7 +116,9 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             throw new Error('STRIPE_SECRET_KEY is not configured');
         }
         this.stripe = new stripe_1.default(secretKey, { apiVersion: '2024-06-20' });
-        this.destinationBankAccount = this.configService.get('STRIPE_DESTINATION_BANK_ACCOUNT') || undefined;
+        this.destinationBankAccount =
+            this.configService.get('STRIPE_DESTINATION_BANK_ACCOUNT') ||
+                undefined;
     }
     async createCustomer(dto) {
         return this.stripe.customers.create({
@@ -158,7 +160,11 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
                 : undefined,
         });
     }
-    async cancelSubscription(subscriptionId) {
+    async cancelSubscription(firebaseUid, subscriptionId) {
+        const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+        if (subscription.metadata?.firebase_uid !== firebaseUid) {
+            throw new common_1.ForbiddenException('Subscription does not belong to this user');
+        }
         return this.stripe.subscriptions.update(subscriptionId, {
             cancel_at_period_end: true,
         });
@@ -172,36 +178,65 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
     async sendPurchaseReceipt(firebaseUid, tokenEmail, dto) {
         const planId = dto.productId.replace(/_(us|gb|mx)$/i, '');
         const catalog = RECEIPT_CATALOG[dto.productId] ?? RECEIPT_CATALOG[planId];
-        const amountCents = dto.amountCents ?? catalog?.amountCents ?? 0;
+        const amountCents = catalog?.amountCents ?? dto.amountCents ?? 0;
         const currency = (dto.currency || 'EUR').toUpperCase();
         const productName = dto.productName || catalog?.name || planId || dto.productId;
-        let user = await this.userRepository.findOne({ where: { firebaseUid } });
-        if (!user && tokenEmail) {
-            user = await this.userRepository.save(this.userRepository.create({ firebaseUid, email: tokenEmail }));
+        let user = null;
+        try {
+            user = await this.userRepository.findOne({ where: { firebaseUid } });
+            if (!user && tokenEmail) {
+                user = await this.userRepository.save(this.userRepository.create({ firebaseUid, email: tokenEmail }));
+            }
         }
-        const email = user?.email || tokenEmail;
-        const provider = dto.platform === 'ios' ? 'apple_iap' : dto.platform === 'android' ? 'google_iap' : 'iap';
-        const existing = await this.paymentRepository.findOne({
-            where: { providerPaymentId: dto.transactionId },
-        });
-        if (existing) {
-            return { sent: false, alreadyRecorded: true, invoiceNumber: null };
+        catch (e) {
+            this.logger.error(`receipt: user lookup/create failed uid=${firebaseUid}: ${e}`);
         }
-        const invoiceNumber = this.buildInvoiceNumber(dto.transactionId);
-        await this.paymentRepository.save({
-            userId: user?.id ?? null,
-            amount: amountCents,
-            currency,
-            status: 'succeeded',
-            provider,
-            providerPaymentId: dto.transactionId,
-            planType: planId || dto.productId,
-            metadata: {
-                productId: dto.productId,
-                platform: dto.platform ?? null,
-                invoiceNumber,
-            },
-        });
+        const email = user?.email || tokenEmail || (await this._lookupUserEmail(firebaseUid));
+        const provider = dto.platform === 'ios'
+            ? 'apple_iap'
+            : dto.platform === 'android'
+                ? 'google_iap'
+                : 'iap';
+        let existing = null;
+        try {
+            existing = await this.paymentRepository.findOne({
+                where: { providerPaymentId: dto.transactionId },
+            });
+        }
+        catch (e) {
+            this.logger.error(`receipt: payment lookup failed tx=${dto.transactionId}: ${e}`);
+        }
+        const alreadySent = existing?.metadata?.receiptSent === true;
+        if (existing && alreadySent) {
+            return {
+                sent: false,
+                alreadyRecorded: true,
+                invoiceNumber: existing.metadata?.invoiceNumber ?? null,
+            };
+        }
+        const invoiceNumber = existing?.metadata?.invoiceNumber ??
+            this.buildInvoiceNumber(dto.transactionId);
+        if (!existing) {
+            try {
+                await this.paymentRepository.save({
+                    userId: user?.id ?? null,
+                    amount: amountCents,
+                    currency,
+                    status: 'succeeded',
+                    provider,
+                    providerPaymentId: dto.transactionId,
+                    planType: planId || dto.productId,
+                    metadata: {
+                        productId: dto.productId,
+                        platform: dto.platform ?? null,
+                        invoiceNumber,
+                    },
+                });
+            }
+            catch (e) {
+                this.logger.error(`receipt: payment save failed tx=${dto.transactionId}: ${e}`);
+            }
+        }
         let sent = false;
         if (email) {
             sent = await this.mailService.sendPurchaseReceipt({
@@ -223,11 +258,57 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         else {
             this.logger.warn(`Compra ${dto.transactionId} sin email asociado; factura ${invoiceNumber} no enviada`);
         }
+        if (sent && existing) {
+            try {
+                existing.metadata = {
+                    ...(existing.metadata ?? {}),
+                    invoiceNumber,
+                    receiptSent: true,
+                };
+                await this.paymentRepository.save(existing);
+            }
+            catch (e) {
+                this.logger.error(`receipt: receiptSent flag failed tx=${dto.transactionId}: ${e}`);
+            }
+        }
         return { sent, alreadyRecorded: false, invoiceNumber };
+    }
+    async _lookupUserEmail(firebaseUid) {
+        try {
+            const fbUser = await firebase_config_1.admin
+                .auth()
+                .getUser(firebaseUid)
+                .catch(() => null);
+            const authEmail = fbUser?.email ??
+                fbUser?.providerData?.find((p) => p.email)?.email ??
+                null;
+            if (authEmail)
+                return authEmail;
+        }
+        catch (e) {
+            this.logger.warn(`receipt: auth email lookup failed ${firebaseUid}: ${e}`);
+        }
+        try {
+            const doc = await firebase_config_1.admin
+                .firestore()
+                .collection('users')
+                .doc(firebaseUid)
+                .get();
+            const email = doc.data()?.email;
+            if (typeof email === 'string' && email.includes('@'))
+                return email;
+        }
+        catch (e) {
+            this.logger.warn(`receipt: firestore email lookup failed ${firebaseUid}: ${e}`);
+        }
+        return null;
     }
     buildInvoiceNumber(transactionId) {
         const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const suffix = transactionId.replace(/[^A-Za-z0-9]/g, '').slice(-6).toUpperCase() || '000000';
+        const suffix = transactionId
+            .replace(/[^A-Za-z0-9]/g, '')
+            .slice(-6)
+            .toUpperCase() || '000000';
         return `RMM-${date}-${suffix}`;
     }
     async handleWebhook(payload, signature) {
@@ -264,6 +345,11 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         const user = await this._getUserFromMetadata(paymentIntent.metadata?.firebase_uid);
         if (!user)
             return;
+        const existing = await this.paymentRepository.findOne({
+            where: { providerPaymentId: paymentIntent.id },
+        });
+        if (existing)
+            return;
         await this.paymentRepository.save({
             userId: user.id,
             amount: paymentIntent.amount,
@@ -274,6 +360,26 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             planType: paymentIntent.metadata?.plan_id,
             metadata: paymentIntent.metadata || {},
         });
+        const planId = (paymentIntent.metadata?.plan_id || '').replace(/_(us|gb|mx)$/i, '');
+        if (RECEIPT_CATALOG[planId]) {
+            const db = firebase_config_1.admin.firestore();
+            const markerRef = db
+                .collection('iap_grants')
+                .doc(`${user.firebaseUid}_${paymentIntent.id}`);
+            await db.runTransaction(async (tx) => {
+                const marker = await tx.get(markerRef);
+                if (marker.exists)
+                    return;
+                await this._grantEntitlement(user.firebaseUid, planId, null, paymentIntent.id, 'stripe', tx);
+                tx.create(markerRef, {
+                    uid: user.firebaseUid,
+                    transactionId: paymentIntent.id,
+                    planId,
+                    verifiedBy: 'stripe_webhook',
+                    grantedAt: firebase_config_1.admin.firestore.FieldValue.serverTimestamp(),
+                });
+            });
+        }
     }
     async _handlePaymentIntentFailed(paymentIntent) {
         const user = await this._getUserFromMetadata(paymentIntent.metadata?.firebase_uid);
@@ -304,7 +410,10 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             where: { userId: user.id, planType: 'premium' },
         });
         if (!sub) {
-            sub = this.subscriptionRepository.create({ userId: user.id, planType: 'premium' });
+            sub = this.subscriptionRepository.create({
+                userId: user.id,
+                planType: 'premium',
+            });
         }
         sub.startDate = periodStart;
         sub.endDate = periodEnd;
@@ -343,16 +452,30 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         if (!catalog) {
             throw new common_1.BadRequestException(`Unknown product: ${dto.productId}`);
         }
-        const existing = await this.paymentRepository.findOne({
-            where: { providerPaymentId: dto.transactionId },
-        });
+        let existing = null;
+        try {
+            existing = await this.paymentRepository.findOne({
+                where: { providerPaymentId: dto.transactionId },
+            });
+        }
+        catch (e) {
+            this.logger.error(`payments lookup failed for tx=${dto.transactionId}: ${e}`);
+        }
         if (existing && existing.metadata?.grantedAt) {
             return { verified: true, alreadyGranted: true };
         }
         let verifiedBy = 'unverified';
         let expiryMs = null;
-        if (dto.platform === 'ios') {
-            const r = await this._verifyAppleReceipt(dto.verificationData, planId);
+        const isProduction = this.configService.get('NODE_ENV') === 'production';
+        const isDebugTransaction = dto.transactionId.startsWith('debug_');
+        if (isDebugTransaction && isProduction) {
+            throw new common_1.BadRequestException('Invalid transaction id');
+        }
+        if (isDebugTransaction) {
+            verifiedBy = 'debug_simulated';
+        }
+        else if (dto.platform === 'ios') {
+            const r = await this._verifyAppleReceipt(dto.verificationData, planId, dto.transactionId);
             verifiedBy = r.verified ? 'apple' : 'unverified';
             expiryMs = r.expiryMs;
         }
@@ -364,27 +487,66 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         else {
             throw new common_1.BadRequestException(`Invalid platform: ${dto.platform}`);
         }
-        await this._grantEntitlement(firebaseUid, planId, expiryMs, dto.transactionId, dto.platform);
-        let user = await this.userRepository.findOne({ where: { firebaseUid } });
-        if (!user) {
-            user = await this.userRepository.save(this.userRepository.create({ firebaseUid }));
-        }
-        if (!existing) {
-            await this.paymentRepository.save({
-                userId: user.id,
-                amount: catalog.amountCents,
-                currency: 'EUR',
-                status: 'succeeded',
-                provider: dto.platform === 'ios' ? 'apple_iap' : 'google_iap',
-                providerPaymentId: dto.transactionId,
-                planType: planId,
-                metadata: {
-                    productId: dto.productId,
-                    platform: dto.platform,
+        const db = firebase_config_1.admin.firestore();
+        const markerRef = db
+            .collection('iap_grants')
+            .doc(`${firebaseUid}_${dto.transactionId}`);
+        let duplicated;
+        try {
+            duplicated = await db.runTransaction(async (tx) => {
+                const marker = await tx.get(markerRef);
+                if (marker.exists)
+                    return true;
+                await this._grantEntitlement(firebaseUid, planId, expiryMs, dto.transactionId, dto.platform, tx);
+                tx.create(markerRef, {
+                    uid: firebaseUid,
+                    transactionId: dto.transactionId,
+                    planId,
                     verifiedBy,
-                    grantedAt: new Date().toISOString(),
-                },
+                    grantedAt: firebase_config_1.admin.firestore.FieldValue.serverTimestamp(),
+                });
+                return false;
             });
+        }
+        catch (e) {
+            this.logger.error(`Firestore grant failed uid=${firebaseUid} tx=${dto.transactionId}: ${e instanceof Error ? e.stack : e}`);
+            throw new common_1.ServiceUnavailableException(`No se pudo activar la compra (error interno): ${e instanceof Error ? e.message : String(e)}`);
+        }
+        if (duplicated) {
+            return { verified: true, alreadyGranted: true };
+        }
+        try {
+            let user = await this.userRepository.findOne({ where: { firebaseUid } });
+            if (!user) {
+                const fbUser = await firebase_config_1.admin
+                    .auth()
+                    .getUser(firebaseUid)
+                    .catch(() => null);
+                user = await this.userRepository.save(this.userRepository.create({
+                    firebaseUid,
+                    email: fbUser?.email ?? `${firebaseUid}@no-email.local`,
+                }));
+            }
+            if (!existing) {
+                await this.paymentRepository.save({
+                    userId: user.id,
+                    amount: catalog.amountCents,
+                    currency: 'EUR',
+                    status: 'succeeded',
+                    provider: dto.platform === 'ios' ? 'apple_iap' : 'google_iap',
+                    providerPaymentId: dto.transactionId,
+                    planType: planId,
+                    metadata: {
+                        productId: dto.productId,
+                        platform: dto.platform,
+                        verifiedBy,
+                        grantedAt: new Date().toISOString(),
+                    },
+                });
+            }
+        }
+        catch (e) {
+            this.logger.error(`Failed to record payment tx=${dto.transactionId} uid=${firebaseUid}: ${e}`);
         }
         this.logger.log(`IAP granted uid=${firebaseUid} product=${planId} tx=${dto.transactionId} verifiedBy=${verifiedBy}`);
         return { verified: true, verifiedBy, alreadyGranted: false };
@@ -394,8 +556,9 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         const userRef = db.collection('users').doc(firebaseUid);
         const granted = await db.runTransaction(async (tx) => {
             const snap = await tx.get(userRef);
-            if (!snap.exists)
-                return false;
+            if (!snap.exists) {
+                throw new common_1.NotFoundException('User profile not found');
+            }
             if (snap.get('hasUsedFreeTrial') === true)
                 return false;
             const endMs = Date.now() + 7 * 24 * 3600 * 1000;
@@ -427,7 +590,7 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         }
         return { verified: true, granted: 'free_trial' };
     }
-    async _grantEntitlement(firebaseUid, planId, expiryMs, transactionId, platform) {
+    async _grantEntitlement(firebaseUid, planId, expiryMs, transactionId, platform, tx) {
         const db = firebase_config_1.admin.firestore();
         const userRef = db.collection('users').doc(firebaseUid);
         const now = Date.now();
@@ -436,49 +599,98 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             case 'premium_annual': {
                 const days = planId === 'premium_annual' ? 365 : 30;
                 const endMs = expiryMs ?? now + days * 86400000;
-                await db.collection('subscriptions').doc(firebaseUid).set({
+                const subData = {
                     userId: firebaseUid,
                     planId: 'premium',
                     startDate: now,
                     endDate: endMs,
                     isActive: true,
                     autoRenew: true,
-                    paymentMethod: 'iap',
+                    paymentMethod: platform === 'stripe' ? 'stripe' : 'iap',
                     storeTransactionId: transactionId,
                     store: platform,
-                }, { merge: true });
-                await this._writeFirestoreEntitlement(firebaseUid, endMs, 'iap');
+                };
+                const subRef = db.collection('subscriptions').doc(firebaseUid);
+                const userEntitlement = {
+                    isPremium: true,
+                    planId: 'premium',
+                    subscription: {
+                        status: 'active',
+                        autoRenew: true,
+                        source: platform === 'stripe' ? 'stripe' : 'iap',
+                        endDate: firebase_config_1.admin.firestore.Timestamp.fromMillis(endMs),
+                    },
+                };
+                if (tx) {
+                    tx.set(subRef, subData, { merge: true });
+                    tx.set(userRef, userEntitlement, { merge: true });
+                }
+                else {
+                    await subRef.set(subData, { merge: true });
+                    await this._writeFirestoreEntitlement(firebaseUid, endMs, platform);
+                }
                 break;
             }
             case 'boost': {
                 const endMs = now + 30 * 60000;
-                await userRef.collection('boosts').add({
+                const boostRef = userRef.collection('boosts').doc();
+                const boostData = {
                     durationMinutes: 30,
                     timestamp: firebase_config_1.admin.firestore.FieldValue.serverTimestamp(),
                     transactionId,
-                });
-                await userRef.set({
+                };
+                const boostFlag = {
                     isBoosted: true,
                     boostEndTime: firebase_config_1.admin.firestore.Timestamp.fromMillis(endMs),
-                }, { merge: true });
+                };
+                if (tx) {
+                    tx.create(boostRef, boostData);
+                    tx.set(userRef, boostFlag, { merge: true });
+                }
+                else {
+                    await boostRef.set(boostData);
+                    await userRef.set(boostFlag, { merge: true });
+                }
                 break;
             }
-            case 'super_like':
-                await userRef.set({ superLikesAvailable: firebase_config_1.admin.firestore.FieldValue.increment(1) }, { merge: true });
+            case 'super_like': {
+                const data = {
+                    superLikesAvailable: firebase_config_1.admin.firestore.FieldValue.increment(1),
+                };
+                if (tx) {
+                    tx.set(userRef, data, { merge: true });
+                }
+                else {
+                    await userRef.set(data, { merge: true });
+                }
                 break;
-            case 'premium_verification':
-                await userRef.set({
+            }
+            case 'premium_verification': {
+                const data = {
                     isVerified: true,
                     'verification.isPremiumVerified': true,
                     'verification.premiumVerifiedAt': firebase_config_1.admin.firestore.FieldValue.serverTimestamp(),
-                }, { merge: true });
+                };
+                if (tx) {
+                    tx.set(userRef, data, { merge: true });
+                }
+                else {
+                    await userRef.set(data, { merge: true });
+                }
                 break;
+            }
             case 'highlight_listing': {
                 const until = now + 24 * 3600 * 1000;
-                await userRef.set({
+                const data = {
                     isListingHighlighted: true,
                     listingHighlightedUntil: firebase_config_1.admin.firestore.Timestamp.fromMillis(until),
-                }, { merge: true });
+                };
+                if (tx) {
+                    tx.set(userRef, data, { merge: true });
+                }
+                else {
+                    await userRef.set(data, { merge: true });
+                }
                 break;
             }
             default:
@@ -487,7 +699,11 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
     }
     async _writeFirestoreEntitlement(firebaseUid, endMs, source) {
         try {
-            await firebase_config_1.admin.firestore().collection('users').doc(firebaseUid).set({
+            await firebase_config_1.admin
+                .firestore()
+                .collection('users')
+                .doc(firebaseUid)
+                .set({
                 isPremium: true,
                 planId: 'premium',
                 subscription: {
@@ -505,22 +721,36 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
     async _revokeFirestoreEntitlement(firebaseUid) {
         try {
             const db = firebase_config_1.admin.firestore();
-            await db.collection('users').doc(firebaseUid).set({
+            await db
+                .collection('users')
+                .doc(firebaseUid)
+                .set({
                 isPremium: false,
                 planId: 'basic',
                 subscription: {
                     status: 'expired',
                 },
             }, { merge: true });
-            await db.collection('subscriptions').doc(firebaseUid).set({ isActive: false, autoRenew: false }, { merge: true });
+            await db
+                .collection('subscriptions')
+                .doc(firebaseUid)
+                .set({ isActive: false, autoRenew: false }, { merge: true });
         }
         catch (e) {
             this.logger.warn(`Firestore entitlement revoke failed for ${firebaseUid}: ${e}`);
         }
     }
-    async _verifyAppleReceipt(receiptData, planId) {
+    async _verifyAppleReceipt(receiptData, planId, transactionId) {
+        const trimmed = receiptData?.trim() ?? '';
+        if (/^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(trimmed)) {
+            return this._verifyAppleJws(trimmed, planId, transactionId);
+        }
         const secret = this.configService.get('APPLE_SHARED_SECRET');
         if (!secret) {
+            if (this.configService.get('NODE_ENV') === 'production') {
+                this.logger.error('APPLE_SHARED_SECRET not set — refusing unverified grant');
+                throw new common_1.ServiceUnavailableException('Payment verification is not configured');
+            }
             this.logger.warn('APPLE_SHARED_SECRET not set — skipping Apple receipt validation');
             return { verified: false, expiryMs: null };
         }
@@ -528,22 +758,32 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             throw new common_1.BadRequestException('Missing receipt data');
         }
         const verify = async (url) => {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 'receipt-data': receiptData, password: secret }),
-            });
-            return res.json();
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        'receipt-data': receiptData,
+                        password: secret,
+                    }),
+                });
+                return (await res.json());
+            }
+            catch (e) {
+                this.logger.error(`Apple verifyReceipt request failed: ${e}`);
+                throw new common_1.ServiceUnavailableException('Apple receipt service unavailable');
+            }
         };
         let body = await verify('https://buy.itunes.apple.com/verifyReceipt');
-        if (body.status === 21007) {
+        if (body?.status === 21007) {
             body = await verify('https://sandbox.itunes.apple.com/verifyReceipt');
         }
-        if (body.status !== 0) {
-            throw new common_1.BadRequestException(`Apple receipt invalid (status=${body.status})`);
+        if (body == null || typeof body !== 'object' || body.status !== 0) {
+            throw new common_1.BadRequestException(`Apple receipt invalid (status=${body?.status ?? 'malformed'})`);
         }
         const isSubscription = planId === 'premium_monthly' || planId === 'premium_annual';
-        const items = body.latest_receipt_info ?? body.receipt?.in_app ?? [];
+        const rawItems = body.latest_receipt_info ?? body.receipt?.in_app;
+        const items = Array.isArray(rawItems) ? rawItems : [];
         const match = items
             .filter((i) => i.product_id === planId || i.product_id?.startsWith(planId))
             .sort((a, b) => Number(b.expires_date_ms ?? 0) - Number(a.expires_date_ms ?? 0))[0];
@@ -559,30 +799,107 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         }
         return { verified: true, expiryMs: null };
     }
+    _verifyAppleJws(jws, planId, transactionId) {
+        if (!this._verifyJwsSignature(jws)) {
+            throw new common_1.BadRequestException('Firma del recibo de Apple inválida');
+        }
+        let payload;
+        try {
+            payload = JSON.parse(Buffer.from(jws.split('.')[1], 'base64url').toString('utf8'));
+        }
+        catch {
+            throw new common_1.BadRequestException('Recibo JWS malformado');
+        }
+        const txId = payload.transactionId ?? payload.originalTransactionId;
+        if (payload.transactionId !== transactionId &&
+            payload.originalTransactionId !== transactionId) {
+            this.logger.error(`JWS transaction mismatch: receipt tx=${txId} originalTx=${payload.originalTransactionId} dto tx=${transactionId}`);
+            throw new common_1.BadRequestException('La transacción no coincide con el recibo');
+        }
+        if (payload.productId !== planId &&
+            !payload.productId?.startsWith(planId)) {
+            throw new common_1.BadRequestException('El producto no coincide con el recibo');
+        }
+        const expiryMs = typeof payload.expiresDate === 'number' ? payload.expiresDate : null;
+        if (expiryMs != null && expiryMs <= Date.now()) {
+            throw new common_1.BadRequestException('Subscription expired');
+        }
+        this.logger.log(`JWS verified product=${payload.productId} tx=${txId} env=${payload.environment}`);
+        return { verified: true, expiryMs };
+    }
+    _verifyJwsSignature(jws) {
+        try {
+            const [headerB64, payloadB64, signature] = jws.split('.');
+            const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf8'));
+            const x5c = header.x5c;
+            if (!Array.isArray(x5c) || x5c.length < 2)
+                return false;
+            const certs = x5c.map((c) => new crypto_1.X509Certificate(Buffer.from(c, 'base64')));
+            for (let i = 0; i + 1 < certs.length; i++) {
+                if (!certs[i].verify(certs[i + 1].publicKey))
+                    return false;
+            }
+            const root = certs[certs.length - 1];
+            if (!root.subject.includes('Apple Root CA'))
+                return false;
+            const verifier = (0, crypto_1.createVerify)('SHA256');
+            verifier.update(`${headerB64}.${payloadB64}`);
+            verifier.end();
+            return verifier.verify({ key: certs[0].publicKey, dsaEncoding: 'ieee-p1363' }, Buffer.from(signature, 'base64url'));
+        }
+        catch (e) {
+            this.logger.warn(`JWS signature check failed: ${e}`);
+            return false;
+        }
+    }
     async _verifyGooglePurchase(purchaseToken, productId, planId) {
         const saJson = this.configService.get('GOOGLE_PLAY_SA_JSON');
         const packageName = this.configService.get('GOOGLE_PLAY_PACKAGE_NAME');
         if (!saJson || !packageName) {
+            if (this.configService.get('NODE_ENV') === 'production') {
+                this.logger.error('GOOGLE_PLAY_SA_JSON/GOOGLE_PLAY_PACKAGE_NAME not set — refusing unverified grant');
+                throw new common_1.ServiceUnavailableException('Payment verification is not configured');
+            }
             this.logger.warn('GOOGLE_PLAY_SA_JSON/GOOGLE_PLAY_PACKAGE_NAME not set — skipping Google verification');
             return { verified: false, expiryMs: null };
         }
         if (!purchaseToken) {
             throw new common_1.BadRequestException('Missing purchase token');
         }
-        const sa = JSON.parse(saJson);
+        let sa;
+        try {
+            sa = JSON.parse(saJson);
+        }
+        catch {
+            this.logger.error('GOOGLE_PLAY_SA_JSON is not valid JSON');
+            throw new common_1.ServiceUnavailableException('Payment verification is misconfigured');
+        }
         const token = await this._googleAccessToken(sa);
         const base = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${packageName}/purchases`;
         const isSubscription = planId === 'premium_monthly' || planId === 'premium_annual';
         const url = isSubscription
             ? `${base}/subscriptions/${productId}/tokens/${purchaseToken}`
             : `${base}/products/${productId}/tokens/${purchaseToken}`;
-        const res = await fetch(url, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        let res;
+        try {
+            res = await fetch(url, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+        }
+        catch (e) {
+            this.logger.error(`Google androidpublisher request failed: ${e}`);
+            throw new common_1.ServiceUnavailableException('Google Play verification service unavailable');
+        }
         if (!res.ok) {
             throw new common_1.BadRequestException(`Google purchase invalid (HTTP ${res.status})`);
         }
-        const body = (await res.json());
+        let body;
+        try {
+            body = await res.json();
+        }
+        catch {
+            throw new common_1.ServiceUnavailableException('Google Play verification returned an invalid response');
+        }
         if (isSubscription) {
             const expiryMs = Number(body.expiryTimeMillis ?? 0);
             if (expiryMs <= Date.now()) {
@@ -617,7 +934,13 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
                 assertion: jwt,
             }),
         });
-        const body = (await res.json());
+        let body;
+        try {
+            body = await res.json();
+        }
+        catch {
+            throw new common_1.ServiceUnavailableException('Google auth returned an invalid response');
+        }
         if (!body.access_token) {
             throw new common_1.ServiceUnavailableException('Google auth failed');
         }

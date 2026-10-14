@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class CreateGroupDto {
   @ApiProperty({ example: 'Grupo piso Madrid' })
@@ -7,7 +14,10 @@ export class CreateGroupDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ example: 'Buscamos compañeros para piso en el centro', required: false })
+  @ApiProperty({
+    example: 'Buscamos compañeros para piso en el centro',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   description?: string;

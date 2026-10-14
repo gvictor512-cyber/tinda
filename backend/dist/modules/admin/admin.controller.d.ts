@@ -2,6 +2,7 @@ import { AdminService } from './admin.service';
 export declare class AdminController {
     private readonly adminService;
     constructor(adminService: AdminService);
+    private static takeSkip;
     getDashboard(period?: string): Promise<{
         period: string;
         totalUsers: number;

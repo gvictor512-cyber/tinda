@@ -16,6 +16,10 @@ workflows:
     scripts:
       - name: Get Flutter dependencies
         script: flutter pub get
+      - name: Static analysis & tests (regression gate)
+        script: |
+          flutter analyze
+          flutter test
       - name: Install CocoaPods dependencies
         script: |
           cd ios
@@ -47,6 +51,10 @@ workflows:
     scripts:
       - name: Get Flutter dependencies
         script: flutter pub get
+      - name: Static analysis & tests (regression gate)
+        script: |
+          flutter analyze
+          flutter test
       - name: Install CocoaPods dependencies
         script: |
           cd ios
@@ -80,6 +88,10 @@ workflows:
     scripts:
       - name: Get Flutter dependencies
         script: flutter pub get
+      - name: Static analysis & tests (regression gate)
+        script: |
+          flutter analyze
+          flutter test
       - name: Build Android App Bundle
         script: |
           cd android

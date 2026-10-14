@@ -19,9 +19,7 @@ let CompatibilityModule = class CompatibilityModule {
 exports.CompatibilityModule = CompatibilityModule;
 exports.CompatibilityModule = CompatibilityModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            typeorm_1.TypeOrmModule.forFeature([compatibility_settings_entity_1.CompatibilitySettings, profile_entity_1.Profile, user_entity_1.User]),
-        ],
+        imports: [typeorm_1.TypeOrmModule.forFeature([compatibility_settings_entity_1.CompatibilitySettings, profile_entity_1.Profile, user_entity_1.User])],
         controllers: [compatibility_controller_1.CompatibilityController],
         providers: [compatibility_service_1.CompatibilityService],
         exports: [compatibility_service_1.CompatibilityService],

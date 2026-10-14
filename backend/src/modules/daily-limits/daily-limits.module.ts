@@ -5,9 +5,7 @@ import { DailyLimits } from './entities/daily-limits.entity';
 import { User } from '../users/entities/user.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([DailyLimits, User]),
-  ],
+  imports: [TypeOrmModule.forFeature([DailyLimits, User])],
   providers: [DailyLimitsService],
   exports: [DailyLimitsService],
 })

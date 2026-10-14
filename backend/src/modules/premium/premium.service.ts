@@ -1,6 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as admin from 'firebase-admin';
 import { Subscription } from './entities/subscription.entity';
 import { User } from '../users/entities/user.entity';
 import { DailyLimits } from '../daily-limits/entities/daily-limits.entity';
@@ -8,6 +15,8 @@ import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 
 @Injectable()
 export class PremiumService {
+  private readonly logger = new Logger(PremiumService.name);
+
   constructor(
     @InjectRepository(Subscription)
     private subscriptionsRepository: Repository<Subscription>,
@@ -33,12 +42,14 @@ export class PremiumService {
     return {
       isPremium: user.isPremium,
       premiumExpiresAt: user.premiumExpiresAt,
-      subscription: subscription ? {
-        planType: subscription.planType,
-        startDate: subscription.startDate,
-        endDate: subscription.endDate,
-        autoRenew: subscription.autoRenew,
-      } : null,
+      subscription: subscription
+        ? {
+            planType: subscription.planType,
+            startDate: subscription.startDate,
+            endDate: subscription.endDate,
+            autoRenew: subscription.autoRenew,
+          }
+        : null,
     };
   }
 
@@ -63,7 +74,10 @@ export class PremiumService {
     };
   }
 
-  async createSubscription(firebaseUid: string, createSubscriptionDto: CreateSubscriptionDto) {
+  async createSubscription(
+    firebaseUid: string,
+    createSubscriptionDto: CreateSubscriptionDto,
+  ) {
     const user = await this.usersRepository.findOne({
       where: { firebaseUid },
     });
@@ -81,10 +95,38 @@ export class PremiumService {
       throw new BadRequestException('User already has an active subscription');
     }
 
+    // SECURITY: never grant premium from a bare API call. This endpoint only
+    // mirrors into Postgres an entitlement that was already granted through
+    // the verified IAP/Stripe flows, which write subscriptions/{uid} and
+    // users/{uid} in Firestore. Without that proof this endpoint is a dev
+    // stub — reject it in production.
+    const fsSub = await admin
+      .firestore()
+      .collection('subscriptions')
+      .doc(firebaseUid)
+      .get();
+    const fsSubData = fsSub.data();
+    const hasVerifiedEntitlement =
+      fsSub.exists &&
+      fsSubData?.isActive === true &&
+      typeof fsSubData?.endDate === 'number' &&
+      fsSubData.endDate > Date.now();
+
+    if (!hasVerifiedEntitlement) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new ForbiddenException(
+          'No verified purchase found. Subscribe through the app store.',
+        );
+      }
+      this.logger.warn(
+        `Dev-mode subscription grant without verified purchase for ${firebaseUid}`,
+      );
+    }
+
     // Calculate end date based on plan
     const startDate = new Date();
     const endDate = new Date();
-    
+
     if (createSubscriptionDto.planType === 'premium_monthly') {
       endDate.setMonth(endDate.getMonth() + 1);
     } else if (createSubscriptionDto.planType === 'premium_yearly') {
@@ -168,7 +210,9 @@ export class PremiumService {
       await this.dailyLimitsRepository.save(dailyLimits);
     }
 
-    const isPremium = user.isPremium && (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
+    const isPremium =
+      user.isPremium &&
+      (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
 
     return {
       isPremium,
@@ -190,7 +234,9 @@ export class PremiumService {
       throw new NotFoundException('User not found');
     }
 
-    const isPremium = user.isPremium && (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
+    const isPremium =
+      user.isPremium &&
+      (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
 
     if (isPremium) {
       return { success: true, remaining: -1 };
@@ -232,7 +278,9 @@ export class PremiumService {
       throw new NotFoundException('User not found');
     }
 
-    const isPremium = user.isPremium && (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
+    const isPremium =
+      user.isPremium &&
+      (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
 
     if (isPremium) {
       return { success: true, remaining: -1 };
@@ -274,7 +322,9 @@ export class PremiumService {
       throw new NotFoundException('User not found');
     }
 
-    const isPremium = user.isPremium && (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
+    const isPremium =
+      user.isPremium &&
+      (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
 
     if (!isPremium) {
       throw new BadRequestException('Boost is a premium feature');
@@ -301,7 +351,7 @@ export class PremiumService {
     await this.dailyLimitsRepository.save(dailyLimits);
 
     // TODO: Implement boost logic (show profile to more users for 30 minutes)
-    
+
     return { success: true, message: 'Profile boosted for 30 minutes' };
   }
 }

@@ -2,7 +2,10 @@
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateCustomerDto {
-  @ApiProperty({ description: 'Customer email', example: 'support@roommatematchapp.com' })
+  @ApiProperty({
+    description: 'Customer email',
+    example: 'support@roommatematchapp.com',
+  })
   @IsNotEmpty()
   @IsEmail()
   email: string;

@@ -16,7 +16,10 @@ class CreatePaymentIntentDto {
 }
 exports.CreatePaymentIntentDto = CreatePaymentIntentDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Amount in the smallest currency unit (cents)', example: 999 }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Amount in the smallest currency unit (cents)',
+        example: 999,
+    }),
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
@@ -25,11 +28,16 @@ __decorate([
     (0, swagger_1.ApiProperty)({ description: 'Currency code (ISO 4217)', example: 'eur' }),
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^[A-Z]{3}$/, { message: 'currency must be a 3-letter ISO 4217 code' }),
+    (0, class_validator_1.Matches)(/^[A-Z]{3}$/, {
+        message: 'currency must be a 3-letter ISO 4217 code',
+    }),
     __metadata("design:type", String)
 ], CreatePaymentIntentDto.prototype, "currency", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'Plan or product identifier', example: 'premium_monthly' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Plan or product identifier',
+        example: 'premium_monthly',
+    }),
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)

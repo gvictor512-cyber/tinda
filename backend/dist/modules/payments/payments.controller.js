@@ -36,7 +36,7 @@ let PaymentsController = class PaymentsController {
         return this.paymentsService.setupSubscription(req.user.uid, dto);
     }
     async cancelSubscription(req, subscriptionId) {
-        return this.paymentsService.cancelSubscription(subscriptionId);
+        return this.paymentsService.cancelSubscription(req.user.uid, subscriptionId);
     }
     async sendPurchaseReceipt(req, dto) {
         return this.paymentsService.sendPurchaseReceipt(req.user.uid, req.user.email, dto);

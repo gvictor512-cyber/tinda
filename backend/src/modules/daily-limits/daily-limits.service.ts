@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DailyLimits } from './entities/daily-limits.entity';
@@ -19,7 +19,7 @@ export class DailyLimitsService {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const today = new Date();
@@ -40,7 +40,9 @@ export class DailyLimitsService {
       await this.dailyLimitsRepository.save(dailyLimits);
     }
 
-    const isPremium = user.isPremium && (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
+    const isPremium =
+      user.isPremium &&
+      (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
 
     return {
       isPremium,
@@ -58,7 +60,13 @@ export class DailyLimitsService {
       where: { id: userId },
     });
 
-    const isPremium = user.isPremium && (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isPremium =
+      user.isPremium &&
+      (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
 
     if (isPremium) {
       return { success: true, remaining: -1 };
@@ -96,7 +104,13 @@ export class DailyLimitsService {
       where: { id: userId },
     });
 
-    const isPremium = user.isPremium && (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isPremium =
+      user.isPremium &&
+      (!user.premiumExpiresAt || user.premiumExpiresAt > new Date());
 
     if (isPremium) {
       return { success: true, remaining: -1 };

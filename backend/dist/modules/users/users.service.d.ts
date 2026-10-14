@@ -34,5 +34,9 @@ export declare class UsersService {
         matches: number;
         messages: number;
     }>;
+    recordSwipe(firebaseUid: string, swipedId: string, isLike: boolean, isSuperLike?: boolean): Promise<{
+        matched: boolean;
+    }>;
+    private _enforceSwipeLimits;
     private encodeGeohash;
 }

@@ -6,9 +6,7 @@ import { Verification } from './entities/verification.entity';
 import { User } from '../users/entities/user.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Verification, User]),
-  ],
+  imports: [TypeOrmModule.forFeature([Verification, User])],
   controllers: [VerificationController],
   providers: [VerificationService],
   exports: [VerificationService],

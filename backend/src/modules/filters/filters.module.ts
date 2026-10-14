@@ -6,9 +6,7 @@ import { UserFilters } from './entities/user-filters.entity';
 import { User } from '../users/entities/user.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([UserFilters, User]),
-  ],
+  imports: [TypeOrmModule.forFeature([UserFilters, User])],
   controllers: [FiltersController],
   providers: [FiltersService],
   exports: [FiltersService],

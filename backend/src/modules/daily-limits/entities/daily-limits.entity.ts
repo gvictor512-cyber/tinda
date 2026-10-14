@@ -1,4 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column,CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 
 @Entity('daily_limits')
 export class DailyLimits {

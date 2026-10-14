@@ -56,6 +56,33 @@ service firebase.storage {
           || isAdmin());
     }
 
+    // Apartment photos (landlord listings live under the user doc)
+    match /users/{userId}/apartment/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId)
+        && isImage()
+        && isSizeUnder10MB();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Legacy photo path used by profile_screen.dart
+    match /user_photos/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId)
+        && isImage()
+        && isSizeUnder10MB();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Chat image attachments (chat_images/{fileName})
+    match /chat_images/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+        && isImage()
+        && isSizeUnder10MB();
+      allow delete: if isAdmin();
+    }
+
     // Chat attachments (only conversation participants)
     match /conversations/{conversationId}/{fileName} {
       allow read: if isAuthenticated()

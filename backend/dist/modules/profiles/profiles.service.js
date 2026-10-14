@@ -121,7 +121,8 @@ let ProfilesService = class ProfilesService {
             if (compatibilitySettings) {
                 Object.assign(compatibilitySettings, updateProfileDto.compatibilitySettings);
                 if (updateProfileDto.compatibilitySettings.personalityTraits) {
-                    compatibilitySettings.personalityTraits = updateProfileDto.compatibilitySettings.personalityTraits;
+                    compatibilitySettings.personalityTraits =
+                        updateProfileDto.compatibilitySettings.personalityTraits;
                 }
                 await this.compatibilitySettingsRepository.save(compatibilitySettings);
             }
@@ -211,7 +212,8 @@ let ProfilesService = class ProfilesService {
     async searchProfiles(filters, page = 1, limit = 20) {
         const safeLimit = Math.min(limit, 100);
         const skip = (Math.max(page, 1) - 1) * safeLimit;
-        const queryBuilder = this.profilesRepository.createQueryBuilder('profile')
+        const queryBuilder = this.profilesRepository
+            .createQueryBuilder('profile')
             .leftJoinAndSelect('profile.user', 'user')
             .where('user.isActive = :isActive', { isActive: true });
         if (filters.city) {
@@ -224,15 +226,18 @@ let ProfilesService = class ProfilesService {
             });
         }
         if (filters.budgetMin && filters.budgetMax) {
-            queryBuilder.andWhere('profile.budgetMin >= :budgetMin AND profile.budgetMax <= :budgetMax', {
+            queryBuilder.andWhere('profile.budgetMin <= :budgetMax AND profile.budgetMax >= :budgetMin', {
                 budgetMin: filters.budgetMin,
                 budgetMax: filters.budgetMax,
             });
         }
         if (filters.gender) {
-            queryBuilder.andWhere('profile.gender = :gender', { gender: filters.gender });
+            queryBuilder.andWhere('profile.gender = :gender', {
+                gender: filters.gender,
+            });
         }
-        queryBuilder.orderBy('profile.createdAt', 'DESC')
+        queryBuilder
+            .orderBy('profile.createdAt', 'DESC')
             .skip(skip)
             .take(safeLimit);
         return queryBuilder.getMany();

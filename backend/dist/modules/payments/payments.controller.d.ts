@@ -14,7 +14,7 @@ export declare class PaymentsController {
     sendPurchaseReceipt(req: any, dto: SendReceiptDto): Promise<{
         sent: boolean;
         alreadyRecorded: boolean;
-        invoiceNumber: string;
+        invoiceNumber: any;
     }>;
     verifyIap(req: any, dto: VerifyIapDto): Promise<{
         verified: boolean;

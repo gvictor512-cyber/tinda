@@ -79,7 +79,8 @@ let NotificationsService = class NotificationsService {
     async _verifyRelationship(senderId, receiverId, notificationType) {
         const collection = notificationType === 'new_match' ? 'matches' : 'chats';
         const field = notificationType === 'new_match' ? 'users' : 'participants';
-        const docs = await admin.firestore()
+        const docs = await admin
+            .firestore()
             .collection(collection)
             .where(field, 'array-contains', senderId)
             .get();
@@ -102,12 +103,17 @@ let NotificationsService = class NotificationsService {
         });
         await this.notificationsRepository.save(notification);
         try {
-            const userDoc = await admin.firestore().collection('users').doc(userId).get();
+            const userDoc = await admin
+                .firestore()
+                .collection('users')
+                .doc(userId)
+                .get();
             const fcmToken = userDoc.data()?.fcmToken;
             if (fcmToken) {
                 const stringData = { type: notificationType };
                 for (const [key, value] of Object.entries(data)) {
-                    stringData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+                    stringData[key] =
+                        typeof value === 'string' ? value : JSON.stringify(value);
                 }
                 await admin.messaging().send({
                     token: fcmToken,

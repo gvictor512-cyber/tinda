@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Match } from './entities/match.entity';
 import { Swipe } from './entities/swipe.entity';
 import { User } from '../users/entities/user.entity';
@@ -72,7 +76,7 @@ export class MatchesService {
         where: {
           swiperId: targetUser.id,
           swipedId: user.id,
-          swipeType: ['like', 'super_like'] as any,
+          swipeType: In(['like', 'super_like']),
         },
       });
 
@@ -87,13 +91,18 @@ export class MatchesService {
 
   async createMatch(user1Id: string, user2Id: string) {
     // Calculate compatibility
-    const user1 = await this.usersRepository.findOne({ where: { id: user1Id } });
-    const user2 = await this.usersRepository.findOne({ where: { id: user2Id } });
+    const user1 = await this.usersRepository.findOne({
+      where: { id: user1Id },
+    });
+    const user2 = await this.usersRepository.findOne({
+      where: { id: user2Id },
+    });
 
-    const compatibility = await this.compatibilityService.calculateCompatibility(
-      user1.firebaseUid,
-      user2Id,
-    );
+    const compatibility =
+      await this.compatibilityService.calculateCompatibility(
+        user1.firebaseUid,
+        user2Id,
+      );
 
     // Ensure user1Id < user2Id for uniqueness
     const [smallerId, largerId] = [user1Id, user2Id].sort();
@@ -121,8 +130,18 @@ export class MatchesService {
     const savedMatch = await this.matchesRepository.save(match);
 
     // Send notifications to both users
-    await this.notificationsService.sendMatchNotification(user1Id, user2Id, user2Id, savedMatch.id);
-    await this.notificationsService.sendMatchNotification(user2Id, user1Id, user1Id, savedMatch.id);
+    await this.notificationsService.sendMatchNotification(
+      user1Id,
+      user2Id,
+      user2Id,
+      savedMatch.id,
+    );
+    await this.notificationsService.sendMatchNotification(
+      user2Id,
+      user1Id,
+      user1Id,
+      savedMatch.id,
+    );
 
     return {
       success: true,
@@ -133,7 +152,11 @@ export class MatchesService {
     };
   }
 
-  async getUserMatches(firebaseUid: string, page: number = 1, limit: number = 20) {
+  async getUserMatches(
+    firebaseUid: string,
+    page: number = 1,
+    limit: number = 20,
+  ) {
     const user = await this.usersRepository.findOne({
       where: { firebaseUid },
     });
@@ -149,7 +172,9 @@ export class MatchesService {
       .createQueryBuilder('match')
       .leftJoinAndSelect('match.user1', 'user1')
       .leftJoinAndSelect('match.user2', 'user2')
-      .where('(match.user1Id = :userId OR match.user2Id = :userId)', { userId: user.id })
+      .where('(match.user1Id = :userId OR match.user2Id = :userId)', {
+        userId: user.id,
+      })
       .andWhere('match.isActive = :isActive', { isActive: true })
       .orderBy('match.createdAt', 'DESC')
       .skip(skip)
@@ -169,7 +194,8 @@ export class MatchesService {
     const profileByUserId = new Map(profiles.map((p) => [p.userId, p]));
 
     const enrichedMatches = matches.map((match) => {
-      const otherUserId = match.user1Id === user.id ? match.user2Id : match.user1Id;
+      const otherUserId =
+        match.user1Id === user.id ? match.user2Id : match.user1Id;
       return {
         ...match,
         otherUser: profileByUserId.get(otherUserId) || null,
@@ -202,7 +228,8 @@ export class MatchesService {
       throw new BadRequestException('Access denied');
     }
 
-    const otherUserId = match.user1Id === user.id ? match.user2Id : match.user1Id;
+    const otherUserId =
+      match.user1Id === user.id ? match.user2Id : match.user1Id;
     const otherProfile = await this.profilesRepository.findOne({
       where: { userId: otherUserId },
       relations: ['user'],
@@ -242,7 +269,11 @@ export class MatchesService {
     return { message: 'Unmatched successfully' };
   }
 
-  async getPendingLikes(firebaseUid: string, page: number = 1, limit: number = 20) {
+  async getPendingLikes(
+    firebaseUid: string,
+    page: number = 1,
+    limit: number = 20,
+  ) {
     const user = await this.usersRepository.findOne({
       where: { firebaseUid },
     });
@@ -259,7 +290,9 @@ export class MatchesService {
       .createQueryBuilder('swipe')
       .leftJoinAndSelect('swipe.swiper', 'swiper')
       .where('swipe.swipedId = :userId', { userId: user.id })
-      .andWhere('swipe.swipeType IN (:...types)', { types: ['like', 'super_like'] })
+      .andWhere('swipe.swipeType IN (:...types)', {
+        types: ['like', 'super_like'],
+      })
       .orderBy('swipe.createdAt', 'DESC')
       .skip(skip)
       .take(safeLimit)

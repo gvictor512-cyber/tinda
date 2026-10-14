@@ -69,7 +69,9 @@ let AuthService = class AuthService {
     }
     async authenticateWithFirebase(firebaseAuthDto) {
         try {
-            const decodedToken = await admin.auth().verifyIdToken(firebaseAuthDto.token);
+            const decodedToken = await admin
+                .auth()
+                .verifyIdToken(firebaseAuthDto.token);
             let user = await this.usersRepository.findOne({
                 where: { firebaseUid: decodedToken.uid },
             });
@@ -163,7 +165,7 @@ let AuthService = class AuthService {
         };
     }
     sanitizeUser(user) {
-        const { id, email, phone, isActive, isPremium, premiumExpiresAt, createdAt } = user;
+        const { id, email, phone, isActive, isPremium, premiumExpiresAt, createdAt, } = user;
         return {
             id,
             email,

@@ -35,8 +35,11 @@ let NotificationsController = class NotificationsController {
     }
     async send(req, dto) {
         const senderId = req.user?.uid ?? '';
-        const notificationType = dto.data?.type || 'custom';
-        return this.notificationsService.sendToUser(senderId, dto.userId, notificationType, dto.title, dto.body, dto.data ?? {});
+        const notificationType = dto.data?.type || '';
+        if (!['new_match', 'new_message'].includes(notificationType)) {
+            throw new common_1.BadRequestException('Unsupported notification type');
+        }
+        return this.notificationsService.sendToUser(senderId, dto.userId, notificationType, dto.title?.slice(0, 200) ?? '', dto.body?.slice(0, 500) ?? '', dto.data ?? {});
     }
 };
 exports.NotificationsController = NotificationsController;

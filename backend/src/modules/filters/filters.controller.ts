@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { FiltersService } from './filters.service';
 import { UpdateFiltersDto } from './dto/update-filters.dto';
 import { FirebaseAuthGuard } from '../../common/guards/auth.guard';
@@ -14,7 +24,10 @@ export class FiltersController {
   }
 
   @Put()
-  async updateFilters(@Request() req, @Body() updateFiltersDto: UpdateFiltersDto) {
+  async updateFilters(
+    @Request() req,
+    @Body() updateFiltersDto: UpdateFiltersDto,
+  ) {
     return this.filtersService.updateFilters(req.user.uid, updateFiltersDto);
   }
 

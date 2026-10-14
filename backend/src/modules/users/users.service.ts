@@ -1,5 +1,6 @@
 import {
   Injectable,
+  ForbiddenException,
   NotFoundException,
   BadRequestException,
   Logger,
@@ -72,7 +73,10 @@ export class UsersService {
       userAgent: metadata?.userAgent,
     });
 
-    return { user: await this.findByFirebaseUid(firebaseUid), log: await this.consentLogRepository.save(log) };
+    return {
+      user: await this.findByFirebaseUid(firebaseUid),
+      log: await this.consentLogRepository.save(log),
+    };
   }
 
   async exportData(firebaseUid: string): Promise<Record<string, unknown>> {
@@ -211,56 +215,87 @@ export class UsersService {
 
     // --- Firestore ---
     await safe('users doc + subcollections', () =>
-      db.recursiveDelete(db.collection('users').doc(firebaseUid)));
+      db.recursiveDelete(db.collection('users').doc(firebaseUid)),
+    );
     await safe('profiles doc', () =>
-      db.recursiveDelete(db.collection('profiles').doc(firebaseUid)));
+      db.recursiveDelete(db.collection('profiles').doc(firebaseUid)),
+    );
     await safe('subscriptions doc', () =>
-      db.collection('subscriptions').doc(firebaseUid).delete());
+      db.collection('subscriptions').doc(firebaseUid).delete(),
+    );
     await safe('admins doc', () =>
-      db.collection('admins').doc(firebaseUid).delete());
+      db.collection('admins').doc(firebaseUid).delete(),
+    );
     await safe('swipes as swiper', () =>
-      deleteWhere('swipes', 'swiperId', '==', firebaseUid));
+      deleteWhere('swipes', 'swiperId', '==', firebaseUid),
+    );
     await safe('swipes as swiped', () =>
-      deleteWhere('swipes', 'swipedId', '==', firebaseUid));
+      deleteWhere('swipes', 'swipedId', '==', firebaseUid),
+    );
     await safe('matches', () =>
-      deleteWhere('matches', 'users', 'array-contains', firebaseUid));
+      deleteWhere('matches', 'users', 'array-contains', firebaseUid),
+    );
     // Chats and conversations include message subcollections.
     await safe('chats', () =>
-      deleteWhere('chats', 'participants', 'array-contains', firebaseUid, true));
+      deleteWhere('chats', 'participants', 'array-contains', firebaseUid, true),
+    );
     await safe('conversations', () =>
-      deleteWhere('conversations', 'participants', 'array-contains', firebaseUid, true));
+      deleteWhere(
+        'conversations',
+        'participants',
+        'array-contains',
+        firebaseUid,
+        true,
+      ),
+    );
     await safe('blocked_users (blocker)', () =>
-      deleteWhere('blocked_users', 'blockerId', '==', firebaseUid));
+      deleteWhere('blocked_users', 'blockerId', '==', firebaseUid),
+    );
     await safe('blocked_users (blocked)', () =>
-      deleteWhere('blocked_users', 'blockedId', '==', firebaseUid));
+      deleteWhere('blocked_users', 'blockedId', '==', firebaseUid),
+    );
     await safe('listings', () =>
-      deleteWhere('listings', 'ownerId', '==', firebaseUid));
+      deleteWhere('listings', 'ownerId', '==', firebaseUid),
+    );
     await safe('verification_requests', () =>
-      deleteWhere('verification_requests', 'userId', '==', firebaseUid));
+      deleteWhere('verification_requests', 'userId', '==', firebaseUid),
+    );
     await safe('reports', () =>
-      deleteWhere('reports', 'reporterId', '==', firebaseUid));
+      deleteWhere('reports', 'reporterId', '==', firebaseUid),
+    );
     await safe('moderation_queue', () =>
-      deleteWhere('moderation_queue', 'reporterId', '==', firebaseUid));
+      deleteWhere('moderation_queue', 'reporterId', '==', firebaseUid),
+    );
     await safe('referrals (referrer)', () =>
-      deleteWhere('referrals', 'referrerId', '==', firebaseUid));
+      deleteWhere('referrals', 'referrerId', '==', firebaseUid),
+    );
     await safe('referrals (referred)', () =>
-      deleteWhere('referrals', 'referredId', '==', firebaseUid));
+      deleteWhere('referrals', 'referredId', '==', firebaseUid),
+    );
     await safe('feedback', () =>
-      deleteWhere('feedback', 'userId', '==', firebaseUid));
+      deleteWhere('feedback', 'userId', '==', firebaseUid),
+    );
     await safe('support_messages', () =>
-      deleteWhere('support_messages', 'userId', '==', firebaseUid));
+      deleteWhere('support_messages', 'userId', '==', firebaseUid),
+    );
     await safe('purchases', () =>
-      deleteWhere('purchases', 'userId', '==', firebaseUid));
+      deleteWhere('purchases', 'userId', '==', firebaseUid),
+    );
     await safe('boosts', () =>
-      deleteWhere('boosts', 'userId', '==', firebaseUid));
+      deleteWhere('boosts', 'userId', '==', firebaseUid),
+    );
     await safe('transactions', () =>
-      deleteWhere('transactions', 'userId', '==', firebaseUid));
+      deleteWhere('transactions', 'userId', '==', firebaseUid),
+    );
     await safe('user_registrations', () =>
-      deleteWhere('user_registrations', 'userId', '==', firebaseUid));
+      deleteWhere('user_registrations', 'userId', '==', firebaseUid),
+    );
     await safe('subscription_events', () =>
-      deleteWhere('subscription_events', 'userId', '==', firebaseUid));
+      deleteWhere('subscription_events', 'userId', '==', firebaseUid),
+    );
     await safe('analytics_events', () =>
-      deleteWhere('analytics_events', 'userId', '==', firebaseUid));
+      deleteWhere('analytics_events', 'userId', '==', firebaseUid),
+    );
 
     // --- Storage ---
     // Folders are virtual: every file under each user prefix must go.
@@ -269,7 +304,10 @@ export class UsersService {
       `${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app`;
     await safe('storage', async () => {
       const bucket = admin.storage().bucket(bucketName);
-      for (const prefix of [`users/${firebaseUid}/`, `user_photos/${firebaseUid}/`]) {
+      for (const prefix of [
+        `users/${firebaseUid}/`,
+        `user_photos/${firebaseUid}/`,
+      ]) {
         await bucket.deleteFiles({ prefix });
       }
     });
@@ -300,9 +338,7 @@ export class UsersService {
       .limit(100)
       .get();
 
-    const unrewarded = pending.docs.filter(
-      (d) => d.data().rewarded !== true,
-    );
+    const unrewarded = pending.docs.filter((d) => d.data().rewarded !== true);
     if (unrewarded.length === 0) {
       return { granted: 0 };
     }
@@ -310,10 +346,13 @@ export class UsersService {
     const likesPerReferral = 5;
     const totalLikes = unrewarded.length * likesPerReferral;
 
-    await db.collection('users').doc(firebaseUid).set(
-      { freeLikes: admin.firestore.FieldValue.increment(totalLikes) },
-      { merge: true },
-    );
+    await db
+      .collection('users')
+      .doc(firebaseUid)
+      .set(
+        { freeLikes: admin.firestore.FieldValue.increment(totalLikes) },
+        { merge: true },
+      );
 
     const batch = db.batch();
     for (const doc of unrewarded) {
@@ -420,9 +459,18 @@ export class UsersService {
 
     // --- Demo content ---
     const names = [
-      'Lucía', 'Marcos', 'Sofía', 'Daniel', 'Valeria',
-      'Pablo', 'Carmen', 'Alejandro', 'Elena', 'Hugo',
-      'Marta', 'Adrián',
+      'Lucía',
+      'Marcos',
+      'Sofía',
+      'Daniel',
+      'Valeria',
+      'Pablo',
+      'Carmen',
+      'Alejandro',
+      'Elena',
+      'Hugo',
+      'Marta',
+      'Adrián',
     ];
     const bios = [
       'Estudiante de arquitectura, tranquila y ordenada.',
@@ -439,8 +487,16 @@ export class UsersService {
       'Ciclista y senderista los fines de semana.',
     ];
     const interestPool = [
-      'Música', 'Cine', 'Deporte', 'Viajes', 'Cocinar',
-      'Lectura', 'Senderismo', 'Fotografía', 'Yoga', 'Arte',
+      'Música',
+      'Cine',
+      'Deporte',
+      'Viajes',
+      'Cocinar',
+      'Lectura',
+      'Senderismo',
+      'Fotografía',
+      'Yoga',
+      'Arte',
     ];
     const femalePortraits = [
       'photo-1494790108377-be9c29b29330',
@@ -468,8 +524,7 @@ export class UsersService {
     ];
     const img = (id: string) =>
       `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=80`;
-    const rand = (arr: string[]) =>
-      arr[Math.floor(Math.random() * arr.length)];
+    const rand = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
     // --- Create 12 profiles ---
     const createdIds: string[] = [];
@@ -590,16 +645,13 @@ export class UsersService {
           ? `${firebaseUid}_${demoId}`
           : `${demoId}_${firebaseUid}`;
 
-      await db
-        .collection('swipes')
-        .doc(`${firebaseUid}_${demoId}`)
-        .set({
-          swiperId: firebaseUid,
-          swipedId: demoId,
-          isLike: true,
-          isDemo: true,
-          timestamp: fv.serverTimestamp(),
-        });
+      await db.collection('swipes').doc(`${firebaseUid}_${demoId}`).set({
+        swiperId: firebaseUid,
+        swipedId: demoId,
+        isLike: true,
+        isDemo: true,
+        timestamp: fv.serverTimestamp(),
+      });
 
       const msgs = convo[i % convo.length];
       const lastMsg = msgs[msgs.length - 1];
@@ -628,16 +680,19 @@ export class UsersService {
       const msgBatch = db.batch();
       msgs.forEach((text, j) => {
         const fromDemo = j % 2 === 0;
-        msgBatch.set(db.collection('chats').doc(pairId).collection('messages').doc(), {
-          senderId: fromDemo ? demoId : firebaseUid,
-          receiverId: fromDemo ? firebaseUid : demoId,
-          message: text,
-          imageUrl: null,
-          timestamp: admin.firestore.Timestamp.fromMillis(
-            now - i * 3600000 - (msgs.length - j) * 120000,
-          ),
-          read: !fromDemo,
-        });
+        msgBatch.set(
+          db.collection('chats').doc(pairId).collection('messages').doc(),
+          {
+            senderId: fromDemo ? demoId : firebaseUid,
+            receiverId: fromDemo ? firebaseUid : demoId,
+            message: text,
+            imageUrl: null,
+            timestamp: admin.firestore.Timestamp.fromMillis(
+              now - i * 3600000 - (msgs.length - j) * 120000,
+            ),
+            read: !fromDemo,
+          },
+        );
       });
       await msgBatch.commit();
       messagesCreated += msgs.length;
@@ -671,6 +726,13 @@ export class UsersService {
     }
     const db = admin.firestore();
     const fv = admin.firestore.FieldValue;
+
+    // Server-side daily-limit enforcement. The client checks the same
+    // limits before calling, but this endpoint bypasses Firestore rules so
+    // it must re-validate: free tier = 15 swipes/day + 1 super like/day;
+    // premium is unlimited. freeLikes/superLikesAvailable are consumable
+    // balances granted by referrals/IAP.
+    await this._enforceSwipeLimits(db, fv, firebaseUid, isSuperLike);
 
     await db
       .collection('swipes')
@@ -725,6 +787,74 @@ export class UsersService {
       `Swipe ${firebaseUid} -> ${swipedId} like=${isLike} matched=true`,
     );
     return { matched: true };
+  }
+
+  /**
+   * Enforces the free-tier daily limits for server-side swipes:
+   * 15 swipes/day and 1 super like/day. Premium users (users/{uid}
+   * isPremium + unexpired subscription.endDate) are unlimited. Past the
+   * free quota a swipe consumes a referral-granted freeLike and a super
+   * like consumes a purchased superLikesAvailable credit.
+   */
+  private async _enforceSwipeLimits(
+    db: admin.firestore.Firestore,
+    fv: typeof admin.firestore.FieldValue,
+    firebaseUid: string,
+    isSuperLike: boolean,
+  ): Promise<void> {
+    const FREE_DAILY_SWIPES = 15;
+    const FREE_DAILY_SUPER_LIKES = 1;
+
+    const userSnap = await db.collection('users').doc(firebaseUid).get();
+    const userData = userSnap.data() ?? {};
+
+    const subscription = userData.subscription as
+      { endDate?: admin.firestore.Timestamp } | undefined;
+    const endMs = subscription?.endDate?.toMillis?.() ?? 0;
+    const isPremium = userData.isPremium === true && endMs > Date.now();
+    if (isPremium) return;
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const startTs = admin.firestore.Timestamp.fromDate(startOfDay);
+
+    if (isSuperLike) {
+      const superLikesToday = await db
+        .collection('swipes')
+        .where('swiperId', '==', firebaseUid)
+        .where('isSuperLike', '==', true)
+        .where('timestamp', '>=', startTs)
+        .get();
+
+      if (superLikesToday.size < FREE_DAILY_SUPER_LIKES) return;
+
+      const available = (userData.superLikesAvailable as number) ?? 0;
+      if (available <= 0) {
+        throw new ForbiddenException('Daily super like limit reached');
+      }
+      await db
+        .collection('users')
+        .doc(firebaseUid)
+        .set({ superLikesAvailable: fv.increment(-1) }, { merge: true });
+      return;
+    }
+
+    const swipesToday = await db
+      .collection('swipes')
+      .where('swiperId', '==', firebaseUid)
+      .where('timestamp', '>=', startTs)
+      .get();
+
+    if (swipesToday.size < FREE_DAILY_SWIPES) return;
+
+    const freeLikes = (userData.freeLikes as number) ?? 0;
+    if (freeLikes <= 0) {
+      throw new ForbiddenException('Daily swipe limit reached');
+    }
+    await db
+      .collection('users')
+      .doc(firebaseUid)
+      .set({ freeLikes: fv.increment(-1) }, { merge: true });
   }
 
   /** Minimal geohash encoder (mirrors the client's GeoHash utility). */

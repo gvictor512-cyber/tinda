@@ -35,7 +35,10 @@ export class CompatibilityService {
     this.calculator = new CompatibilityCalculator();
   }
 
-  async calculateCompatibility(firebaseUid: string, targetUserId: string): Promise<CompatibilityResult> {
+  async calculateCompatibility(
+    firebaseUid: string,
+    targetUserId: string,
+  ): Promise<CompatibilityResult> {
     const user = await this.usersRepository.findOne({
       where: { firebaseUid },
     });

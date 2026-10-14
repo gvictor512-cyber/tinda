@@ -40,7 +40,9 @@ export class FirebaseStrategy extends PassportStrategy(Strategy, 'firebase') {
           where: { firebaseUid: decodedToken.uid },
         });
         role = dbUser?.role ?? 'user';
-      } catch { /* keep default role */ }
+      } catch {
+        /* keep default role */
+      }
 
       return {
         uid: decodedToken.uid,

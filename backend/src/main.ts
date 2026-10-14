@@ -6,6 +6,7 @@ import { getDataSourceToken } from '@nestjs/typeorm';
 import compression from 'compression';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -49,6 +50,9 @@ async function bootstrap() {
       validationError: { target: false, value: false },
     }),
   );
+
+  // Consistent JSON error responses for every unhandled exception
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Health check endpoint for Render and load balancers
   app.use('/health', async (req: any, res: any) => {

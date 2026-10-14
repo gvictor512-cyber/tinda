@@ -170,7 +170,7 @@ class UserSubscription {
     };
   }
 
-  UserLimits get limits => UserLimits.fromPlan(planId);
+  UserLimits get limits => isPremium ? UserLimits.premium : UserLimits.basic;
 
   /// Expired subscriptions count as basic immediately — the backend sweep
   /// also flips isActive=false within an hour.

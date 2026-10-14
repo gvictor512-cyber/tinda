@@ -64,21 +64,29 @@ let FirebaseStrategy = class FirebaseStrategy extends (0, passport_1.PassportStr
             throw new common_1.UnauthorizedException('No token provided');
         }
         try {
-            const decodedToken = await admin.auth().verifyIdToken(token, true);
-            const dbUser = await this.usersRepository.findOne({
-                where: { firebaseUid: decodedToken.uid },
-            });
+            const decodedToken = await admin.auth().verifyIdToken(token);
             if (decodedToken.exp * 1000 < Date.now()) {
                 throw new common_1.UnauthorizedException('Token expired');
+            }
+            let role = 'user';
+            try {
+                const dbUser = await this.usersRepository.findOne({
+                    where: { firebaseUid: decodedToken.uid },
+                });
+                role = dbUser?.role ?? 'user';
+            }
+            catch {
             }
             return {
                 uid: decodedToken.uid,
                 email: decodedToken.email,
                 emailVerified: decodedToken.email_verified,
-                role: dbUser?.role ?? 'user',
+                role,
             };
         }
         catch (error) {
+            if (error instanceof common_1.UnauthorizedException)
+                throw error;
             throw new common_1.UnauthorizedException('Invalid or expired Firebase token');
         }
     }

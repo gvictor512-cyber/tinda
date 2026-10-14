@@ -11,7 +11,12 @@ export class NotificationsService {
     private notificationsRepository: Repository<Notification>,
   ) {}
 
-  async sendMatchNotification(senderId: string, userId: string, matchedUserId: string, matchId: string) {
+  async sendMatchNotification(
+    senderId: string,
+    userId: string,
+    matchedUserId: string,
+    matchId: string,
+  ) {
     return this.sendToUser(
       senderId,
       userId,
@@ -22,7 +27,12 @@ export class NotificationsService {
     );
   }
 
-  async sendNewMessageNotification(senderId: string, userId: string, originalSenderId: string, matchId: string) {
+  async sendNewMessageNotification(
+    senderId: string,
+    userId: string,
+    originalSenderId: string,
+    matchId: string,
+  ) {
     return this.sendToUser(
       senderId,
       userId,
@@ -62,7 +72,8 @@ export class NotificationsService {
     const collection = notificationType === 'new_match' ? 'matches' : 'chats';
     const field = notificationType === 'new_match' ? 'users' : 'participants';
 
-    const docs = await admin.firestore()
+    const docs = await admin
+      .firestore()
       .collection(collection)
       .where(field, 'array-contains', senderId)
       .get();
@@ -73,7 +84,9 @@ export class NotificationsService {
     });
 
     if (!hasRelationship) {
-      throw new ForbiddenException('No estás autorizado para notificar a este usuario');
+      throw new ForbiddenException(
+        'No estás autorizado para notificar a este usuario',
+      );
     }
   }
 
@@ -97,13 +110,18 @@ export class NotificationsService {
     await this.notificationsRepository.save(notification);
 
     try {
-      const userDoc = await admin.firestore().collection('users').doc(userId).get();
+      const userDoc = await admin
+        .firestore()
+        .collection('users')
+        .doc(userId)
+        .get();
       const fcmToken = userDoc.data()?.fcmToken as string | undefined;
 
       if (fcmToken) {
         const stringData: Record<string, string> = { type: notificationType };
         for (const [key, value] of Object.entries(data)) {
-          stringData[key] = typeof value === 'string' ? value : JSON.stringify(value);
+          stringData[key] =
+            typeof value === 'string' ? value : JSON.stringify(value);
         }
 
         await admin.messaging().send({

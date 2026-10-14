@@ -7,6 +7,7 @@ export declare class PremiumService {
     private subscriptionsRepository;
     private usersRepository;
     private dailyLimitsRepository;
+    private readonly logger;
     constructor(subscriptionsRepository: Repository<Subscription>, usersRepository: Repository<User>, dailyLimitsRepository: Repository<DailyLimits>);
     getPremiumStatus(firebaseUid: string): Promise<{
         isPremium: boolean;

@@ -23,32 +23,53 @@ interface CompatibilityResult {
 export class CompatibilityCalculator {
   private weights = {
     schedule: 0.15,
-    cleanliness: 0.20,
+    cleanliness: 0.2,
     smoking: 0.15,
-    pets: 0.10,
+    pets: 0.1,
     personality: 0.15,
     guests: 0.05,
     cooking: 0.05,
     music: 0.05,
-    workFromHome: 0.10,
+    workFromHome: 0.1,
   };
 
   calculate(user1: UserData, user2: UserData): CompatibilityResult {
     const factors: FactorResult[] = [];
 
     // Calculate each factor
-    factors.push(this.calculateScheduleCompatibility(user1.settings, user2.settings));
-    factors.push(this.calculateCleanlinessCompatibility(user1.settings, user2.settings));
-    factors.push(this.calculateSmokingCompatibility(user1.settings, user2.settings));
-    factors.push(this.calculatePetsCompatibility(user1.settings, user2.settings));
-    factors.push(this.calculatePersonalityCompatibility(user1.settings, user2.settings));
-    factors.push(this.calculateGuestsCompatibility(user1.settings, user2.settings));
-    factors.push(this.calculateCookingCompatibility(user1.settings, user2.settings));
-    factors.push(this.calculateMusicCompatibility(user1.settings, user2.settings));
-    factors.push(this.calculateWorkFromHomeCompatibility(user1.settings, user2.settings));
+    factors.push(
+      this.calculateScheduleCompatibility(user1.settings, user2.settings),
+    );
+    factors.push(
+      this.calculateCleanlinessCompatibility(user1.settings, user2.settings),
+    );
+    factors.push(
+      this.calculateSmokingCompatibility(user1.settings, user2.settings),
+    );
+    factors.push(
+      this.calculatePetsCompatibility(user1.settings, user2.settings),
+    );
+    factors.push(
+      this.calculatePersonalityCompatibility(user1.settings, user2.settings),
+    );
+    factors.push(
+      this.calculateGuestsCompatibility(user1.settings, user2.settings),
+    );
+    factors.push(
+      this.calculateCookingCompatibility(user1.settings, user2.settings),
+    );
+    factors.push(
+      this.calculateMusicCompatibility(user1.settings, user2.settings),
+    );
+    factors.push(
+      this.calculateWorkFromHomeCompatibility(user1.settings, user2.settings),
+    );
 
     // Calculate total score
-    const totalScore = factors.reduce((sum, factor) => sum + factor.contribution, 0);
+    const totalScore = factors.reduce(
+      (sum, factor) => sum + factor.contribution,
+      0,
+    );
 
     // Generate explanation
     const explanation = this.generateExplanation(factors, totalScore);
@@ -60,7 +81,10 @@ export class CompatibilityCalculator {
     };
   }
 
-  private calculateScheduleCompatibility(s1: CompatibilitySettings, s2: CompatibilitySettings): FactorResult {
+  private calculateScheduleCompatibility(
+    s1: CompatibilitySettings,
+    s2: CompatibilitySettings,
+  ): FactorResult {
     const weight = this.weights.schedule;
     let score = 0;
     let details = '';
@@ -79,7 +103,9 @@ export class CompatibilityCalculator {
     } else if (s1.scheduleType === s2.scheduleType) {
       score = 100;
       details = 'Tenéis el mismo tipo de horario';
-    } else if (compatibleSchedules[s1.scheduleType]?.includes(s2.scheduleType)) {
+    } else if (
+      compatibleSchedules[s1.scheduleType]?.includes(s2.scheduleType)
+    ) {
       score = 75;
       details = 'Vuestros horarios son compatibles';
     } else {
@@ -96,7 +122,10 @@ export class CompatibilityCalculator {
     };
   }
 
-  private calculateCleanlinessCompatibility(s1: CompatibilitySettings, s2: CompatibilitySettings): FactorResult {
+  private calculateCleanlinessCompatibility(
+    s1: CompatibilitySettings,
+    s2: CompatibilitySettings,
+  ): FactorResult {
     const weight = this.weights.cleanliness;
     let score = 0;
     let details = '';
@@ -128,7 +157,10 @@ export class CompatibilityCalculator {
     };
   }
 
-  private calculateSmokingCompatibility(s1: CompatibilitySettings, s2: CompatibilitySettings): FactorResult {
+  private calculateSmokingCompatibility(
+    s1: CompatibilitySettings,
+    s2: CompatibilitySettings,
+  ): FactorResult {
     const weight = this.weights.smoking;
     let score = 0;
     let details = '';
@@ -138,7 +170,10 @@ export class CompatibilityCalculator {
 
     if (pref1 === pref2) {
       score = 100;
-      details = pref1 === 'no_fuma' ? 'Ambos no fumáis' : 'Tenéis el mismo hábito con el tabaco';
+      details =
+        pref1 === 'no_fuma'
+          ? 'Ambos no fumáis'
+          : 'Tenéis el mismo hábito con el tabaco';
     } else if (pref1 === 'no_fuma' && pref2 === 'fuma_fuera') {
       score = 85;
       details = 'Uno no fuma y el otro fuma fuera';
@@ -162,7 +197,10 @@ export class CompatibilityCalculator {
     };
   }
 
-  private calculatePetsCompatibility(s1: CompatibilitySettings, s2: CompatibilitySettings): FactorResult {
+  private calculatePetsCompatibility(
+    s1: CompatibilitySettings,
+    s2: CompatibilitySettings,
+  ): FactorResult {
     const weight = this.weights.pets;
     let score = 0;
     let details = '';
@@ -170,10 +208,16 @@ export class CompatibilityCalculator {
     const pref1 = s1.petsPreference || 'me_encantan';
     const pref2 = s2.petsPreference || 'me_encantan';
 
-    if (pref1 === 'soy_alergico' && (pref2 === 'tengo_mascotas' || pref2 === 'me_encantan')) {
+    if (
+      pref1 === 'soy_alergico' &&
+      (pref2 === 'tengo_mascotas' || pref2 === 'me_encantan')
+    ) {
       score = 0;
       details = 'Incompatible: uno es alérgico';
-    } else if (pref2 === 'soy_alergico' && (pref1 === 'tengo_mascotas' || pref1 === 'me_encantan')) {
+    } else if (
+      pref2 === 'soy_alergico' &&
+      (pref1 === 'tengo_mascotas' || pref1 === 'me_encantan')
+    ) {
       score = 0;
       details = 'Incompatible: uno es alérgico';
     } else if (pref1 === 'no_quiero_mascotas' && pref2 === 'tengo_mascotas') {
@@ -199,7 +243,10 @@ export class CompatibilityCalculator {
     };
   }
 
-  private calculatePersonalityCompatibility(s1: CompatibilitySettings, s2: CompatibilitySettings): FactorResult {
+  private calculatePersonalityCompatibility(
+    s1: CompatibilitySettings,
+    s2: CompatibilitySettings,
+  ): FactorResult {
     const weight = this.weights.personality;
     let score = 0;
     let details = '';
@@ -213,7 +260,7 @@ export class CompatibilityCalculator {
     } else {
       const commonTraits = traits1.filter((trait) => traits2.includes(trait));
       const totalUniqueTraits = new Set([...traits1, ...traits2]).size;
-      
+
       if (totalUniqueTraits > 0) {
         score = Math.round((commonTraits.length / totalUniqueTraits) * 100);
       } else {
@@ -238,7 +285,10 @@ export class CompatibilityCalculator {
     };
   }
 
-  private calculateGuestsCompatibility(s1: CompatibilitySettings, s2: CompatibilitySettings): FactorResult {
+  private calculateGuestsCompatibility(
+    s1: CompatibilitySettings,
+    s2: CompatibilitySettings,
+  ): FactorResult {
     const weight = this.weights.guests;
     let score = 0;
     let details = '';
@@ -247,7 +297,9 @@ export class CompatibilityCalculator {
     const freq2 = s2.guestsFrequency || 'a_veces';
 
     const frequencyOrder = ['nunca', 'a_veces', 'frecuentemente'];
-    const diff = Math.abs(frequencyOrder.indexOf(freq1) - frequencyOrder.indexOf(freq2));
+    const diff = Math.abs(
+      frequencyOrder.indexOf(freq1) - frequencyOrder.indexOf(freq2),
+    );
 
     if (diff === 0) {
       score = 100;
@@ -269,7 +321,10 @@ export class CompatibilityCalculator {
     };
   }
 
-  private calculateCookingCompatibility(s1: CompatibilitySettings, s2: CompatibilitySettings): FactorResult {
+  private calculateCookingCompatibility(
+    s1: CompatibilitySettings,
+    s2: CompatibilitySettings,
+  ): FactorResult {
     const weight = this.weights.cooking;
     let score = 0;
     let details = '';
@@ -280,8 +335,10 @@ export class CompatibilityCalculator {
     if (freq1 === freq2) {
       score = 100;
       details = 'Misma frecuencia de cocina';
-    } else if ((freq1 === 'todos_los_dias' && freq2 !== 'nunca') ||
-               (freq2 === 'todos_los_dias' && freq1 !== 'nunca')) {
+    } else if (
+      (freq1 === 'todos_los_dias' && freq2 !== 'nunca') ||
+      (freq2 === 'todos_los_dias' && freq1 !== 'nunca')
+    ) {
       score = 80;
       details = 'Compatible en hábitos de cocina';
     } else {
@@ -298,7 +355,10 @@ export class CompatibilityCalculator {
     };
   }
 
-  private calculateMusicCompatibility(s1: CompatibilitySettings, s2: CompatibilitySettings): FactorResult {
+  private calculateMusicCompatibility(
+    s1: CompatibilitySettings,
+    s2: CompatibilitySettings,
+  ): FactorResult {
     const weight = this.weights.music;
     let score = 0;
     let details = '';
@@ -307,7 +367,9 @@ export class CompatibilityCalculator {
     const vol2 = s2.musicVolume || 'a_veces';
 
     const volumeOrder = ['nunca', 'a_veces', 'mucho'];
-    const diff = Math.abs(volumeOrder.indexOf(vol1) - volumeOrder.indexOf(vol2));
+    const diff = Math.abs(
+      volumeOrder.indexOf(vol1) - volumeOrder.indexOf(vol2),
+    );
 
     if (diff === 0) {
       score = 100;
@@ -329,7 +391,10 @@ export class CompatibilityCalculator {
     };
   }
 
-  private calculateWorkFromHomeCompatibility(s1: CompatibilitySettings, s2: CompatibilitySettings): FactorResult {
+  private calculateWorkFromHomeCompatibility(
+    s1: CompatibilitySettings,
+    s2: CompatibilitySettings,
+  ): FactorResult {
     const weight = this.weights.workFromHome;
     let score = 0;
     let details = '';
@@ -354,9 +419,16 @@ export class CompatibilityCalculator {
     };
   }
 
-  private generateExplanation(factors: FactorResult[], totalScore: number): string {
-    const highScoreFactors = factors.filter((f) => f.score >= 70).map((f) => f.details);
-    const lowScoreFactors = factors.filter((f) => f.score < 50).map((f) => f.details);
+  private generateExplanation(
+    factors: FactorResult[],
+    totalScore: number,
+  ): string {
+    const highScoreFactors = factors
+      .filter((f) => f.score >= 70)
+      .map((f) => f.details);
+    const lowScoreFactors = factors
+      .filter((f) => f.score < 50)
+      .map((f) => f.details);
 
     let explanation = '';
 
