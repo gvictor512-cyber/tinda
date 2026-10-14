@@ -33,10 +33,9 @@ class ReferralService {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // Otorgar 5 likes gratis al invitador
-      await firestore.collection('users').doc(referrerId).update({
-        'freeLikes': FieldValue.increment(5),
-      });
+      // La recompensa (5 freeLikes) la concede el backend vía
+      // POST /users/me/referral-rewards cuando el invitador inicia sesión —
+      // las reglas no permiten escribir el doc de otro usuario.
 
       // Marcar como aplicado
       await SecureStorageService.setBool(_appliedKey, true);

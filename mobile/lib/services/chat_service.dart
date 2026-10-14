@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'notification_service.dart';
+import 'analytics_service.dart';
 import '../utils/input_sanitizer.dart';
 import '../utils/permission_validator.dart';
 import '../utils/rate_limiter.dart';
@@ -36,21 +38,21 @@ class ChatService {
         throw Exception('Usuario no autenticado');
       }
 
-      // Check rate limiting
-      final rateLimitResult = await RateLimiter.canSendMessage(currentUser.uid);
+      // Run rate-limit, permission and block checks in parallel
+      final permissionValidator = PermissionValidator();
+      final (rateLimitResult, permissionResult, isBlocked) = await (
+        RateLimiter.canSendMessage(currentUser.uid),
+        permissionValidator.canSendMessage(receiverId),
+        permissionValidator.isBlocked(receiverId),
+      ).wait;
+
       if (!rateLimitResult.allowed) {
         throw Exception(rateLimitResult.message);
       }
-
-      // Check permissions
-      final permissionValidator = PermissionValidator();
-      final permissionResult = await permissionValidator.canSendMessage(receiverId);
       if (!permissionResult.allowed) {
         throw Exception(permissionResult.reason);
       }
-
-      // Check if blocked
-      if (await permissionValidator.isBlocked(receiverId)) {
+      if (isBlocked) {
         throw Exception('No puedes enviar mensajes a este usuario');
       }
 
@@ -78,22 +80,20 @@ class ChatService {
       });
 
       final chatId = _getChatId(currentUser.uid, receiverId);
+      final chatRef = _firestore.collection('chats').doc(chatId);
 
-      // Check if chat exists, if not create it
-      final chatDoc = await _firestore.collection('chats').doc(chatId).get();
-      
-      if (!chatDoc.exists) {
-        await _firestore.collection('chats').doc(chatId).set({
-          'participants': [currentUser.uid, receiverId],
-          'lastMessage': message,
-          'lastMessageTimestamp': FieldValue.serverTimestamp(),
-          'lastMessageSender': currentUser.uid,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      // Add message
-      await _firestore.collection('chats').doc(chatId).collection('messages').add({
+      // Single batch: create/merge chat doc + message + lastMessage update
+      // (one network roundtrip instead of 3-4 sequential writes)
+      final batch = _firestore.batch();
+      batch.set(chatRef, {
+        'participants': [currentUser.uid, receiverId],
+        'lastMessage': sanitizedMessage,
+        'lastMessageTimestamp': FieldValue.serverTimestamp(),
+        'lastMessageSender': currentUser.uid,
+        'createdAt': FieldValue.serverTimestamp(),
+        'unreadCounts': {receiverId: FieldValue.increment(1)},
+      }, SetOptions(merge: true));
+      batch.set(chatRef.collection('messages').doc(), {
         'senderId': currentUser.uid,
         'receiverId': receiverId,
         'message': sanitizedMessage,
@@ -101,35 +101,36 @@ class ChatService {
         'timestamp': FieldValue.serverTimestamp(),
         'read': false,
       });
+      await batch.commit();
 
-      // Update chat document
-      await _firestore.collection('chats').doc(chatId).update({
-        'lastMessage': sanitizedMessage,
-        'lastMessageTimestamp': FieldValue.serverTimestamp(),
-        'lastMessageSender': currentUser.uid,
-      });
-
-      // Update match document
-      final matchesQuery = await _firestore
-          .collection('matches')
-          .where('users', arrayContains: currentUser.uid)
-          .get();
-
-      for (var matchDoc in matchesQuery.docs) {
-        final users = matchDoc['users'] as List;
-        if (users.contains(receiverId)) {
-          await _firestore.collection('matches').doc(matchDoc.id).update({
-            'lastMessage': message,
-            'lastMessageTimestamp': FieldValue.serverTimestamp(),
-          });
+      // Match doc + push notification are fire-and-forget (don't block the UI)
+      unawaited(() async {
+        try {
+          final matchesQuery = await _firestore
+              .collection('matches')
+              .where('users', arrayContains: currentUser.uid)
+              .get();
+          for (var matchDoc in matchesQuery.docs) {
+            final users = matchDoc['users'] as List;
+            if (users.contains(receiverId)) {
+              await matchDoc.reference.update({
+                'lastMessage': sanitizedMessage,
+                'lastMessageTimestamp': FieldValue.serverTimestamp(),
+              });
+            }
+          }
+        } catch (e) {
+          debugPrint('Error actualizando match tras mensaje: $e');
         }
-      }
+      }());
 
-      // Send push notification to receiver
-      await NotificationService().sendChatNotification(
-        receiverId,
-        senderName: currentUser.displayName ?? 'Alguien',
-      );
+      unawaited(NotificationService()
+          .sendChatNotification(
+            receiverId,
+            senderName: currentUser.displayName ?? 'Alguien',
+          )
+          .catchError((Object e) => debugPrint('Error enviando notif: $e')));
+      unawaited(AnalyticsService().logMessageSent(chatId));
     } catch (e) {
       SecureLogger.error('Failed to send message', error: e, data: {
         'sender': _auth.currentUser?.uid,
@@ -166,20 +167,16 @@ class ChatService {
       return const Stream<List<QueryDocumentSnapshot>>.empty();
     }
 
+    // Server-side filter: only chats where the user participates
     return _firestore
         .collection('chats')
+        .where('participants', arrayContains: currentUser.uid)
         .snapshots()
         .map((snapshot) {
-      final docs = snapshot.docs.where((doc) {
-        final data = doc.data() as Map<String, dynamic>?;
-        final participants = data?['participants'] as List? ?? [];
-        return participants.contains(currentUser.uid);
-      }).toList();
+      final docs = snapshot.docs.toList();
       docs.sort((a, b) {
-        final aData = a.data() as Map<String, dynamic>?;
-        final bData = b.data() as Map<String, dynamic>?;
-        final aTs = aData?['lastMessageTimestamp'] as Timestamp?;
-        final bTs = bData?['lastMessageTimestamp'] as Timestamp?;
+        final aTs = a.data()['lastMessageTimestamp'] as Timestamp?;
+        final bTs = b.data()['lastMessageTimestamp'] as Timestamp?;
         if (aTs == null || bTs == null) return 0;
         return bTs.compareTo(aTs);
       });
@@ -206,9 +203,20 @@ class ChatService {
           .where('read', isEqualTo: false)
           .get();
 
+      // Single batch instead of one roundtrip per message
+      final batch = _firestore.batch();
       for (var doc in unreadMessages.docs) {
-        await doc.reference.update({'read': true});
+        batch.update(doc.reference, {'read': true});
       }
+      // Reset unread counter on the chat doc
+      batch.set(
+        _firestore.collection('chats').doc(chatId),
+        {
+          'unreadCounts': {currentUser.uid: 0},
+        },
+        SetOptions(merge: true),
+      );
+      await batch.commit();
     } catch (e) {
       debugPrint('Error al marcar mensajes como leídos: $e');
       rethrow;
@@ -255,19 +263,31 @@ class ChatService {
           .where('participants', arrayContains: currentUser.uid)
           .get();
 
+      // Prefer the denormalized unreadCounts map maintained on each chat doc.
+      // For legacy chats without it, fall back to counting messages (parallel).
       int totalUnread = 0;
+      final legacyFutures = <Future<int>>[];
 
       for (var chatDoc in chatsSnapshot.docs) {
-        final chatId = chatDoc.id;
-        final unreadMessages = await _firestore
-            .collection('chats')
-            .doc(chatId)
-            .collection('messages')
-            .where('receiverId', isEqualTo: currentUser.uid)
-            .where('read', isEqualTo: false)
-            .get();
+        final counts = chatDoc.data()['unreadCounts'] as Map?;
+        if (counts != null) {
+          totalUnread += (counts[currentUser.uid] as num?)?.toInt() ?? 0;
+        } else {
+          legacyFutures.add(_firestore
+              .collection('chats')
+              .doc(chatDoc.id)
+              .collection('messages')
+              .where('receiverId', isEqualTo: currentUser.uid)
+              .where('read', isEqualTo: false)
+              .get()
+              .then((s) => s.docs.length));
+        }
+      }
 
-        totalUnread += unreadMessages.docs.length;
+      if (legacyFutures.isNotEmpty) {
+        for (final n in await Future.wait(legacyFutures)) {
+          totalUnread += n;
+        }
       }
 
       return totalUnread;
@@ -300,15 +320,19 @@ class ChatService {
 
       final chatId = _getChatId(currentUser.uid, otherUserId);
 
-      // Delete all messages
+      // Delete all messages in batches of 400 (Firestore batch limit is 500)
       final messages = await _firestore
           .collection('chats')
           .doc(chatId)
           .collection('messages')
           .get();
 
-      for (var doc in messages.docs) {
-        await doc.reference.delete();
+      for (var i = 0; i < messages.docs.length; i += 400) {
+        final batch = _firestore.batch();
+        for (var doc in messages.docs.skip(i).take(400)) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
       }
 
       // Delete chat document
@@ -382,9 +406,9 @@ class ChatService {
     }
   }
 
-  // Get online status
+  // Get online status (public presence lives in the profiles doc)
   Stream<DocumentSnapshot> getOnlineStatus(String userId) {
-    return _firestore.collection('users').doc(userId).snapshots();
+    return _firestore.collection('profiles').doc(userId).snapshots();
   }
 
   // Send image message

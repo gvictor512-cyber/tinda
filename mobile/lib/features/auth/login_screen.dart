@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../utils/secure_storage_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/analytics_service.dart';
 import '../../config/theme.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import 'email_verification_screen.dart';
 import '../../app.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -49,8 +52,17 @@ class _LoginScreenState extends State<LoginScreen> {
       unawaited(AnalyticsService().logLogin('email'));
 
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainScreen()),
+        // En builds de prueba (debug/profile) se omite el gate de
+        // verificacion de email; en release sigue exigiendose.
+        final verified = !kReleaseMode ||
+            (FirebaseAuth.instance.currentUser?.emailVerified ?? false);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => verified
+                ? const MainScreen()
+                : const EmailVerificationScreen(),
+          ),
+          (route) => false,
         );
       }
     } catch (e) {

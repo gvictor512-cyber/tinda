@@ -167,8 +167,11 @@ class AuthService {
         if (apartmentData != null) 'apartment': apartmentData,
       });
 
-      // Send email verification
-      await userCredential.user!.sendEmailVerification();
+      // Send email verification (omitido en builds de prueba: los emails
+      // ficticios de demo no existen y solo rebotarian).
+      if (kReleaseMode) {
+        await userCredential.user!.sendEmailVerification();
+      }
 
       // Save user type locally
       await SecureStorageService.setString('user_type', sanitizedUserType);

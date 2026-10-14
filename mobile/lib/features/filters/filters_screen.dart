@@ -21,8 +21,65 @@ class _FiltersScreenState extends State<FiltersScreen> {
   // Budget range
   RangeValues _budgetRange = const RangeValues(300, 1000);
 
-  // Gender
-  String? _selectedGender;
+  // Gender — UI labels map to the canonical values MatchingService expects
+  String _selectedGender = 'all';
+  static const Map<String, String> _genderLabels = {
+    'all': 'Todos',
+    'male': 'Hombre',
+    'female': 'Mujer',
+  };
+
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedPreferences();
+  }
+
+  Future<void> _loadSavedPreferences() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      final doc = await _firestore.collection('users').doc(uid).get();
+      final prefs = doc.data()?['preferences'] as Map<String, dynamic>?;
+      if (prefs == null || !mounted) return;
+      setState(() {
+        final ageRange = prefs['ageRange'];
+        if (ageRange is List && ageRange.length >= 2) {
+          _ageRange = RangeValues(
+            (ageRange[0] as num).toDouble(),
+            (ageRange[1] as num).toDouble(),
+          );
+        }
+        final maxDistance = prefs['maxDistance'];
+        if (maxDistance is num) _maxDistance = maxDistance.toDouble();
+        final gender = prefs['gender'];
+        if (gender is String && _genderLabels.containsKey(gender)) {
+          _selectedGender = gender;
+        }
+        final budget = prefs['budget'];
+        if (budget is num) {
+          _budgetRange = RangeValues(0, budget.toDouble() * 2);
+        }
+        _smokingPreferences
+          ..clear()
+          ..addAll((prefs['smokingPreferences'] as List? ?? []).cast<String>());
+        _petsPreferences
+          ..clear()
+          ..addAll((prefs['petsPreferences'] as List? ?? []).cast<String>());
+        _workFromHome = prefs['workFromHome'] as bool?;
+        _selectedLanguages
+          ..clear()
+          ..addAll((prefs['languages'] as List? ?? []).cast<String>());
+        _userTypes
+          ..clear()
+          ..addAll((prefs['userTypes'] as List? ?? []).cast<String>());
+      });
+    } catch (_) {
+      // Loading preferences is best-effort: defaults remain usable.
+    }
+  }
 
   // Smoking
   final List<String> _smokingPreferences = [];
@@ -189,15 +246,15 @@ class _FiltersScreenState extends State<FiltersScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: ['Masculino', 'Femenino', 'Otro'].map((gender) {
-            final isSelected = _selectedGender == gender;
+          children: _genderLabels.entries.map((entry) {
+            final isSelected = _selectedGender == entry.key;
             return FilterChip(
-              label: Text(gender),
+              label: Text(entry.value),
               selected: isSelected,
               onSelected: (selected) {
-                setState(() {
-                  _selectedGender = selected ? gender : null;
-                });
+                if (selected) {
+                  setState(() => _selectedGender = entry.key);
+                }
               },
               selectedColor: const Color(0xFF4A90E2).withValues(alpha: 0.2),
               checkmarkColor: const Color(0xFF4A90E2),
@@ -389,19 +446,28 @@ class _FiltersScreenState extends State<FiltersScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _applyFilters,
+        onPressed: _saving ? null : _applyFilters,
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           backgroundColor: const Color(0xFF4A90E2),
         ),
-        child: const Text(
-          'Aplicar Filtros',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
+        child: _saving
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Text(
+                'Aplicar Filtros',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }
@@ -411,7 +477,7 @@ class _FiltersScreenState extends State<FiltersScreen> {
       _ageRange = const RangeValues(18, 40);
       _maxDistance = 50;
       _budgetRange = const RangeValues(0, 10000);
-      _selectedGender = null;
+      _selectedGender = 'all';
       _smokingPreferences.clear();
       _petsPreferences.clear();
       _workFromHome = null;
@@ -421,23 +487,41 @@ class _FiltersScreenState extends State<FiltersScreen> {
   }
 
   Future<void> _applyFilters() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      await _firestore.collection('users').doc(uid).update({
-        'preferences.ageRange': [_ageRange.start.round(), _ageRange.end.round()],
-        'preferences.maxDistance': _maxDistance.round(),
-        'preferences.gender': _selectedGender,
-        'preferences.budgetMin': _budgetRange.start.round(),
-        'preferences.budgetMax': _budgetRange.end.round(),
-        'preferences.smokingPreferences': _smokingPreferences,
-        'preferences.petsPreferences': _petsPreferences,
-        'preferences.workFromHome': _workFromHome,
-        'preferences.languages': _selectedLanguages,
-        'preferences.userTypes': _userTypes,
-      });
+    setState(() => _saving = true);
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        // MatchingService reads a scalar 'budget' — persist the midpoint
+        // of the selected range and keep the range for the UI.
+        await _firestore.collection('users').doc(uid).update({
+          'preferences.ageRange': [
+            _ageRange.start.round(),
+            _ageRange.end.round()
+          ],
+          'preferences.maxDistance': _maxDistance.round(),
+          'preferences.gender': _selectedGender,
+          'preferences.budget':
+              ((_budgetRange.start + _budgetRange.end) / 2).round(),
+          'preferences.budgetMin': _budgetRange.start.round(),
+          'preferences.budgetMax': _budgetRange.end.round(),
+          'preferences.smokingPreferences': _smokingPreferences,
+          'preferences.petsPreferences': _petsPreferences,
+          'preferences.workFromHome': _workFromHome,
+          'preferences.languages': _selectedLanguages,
+          'preferences.userTypes': _userTypes,
+        });
+      }
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content:
+                  Text('No se pudieron guardar los filtros. Inténtalo de nuevo.')),
+        );
+      }
     }
-
-    if (mounted) Navigator.pop(context);
   }
 }
 

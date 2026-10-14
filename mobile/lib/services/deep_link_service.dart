@@ -16,7 +16,7 @@ class DeepLinkService {
     try {
       final initial = await _appLinks.getInitialLink();
       if (initial != null) {
-        _handleUri(initial);
+        unawaited(_handleUri(initial));
       }
 
       _appLinks.uriLinkStream.listen(

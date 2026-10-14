@@ -12,49 +12,85 @@ import 'services/rating_service.dart';
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
+  // Tab indices — used by navigation helpers and by widgets that need to
+  // jump to a specific tab (e.g. the match overlay opening Mensajes).
+  static const int tabDiscover = 0;
+  static const int tabLikes = 1;
+  static const int tabMessages = 2;
+  static const int tabProfile = 3;
+  static const int tabMore = 4;
+
+  /// Switches the main navigation to [index]. Safe to call from any
+  /// widget below the root (overlay buttons, deep links, notifications).
+  static void selectTab(int index) => _tabSelection.value = index;
+
+  static final ValueNotifier<int> _tabSelection = ValueNotifier(tabDiscover);
+
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  final PageController _pageController = PageController();
+
+  // Lazy IndexedStack: each tab is built only when first visited, and stays
+  // mounted afterwards so switching tabs is instant and doesn't refetch data.
+  final Set<int> _visitedTabs = {0};
 
   @override
   void initState() {
     super.initState();
+    // External tab requests (match overlay, deep links) flow through here.
+    MainScreen._tabSelection.addListener(_onExternalTabRequest);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await RatingService.showIfNeeded(context);
+      if (!mounted) return;
       await ReferralService.checkAndApply();
+      if (!mounted) return;
       await PermissionService.requestNotifications(context);
+      if (!mounted) return;
       await PermissionService.requestLocation(context);
     });
   }
 
-  final List<Widget> _screens = [
-    const SwipeScreen(),
-    const LikesScreen(),
-    const ChatListScreen(),
-    const ProfileScreen(),
-    MoreScreen(),
-  ];
-
   @override
   void dispose() {
-    _pageController.dispose();
+    MainScreen._tabSelection.removeListener(_onExternalTabRequest);
     super.dispose();
   }
 
-  void _onPageChanged(int index) {
-    setState(() => _currentIndex = index);
+  void _onExternalTabRequest() {
+    final index = MainScreen._tabSelection.value;
+    if (index < 0 || index > 4) return;
+    _onTabTapped(index);
+  }
+
+  Widget _buildTab(int index) {
+    if (!_visitedTabs.contains(index)) return const SizedBox.shrink();
+    switch (index) {
+      case 0:
+        return const SwipeScreen();
+      case 1:
+        return const LikesScreen();
+      case 2:
+        return const ChatListScreen();
+      case 3:
+        return const ProfileScreen();
+      default:
+        return const MoreScreen();
+    }
   }
 
   void _onTabTapped(int index) {
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    // Keep the notifier in sync so external consumers see the real tab.
+    if (MainScreen._tabSelection.value != index) {
+      MainScreen._tabSelection.value = index;
+    }
+    if (index == _currentIndex) return;
+    setState(() {
+      _currentIndex = index;
+      _visitedTabs.add(index);
+    });
   }
 
   @override
@@ -63,10 +99,9 @@ class _MainScreenState extends State<MainScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        children: _screens,
+      body: IndexedStack(
+        index: _currentIndex,
+        children: List.generate(5, _buildTab),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

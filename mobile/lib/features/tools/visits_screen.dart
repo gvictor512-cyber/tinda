@@ -26,14 +26,6 @@ class _VisitsScreenState extends State<VisitsScreen> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _visits.addAll([
-      _Visit(
-        title: 'Videollamada con Ana',
-        date: now.add(const Duration(minutes: 2)),
-        type: 'Videollamada',
-      ),
-    ]);
     _timer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) setState(() {});
     });
@@ -160,6 +152,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
         _visits.sort((a, b) => a.date.compareTo(b.date));
       });
     }
+    titleController.dispose();
   }
 
   void _joinCall(_Visit visit) {
@@ -196,7 +189,42 @@ class _VisitsScreenState extends State<VisitsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          ..._visits.map((v) => _buildVisitCard(v, isDarkMode)),
+          if (_visits.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 48),
+              child: Column(
+                children: [
+                  Icon(Icons.event_busy,
+                      size: 64,
+                      color: isDarkMode
+                          ? AppTheme.textLightSecondary
+                          : AppTheme.textDarkSecondary),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Aún no tienes citas programadas',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: isDarkMode
+                          ? AppTheme.textLightSecondary
+                          : AppTheme.textDarkSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Pulsa «Nueva cita» para agendar una visita o videollamada',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDarkMode
+                          ? AppTheme.textLightSecondary
+                          : AppTheme.textDarkSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ..._visits.map((v) => _buildVisitCard(v, isDarkMode)),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(

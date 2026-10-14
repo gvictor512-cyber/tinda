@@ -69,10 +69,19 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   Future<void> _toggleCamera() async {
     if (_cameras.length < 2 || _controller == null || !_isReady) return;
-    _isFront = !_isFront;
-    final newDirection = _isFront ? CameraLensDirection.front : CameraLensDirection.back;
-    final camera = _cameras.firstWhere((c) => c.lensDirection == newDirection);
-    await _controller!.setDescription(camera);
+    final newDirection =
+        _isFront ? CameraLensDirection.back : CameraLensDirection.front;
+    final camera = _cameras.firstWhere(
+      (c) => c.lensDirection == newDirection,
+      orElse: () => _cameras.first,
+    );
+    if (camera.lensDirection == _controller!.description.lensDirection) return;
+    try {
+      await _controller!.setDescription(camera);
+      if (mounted) setState(() => _isFront = !_isFront);
+    } catch (e) {
+      debugPrint('Error al cambiar de cámara: $e');
+    }
   }
 
   void _toggleMute() {

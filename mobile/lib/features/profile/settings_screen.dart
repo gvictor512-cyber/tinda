@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
 import '../../services/feedback_service.dart';
 import '../../services/app_review_service.dart';
 import '../../services/referral_service.dart';
+import '../../services/api_service.dart';
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:share_plus/share_plus.dart';
 import '../auth/welcome_screen.dart';
 import '../settings/privacy_settings_screen.dart';
 import '../settings/legal_document_screen.dart';
@@ -18,8 +23,71 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _authService = AuthService();
+  final _notificationService = NotificationService();
   bool _notifications = true;
-  bool _darkMode = false;
+  bool _notificationsLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationPrefs();
+  }
+
+  Future<void> _loadNotificationPrefs() async {
+    try {
+      final prefs = await _notificationService.getNotificationPreferences();
+      if (prefs.isEmpty || !mounted) return;
+      // One master toggle: enabled only if any category is enabled.
+      final enabled = prefs.values.any((v) => v);
+      setState(() {
+        _notifications = enabled;
+        _notificationsLoaded = true;
+      });
+    } catch (_) {
+      // Keep the optimistic default if prefs can't be read.
+    }
+  }
+
+  Future<void> _setNotificationsEnabled(bool enabled) async {
+    setState(() => _notifications = enabled);
+    try {
+      await _notificationService.updateNotificationPreferences({
+        'matches': enabled,
+        'messages': enabled,
+        'likes': enabled,
+        'promotions': enabled,
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _notifications = !enabled);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'No se pudo actualizar las notificaciones. Inténtalo de nuevo.')),
+        );
+      }
+    }
+  }
+
+  /// GDPR art. 15 — right of access: downloads the user record from the
+  /// backend and shares it as JSON.
+  Future<void> _exportMyData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final token = await user.getIdToken();
+      final api = ApiService()..setAuthToken(token ?? '');
+      final res = await api.get('/users/me/export');
+      final json = const JsonEncoder.withIndent('  ').convert(res.data);
+      await Share.share(json, subject: 'RoomMate Match — mis datos');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo exportar: $e')),
+        );
+      }
+    }
+  }
 
   Future<void> _signOut() async {
     await _authService.signOut();
@@ -33,8 +101,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _showInviteDialog() async {
     final referralLink = await ReferralService.getReferralLink();
+    if (!mounted) return;
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Invita a un amigo'),
@@ -98,13 +167,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.of(context).pop();
               try {
                 await FeedbackService.submit(message: message);
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Sugerencia enviada, gracias.')),
                   );
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('No se pudo enviar la sugerencia.')),
                   );
@@ -130,23 +199,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showDeleteConfirmation() {
+    final needsPassword = _authService.usesPasswordProvider;
+    final passwordController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Eliminar cuenta'),
-        content: const Text(
-          '¿Estás seguro? Esta acción eliminará tu cuenta y todos tus datos de forma permanente.',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              '¿Estás seguro? Esta acción eliminará tu cuenta y todos tus datos de forma permanente.',
+            ),
+            if (needsPassword) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirma tu contraseña',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.of(context).pop();
+              final password = passwordController.text.trim();
+              Navigator.of(dialogContext).pop();
               try {
-                await _authService.deleteAccount();
+                await _authService.deleteAccount(
+                  password: needsPassword ? password : null,
+                );
                 if (mounted) {
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const WelcomeScreen()),
@@ -184,15 +274,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
             SwitchListTile(
               value: _notifications,
-              onChanged: (value) => setState(() => _notifications = value),
+              onChanged: _notificationsLoaded
+                  ? (value) => _setNotificationsEnabled(value)
+                  : null,
               title: const Text('Notificaciones'),
+              subtitle: const Text('Matches, mensajes y likes'),
               secondary: const Icon(Icons.notifications_outlined, color: AppTheme.primaryBlue),
-            ),
-            SwitchListTile(
-              value: _darkMode,
-              onChanged: (value) => setState(() => _darkMode = value),
-              title: const Text('Modo oscuro'),
-              secondary: const Icon(Icons.dark_mode_outlined, color: AppTheme.primaryBlue),
             ),
             const Divider(height: 48),
             ListTile(
@@ -202,6 +289,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const PrivacySettingsScreen()),
               ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.download_outlined, color: AppTheme.primaryBlue),
+              title: const Text('Descargar mis datos'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: _exportMyData,
             ),
             const SizedBox(height: 32),
             const Text(

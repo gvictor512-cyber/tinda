@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
+import 'public_profile_service.dart';
 
 class LocationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -43,6 +45,7 @@ class LocationService {
 
     return await Geolocator.getCurrentPosition(
       desiredAccuracy: DEFAULT_LOCATION_ACCURACY,
+      timeLimit: const Duration(seconds: 10),
     );
   }
 
@@ -73,16 +76,19 @@ class LocationService {
         'preferences.location': geoPoint,
         'preferences.locationTimestamp': FieldValue.serverTimestamp(),
       });
+
+      // Keep the public profile in sync (publishes coarse ~1km location)
+      unawaited(PublicProfileService.sync(currentUser.uid));
     } catch (e) {
       debugPrint('Error saving user location: $e');
       rethrow;
     }
   }
 
-  // Get user location from Firestore
+  // Get user location from Firestore (coarse ~1km location from profiles)
   Future<GeoPoint?> getUserLocation(String userId) async {
     try {
-      final userDoc = await _firestore.collection('users').doc(userId).get();
+      final userDoc = await _firestore.collection('profiles').doc(userId).get();
       final userData = userDoc.data();
       
       return userData?['preferences']?['location'] as GeoPoint?;
@@ -115,13 +121,13 @@ class LocationService {
       
       if (userType != null) {
         usersSnapshot = await _firestore
-            .collection('users')
+            .collection('profiles')
             .where('userType', isEqualTo: userType)
             .where('uid', isNotEqualTo: currentUser.uid)
             .get();
       } else {
         usersSnapshot = await _firestore
-            .collection('users')
+            .collection('profiles')
             .where('uid', isNotEqualTo: currentUser.uid)
             .get();
       }

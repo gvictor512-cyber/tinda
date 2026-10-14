@@ -130,9 +130,12 @@ class CommunityScreen extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.arrow_forward_ios, size: 16),
-            onPressed: () {},
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 16,
+            color: isDarkMode
+                ? AppTheme.textLightSecondary
+                : AppTheme.textDarkSecondary,
           ),
         ],
       ),
@@ -157,8 +160,6 @@ class CommunityScreen extends StatelessWidget {
             color: isDarkMode ? AppTheme.textLight : AppTheme.textDark,
           ),
         ),
-        trailing: const Icon(Icons.chevron_right, color: AppTheme.textLightSecondary),
-        onTap: () {},
       ),
     );
   }

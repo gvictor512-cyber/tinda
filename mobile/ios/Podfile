@@ -1,0 +1,47 @@
+# Uncomment this line to define a global platform for your project
+platform :ios, '15.6'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  flutter_bin = `which flutter`.strip
+  if flutter_bin.empty?
+    raise "Flutter no está en el PATH. Instalá Flutter o reiniciá la terminal."
+  end
+
+  # Resolvemos symlinks por si flutter está en /opt/homebrew/bin/flutter
+  flutter_real = File.realpath(flutter_bin)
+  File.expand_path(File.join(flutter_real, '..', '..'))
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    # Newer Firebase pods (Promises >= 15.6) fail when a pod target keeps a
+    # lower deployment target declared in its podspec — pin everything to 15.6.
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.6'
+    end
+  end
+end

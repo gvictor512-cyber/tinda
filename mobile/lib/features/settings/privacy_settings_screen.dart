@@ -139,6 +139,7 @@ class PrivacySettingsScreen extends StatelessWidget {
                 userEmail: emailController.text,
                 userPhone: phoneController.text,
               );
+              if (!context.mounted) return;
               Navigator.pop(context);
               _showSuccessMessage(context);
             },
@@ -215,6 +216,7 @@ class PrivacySettingsScreen extends StatelessWidget {
                 userPhone: phoneController.text,
                 reason: reasonController.text,
               );
+              if (!context.mounted) return;
               Navigator.pop(context);
               _showSuccessMessage(context);
             },
@@ -306,6 +308,7 @@ class PrivacySettingsScreen extends StatelessWidget {
                 currentValue: currentController.text,
                 correctValue: correctController.text,
               );
+              if (!context.mounted) return;
               Navigator.pop(context);
               _showSuccessMessage(context);
             },
@@ -365,6 +368,7 @@ class PrivacySettingsScreen extends StatelessWidget {
                 userEmail: emailController.text,
                 userPhone: phoneController.text,
               );
+              if (!context.mounted) return;
               Navigator.pop(context);
               _showSuccessMessage(context);
             },
@@ -435,6 +439,7 @@ class PrivacySettingsScreen extends StatelessWidget {
                 userPhone: phoneController.text,
                 consentType: consentController.text,
               );
+              if (!context.mounted) return;
               Navigator.pop(context);
               _showSuccessMessage(context);
             },

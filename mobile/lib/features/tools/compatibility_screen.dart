@@ -93,23 +93,25 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: (question['options'] as List<dynamic>).map<Widget>((option) {
-            final isSelected = _answers[key] == option.hashCode;
-            return FilterChip(
-              label: Text(option as String),
-              selected: isSelected,
-              onSelected: (_) {
-                setState(() {
-                  _answers[key] = option.hashCode;
-                });
-              },
-              selectedColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
-              checkmarkColor: AppTheme.primaryBlue,
-              labelStyle: TextStyle(
-                color: isDarkMode ? AppTheme.textLight : AppTheme.textDark,
+          children: [
+            for (var i = 0;
+                i < (question['options'] as List<dynamic>).length;
+                i++)
+              FilterChip(
+                label: Text(question['options'][i] as String),
+                selected: _answers[key] == i,
+                onSelected: (_) {
+                  setState(() {
+                    _answers[key] = i;
+                  });
+                },
+                selectedColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                checkmarkColor: AppTheme.primaryBlue,
+                labelStyle: TextStyle(
+                  color: isDarkMode ? AppTheme.textLight : AppTheme.textDark,
+                ),
               ),
-            );
-          }).toList(),
+          ],
         ),
         const SizedBox(height: 20),
       ],
@@ -117,9 +119,12 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
   }
 
   Widget _buildResultCard(bool isDarkMode) {
-    final percentage = _answers.length == _questions.length
-        ? (_answers.values.reduce((a, b) => a + b) % 100).abs()
-        : 0;
+    final complete = _answers.length == _questions.length;
+    final summary = complete
+        ? _questions
+            .map((q) => (q['options'] as List)[_answers[q['key']]!] as String)
+            .join(' · ')
+        : '';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -136,7 +141,7 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Match de convivencia',
+            'Tu perfil de convivencia',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -145,9 +150,9 @@ class _CompatibilityScreenState extends State<CompatibilityScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            _answers.length == _questions.length
-                ? '$percentage% de compatibilidad estimada'
-                : 'Completa todas las preguntas para calcular tu match',
+            complete
+                ? summary
+                : 'Completa todas las preguntas para ver tu perfil',
             style: TextStyle(
               fontSize: 14,
               color: isDarkMode ? AppTheme.textLightSecondary : AppTheme.textDarkSecondary,

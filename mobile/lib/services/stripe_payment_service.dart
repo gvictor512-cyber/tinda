@@ -417,7 +417,7 @@ class StripePaymentService {
 
       return paymentIntent['id'] as String;
     } on StripeException catch (e) {
-      if (e.error.code == 'Canceled') {
+      if (e.error.code == FailureCode.Canceled) {
         debugPrint('Payment sheet cancelled by user');
         return null;
       }

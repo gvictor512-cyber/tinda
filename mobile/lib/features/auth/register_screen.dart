@@ -1,10 +1,12 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../services/auth_service.dart';
 import '../../app.dart';
+import '../../services/auth_service.dart';
+import 'email_verification_screen.dart';
 import 'login_screen.dart';
 import '../../config/theme.dart';
 import '../settings/legal_document_screen.dart';
@@ -141,8 +143,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainScreen()),
+        // En builds de prueba (debug/profile) se entra directo a la app
+        // sin exigir verificacion de email; en release se muestra la
+        // pantalla de verificacion como siempre.
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => kReleaseMode
+                ? const EmailVerificationScreen()
+                : const MainScreen(),
+          ),
+          (route) => false,
         );
       }
     } catch (e) {

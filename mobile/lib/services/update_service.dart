@@ -25,6 +25,7 @@ class UpdateService {
       if (minVersion == null || minVersion.isEmpty) return;
 
       if (_shouldUpdate(currentVersion, minVersion)) {
+        if (!context.mounted) return;
         if (forceUpdate) {
           await _showForceUpdateDialog(context);
         } else {

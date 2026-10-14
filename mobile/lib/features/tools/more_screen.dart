@@ -7,13 +7,21 @@ import 'map_screen.dart';
 import 'community_screen.dart';
 import '../admin/reports_screen.dart';
 
-class MoreScreen extends StatelessWidget {
-  MoreScreen({super.key});
+class MoreScreen extends StatefulWidget {
+  const MoreScreen({super.key});
+
+  @override
+  State<MoreScreen> createState() => _MoreScreenState();
+}
+
+class _MoreScreenState extends State<MoreScreen> {
+  // Cached once: avoids a Firestore read on every rebuild
+  late final Future<bool> _isAdminFuture = AdminService.isAdmin();
 
   final List<Map<String, dynamic>> _items = [
     {
-      'title': 'Compatibilidad IA',
-      'subtitle': 'Cuestionario de convivencia',
+      'title': 'Perfil de convivencia',
+      'subtitle': 'Cuestionario de compatibilidad',
       'icon': Icons.psychology,
       'screen': const CompatibilityScreen(),
     },
@@ -24,9 +32,9 @@ class MoreScreen extends StatelessWidget {
       'screen': const VisitsScreen(),
     },
     {
-      'title': 'Mapa de pisos',
-      'subtitle': 'Explora pisos y compañeros',
-      'icon': Icons.map,
+      'title': 'Pisos disponibles',
+      'subtitle': 'Explora pisos y habitaciones publicados',
+      'icon': Icons.home_work_outlined,
       'screen': const MapScreen(),
     },
     {
@@ -47,7 +55,7 @@ class MoreScreen extends StatelessWidget {
         title: const Text('Más'),
       ),
       body: FutureBuilder<bool>(
-        future: AdminService.isAdmin(),
+        future: _isAdminFuture,
         builder: (context, snapshot) {
           final isAdmin = snapshot.data ?? false;
           final items = [
@@ -106,7 +114,12 @@ class MoreScreen extends StatelessWidget {
                       color: isDarkMode ? AppTheme.textLightSecondary : AppTheme.textDarkSecondary,
                     ),
                   ),
-                  trailing: const Icon(Icons.chevron_right, color: AppTheme.textLightSecondary),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: isDarkMode
+                        ? AppTheme.textLightSecondary
+                        : AppTheme.textDarkSecondary,
+                  ),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (context) => item['screen'] as Widget),

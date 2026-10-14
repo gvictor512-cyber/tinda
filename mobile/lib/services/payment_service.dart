@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/secure_storage_service.dart';
 import '../models/premium_plan.dart';
 import 'analytics_service.dart';
-import 'limits_service.dart';
+import 'payment_api_service.dart';
 
 class PaymentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -138,12 +138,17 @@ class PaymentService {
     return subscriptionPlans;
   }
 
-  /// Purchase a subscription plan
-  /// In production, this would integrate with in-app purchase (Stripe/Apple/Google)
-  /// Currently simulates a successful purchase
-  /// Returns true if purchase succeeds
-  /// Throws Exception if purchase fails
-  Future<bool> purchaseSubscription(String planId, {String? transactionId}) async {
+  /// Purchase a subscription plan.
+  /// The store receipt/token is verified server-side; the backend grants the
+  /// entitlement via the Admin SDK (Firestore rules block client-side premium
+  /// writes). For web/Stripe purchases the webhook grants it asynchronously.
+  /// Returns true if purchase succeeds. Throws Exception if purchase fails.
+  Future<bool> purchaseSubscription(
+    String planId, {
+    String? transactionId,
+    String? verificationData,
+    String? platform,
+  }) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) throw Exception('User not authenticated');
 
@@ -158,61 +163,51 @@ class PaymentService {
         throw Exception('No se permiten transacciones simuladas en producción');
       }
 
-      final startDate = DateTime.now();
       final duration = planId == 'premium_annual' ? 365 : 30;
-      final endDate = startDate.add(Duration(days: duration));
+      final endDate = DateTime.now().add(Duration(days: duration));
 
-      // Create subscription record
-      final subscription = UserSubscription(
-        userId: currentUser.uid,
-        planId: 'premium',
-        startDate: startDate,
-        endDate: endDate,
-        isActive: true,
-      );
-
-      await _firestore
-          .collection('subscriptions')
-          .doc(currentUser.uid)
-          .set(subscription.toMap());
-
-      // Update user document
-      await _firestore.collection('users').doc(currentUser.uid).update({
-        'planId': 'premium',
-        'isPremium': true,
-        'subscription': {
-          'planId': planId,
-          'planName': plan.name,
-          'startDate': Timestamp.fromDate(startDate),
-          'endDate': Timestamp.fromDate(endDate),
-          'price': plan.monthlyPrice,
-          'currency': 'EUR',
-          'autoRenew': true,
-          'status': 'active',
-        },
-      });
+      // IAP path: verify server-side → backend writes the entitlement.
+      if (verificationData != null && platform != null) {
+        await PaymentApiService().verifyIapPurchase(
+          productId: planId,
+          transactionId: transactionId,
+          platform: platform,
+          verificationData: verificationData,
+        );
+      }
+      // Stripe/web path: entitlement arrives via the Stripe webhook →
+      // backend writes subscriptions/{uid} + users/{uid} in Firestore.
 
       // Save subscription status locally
       await SecureStorageService.setBool('is_premium', true);
       await SecureStorageService.setString('subscription_plan', planId);
       await SecureStorageService.setString('subscription_end_date', endDate.toIso8601String());
 
-      // Record purchase
-      await recordPurchase(
-        planId: planId,
-        amount: plan.monthlyPrice,
-        currency: 'EUR',
-        transactionId: transactionId,
-      );
+      // Pasos post-grant best-effort: el entitlement ya lo concedió el
+      // backend — un fallo aquí no debe abortar la entrega ni dejar la
+      // transacción de la tienda sin finalizar.
+      try {
+        await recordPurchase(
+          planId: planId,
+          amount: plan.monthlyPrice,
+          currency: 'EUR',
+          transactionId: transactionId,
+        );
+      } catch (e) {
+        debugPrint('recordPurchase (subscription) falló: $e');
+      }
 
-      // Track subscription purchase in analytics
-      await _analytics.logSubscriptionPurchase(
-        planId: planId,
-        price: plan.monthlyPrice,
-        currency: 'EUR',
-        transactionId: transactionId,
-        isRenewal: false,
-      );
+      try {
+        await _analytics.logSubscriptionPurchase(
+          planId: planId,
+          price: plan.monthlyPrice,
+          currency: 'EUR',
+          transactionId: transactionId,
+          isRenewal: false,
+        );
+      } catch (e) {
+        debugPrint('logSubscriptionPurchase falló: $e');
+      }
 
       return true;
     } catch (e) {
@@ -234,12 +229,15 @@ class PaymentService {
       final subscription = await getSubscriptionDetails();
       if (subscription == null) throw Exception('No active subscription');
 
-      // In production, this would cancel the subscription in the app store
-      // For now, we'll just set autoRenew to false
-      
-      await _firestore.collection('users').doc(currentUser.uid).update({
-        'subscription.autoRenew': false,
-        'subscription.status': 'cancelled',
+      // In production, this would cancel the subscription in the app store.
+      // The entitlement fields on the user doc are backend-managed; we can
+      // only mark the local subscription record as cancelled.
+      await _firestore
+          .collection('subscriptions')
+          .doc(currentUser.uid)
+          .update({
+        'isActive': false,
+        'cancelAtPeriodEnd': true,
       });
 
       // Update local preferences
@@ -368,24 +366,16 @@ class PaymentService {
         throw Exception('Free trial already used');
       }
 
-      // Start free trial
-      final startDate = DateTime.now();
-      final endDate = startDate.add(const Duration(days: FREE_TRIAL_DAYS));
+      // The trial entitlement is granted by the backend (client writes to
+      // premium fields are blocked by Firestore rules). The backend
+      // atomically checks hasUsedFreeTrial before granting.
+      await PaymentApiService().verifyIapPurchase(
+        productId: 'free_trial',
+        transactionId: 'trial_${currentUser.uid}',
+        platform: 'internal',
+      );
 
-      await _firestore.collection('users').doc(currentUser.uid).update({
-        'subscription': {
-          'planId': 'free_trial',
-          'planName': 'Prueba Gratis',
-          'startDate': Timestamp.fromDate(startDate),
-          'endDate': Timestamp.fromDate(endDate),
-          'price': 0,
-          'currency': DEFAULT_CURRENCY,
-          'autoRenew': false,
-          'status': 'trial',
-        },
-        'isPremium': true,
-        'hasUsedFreeTrial': true,
-      });
+      final endDate = DateTime.now().add(const Duration(days: FREE_TRIAL_DAYS));
 
       // Save locally
       await SecureStorageService.setBool('is_premium', true);
@@ -455,6 +445,17 @@ class PaymentService {
       final currentUser = _auth.currentUser;
       if (currentUser == null) throw Exception('User not authenticated');
 
+      // Idempotent: the store stream can re-deliver the same transaction
+      // (restore, app restart) — don't duplicate the history entry.
+      final existing = await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('purchases')
+          .where('transactionId', isEqualTo: transactionId)
+          .limit(1)
+          .get();
+      if (existing.docs.isNotEmpty) return;
+
       await _firestore
           .collection('users')
           .doc(currentUser.uid)
@@ -477,12 +478,16 @@ class PaymentService {
     return '$price $currency';
   }
 
-  /// Purchase an individual item (Boost, Super Like, etc.)
-  /// In production, this would integrate with in-app purchase
-  /// Currently simulates a successful purchase
-  /// Returns true if purchase succeeds
-  /// Throws Exception if purchase fails
-  Future<bool> purchaseIndividualItem(String itemId, {String? transactionId}) async {
+  /// Purchase an individual item (Boost, Super Like, etc.).
+  /// The backend verifies the store receipt and grants the item via the
+  /// Admin SDK — client-side grants are blocked by Firestore rules.
+  /// Returns true if purchase succeeds. Throws Exception if purchase fails.
+  Future<bool> purchaseIndividualItem(
+    String itemId, {
+    String? transactionId,
+    String? verificationData,
+    String? platform,
+  }) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) throw Exception('User not authenticated');
 
@@ -497,37 +502,40 @@ class PaymentService {
         throw Exception('No se permiten transacciones simuladas en producción');
       }
 
-      // Record purchase
-      await recordPurchase(
-        planId: itemId,
-        amount: item['price'] as double,
-        currency: item['currency'] as String,
-        transactionId: transactionId,
-      );
+      // IAP path: verify server-side → backend grants the item.
+      if (verificationData != null && platform != null) {
+        await PaymentApiService().verifyIapPurchase(
+          productId: itemId,
+          transactionId: transactionId,
+          platform: platform,
+          verificationData: verificationData,
+        );
+      }
 
-      // Track individual purchase in analytics
-      await _analytics.logSubscriptionPurchase(
-        planId: itemId,
-        price: item['price'] as double,
-        currency: item['currency'] as String,
-        transactionId: transactionId,
-        isRenewal: false,
-      );
+      // Pasos post-grant best-effort: el entitlement ya lo concedió el
+      // backend — un fallo aquí no debe abortar la entrega ni dejar la
+      // transacción de la tienda sin finalizar.
+      try {
+        await recordPurchase(
+          planId: itemId,
+          amount: item['price'] as double,
+          currency: item['currency'] as String,
+          transactionId: transactionId,
+        );
+      } catch (e) {
+        debugPrint('recordPurchase (item) falló: $e');
+      }
 
-      // Grant the item based on type
-      switch (itemId) {
-        case 'boost':
-          await LimitsService().recordBoost(durationMinutes: 30);
-          break;
-        case 'super_like':
-          await _grantSuperLike();
-          break;
-        case 'premium_verification':
-          await _grantPremiumVerification();
-          break;
-        case 'highlight_listing':
-          await _grantHighlightedListing();
-          break;
+      try {
+        await _analytics.logSubscriptionPurchase(
+          planId: itemId,
+          price: item['price'] as double,
+          currency: item['currency'] as String,
+          transactionId: transactionId,
+          isRenewal: false,
+        );
+      } catch (e) {
+        debugPrint('logSubscriptionPurchase (item) falló: $e');
       }
 
       return true;
@@ -565,49 +573,4 @@ class PaymentService {
     return ((monthlyAnnualEquivalent - annualPrice) / monthlyAnnualEquivalent) * 100;
   }
 
-  /// Añade un Super Like disponible al usuario
-  Future<void> _grantSuperLike() async {
-    try {
-      final currentUser = _auth.currentUser;
-      if (currentUser == null) return;
-
-      await _firestore.collection('users').doc(currentUser.uid).update({
-        'superLikesAvailable': FieldValue.increment(1),
-      });
-    } catch (e) {
-      debugPrint('Error concediendo Super Like: $e');
-    }
-  }
-
-  /// Activa la verificación Premium en el perfil del usuario
-  Future<void> _grantPremiumVerification() async {
-    try {
-      final currentUser = _auth.currentUser;
-      if (currentUser == null) return;
-
-      await _firestore.collection('users').doc(currentUser.uid).update({
-        'verification.isPremiumVerified': true,
-        'verification.premiumVerifiedAt': FieldValue.serverTimestamp(),
-        'isVerified': true,
-      });
-    } catch (e) {
-      debugPrint('Error concediendo verificación premium: $e');
-    }
-  }
-
-  /// Destaca el anuncio del usuario durante 24 horas
-  Future<void> _grantHighlightedListing() async {
-    try {
-      final currentUser = _auth.currentUser;
-      if (currentUser == null) return;
-
-      final until = DateTime.now().add(const Duration(hours: 24));
-      await _firestore.collection('users').doc(currentUser.uid).update({
-        'isListingHighlighted': true,
-        'listingHighlightedUntil': Timestamp.fromDate(until),
-      });
-    } catch (e) {
-      debugPrint('Error destacando anuncio: $e');
-    }
-  }
 }

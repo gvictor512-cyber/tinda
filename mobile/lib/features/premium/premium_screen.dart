@@ -1,10 +1,46 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../services/iap_service.dart';
 import '../../services/payment_service.dart';
+import '../../widgets/purchase_success_dialog.dart';
+import '../settings/legal_document_screen.dart';
 
-class PremiumScreen extends StatelessWidget {
+class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
+
+  @override
+  State<PremiumScreen> createState() => _PremiumScreenState();
+}
+
+class _PremiumScreenState extends State<PremiumScreen> {
+  final IapService _iap = IapService();
+  bool _productsLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  /// Refreshes store product details so prices shown are the localized
+  /// store prices (falls back to the static catalog price otherwise).
+  Future<void> _loadProducts() async {
+    try {
+      await _iap.loadProducts();
+    } catch (e) {
+      debugPrint('PremiumScreen: no se pudieron cargar los productos: $e');
+    }
+    if (mounted) setState(() => _productsLoaded = true);
+  }
+
+  /// Localized store price for [planId], or the static fallback when the
+  /// store hasn't returned the product yet.
+  String _priceFor(String planId, String fallback) {
+    final product = _iap.productFor(planId);
+    return product?.price ?? fallback;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,43 +55,125 @@ class PremiumScreen extends StatelessWidget {
             _buildFeatures(),
             _buildIndividualPurchases(context),
             _buildPricing(context),
+            _buildSubscriptionDisclosure(),
             _buildFAQ(context),
+            _buildLegalLinks(context),
+            _buildRestorePurchases(context),
+            if (kDebugMode || kProfileMode) _buildDebugSection(),
           ],
         ),
       ),
     );
   }
 
+  /// Diagnóstico visible solo en builds de debug: lista los productos
+  /// que la tienda no reconoció para facilitar la configuración en
+  /// App Store Connect / Play Console.
+  Widget _buildDebugSection() {
+    final missing = _productsLoaded ? _iap.missingProductIds : <String>[];
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.bug_report, color: Colors.orange, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Modo prueba (solo debug)',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            missing.isEmpty
+                ? 'Todos los productos están configurados en la tienda.'
+                : 'Productos no encontrados en la tienda:\n${missing.join(', ')}\n\nEn debug se simulará la compra igualmente.',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.orange.withValues(alpha: 0.9),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _loadProducts,
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Recargar productos'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Cabecera con la identidad premium de la app: gradiente
+  /// morado→rosa, logo de RoomMate Match en blanco y chip PREMIUM.
   Widget _buildHeader(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.fromLTRB(32, 36, 32, 32),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.primaryBlue, AppTheme.primaryGreen],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.secondaryPurple,
+            AppTheme.accentPink,
+          ],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
         ),
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.workspace_premium,
-            size: 80,
-            color: Colors.white,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'RoomMate Premium',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Icon(
+              Icons.workspace_premium_rounded,
+              size: 52,
               color: Colors.white,
             ),
+          ),
+          const SizedBox(height: 18),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'RoomMate Match',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              SizedBox(width: 10),
+              // Chip PREMIUM — misma cápsula que en perfil y likes
+              _PremiumBadge(),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
             'Encuentra a tu compañero ideal más rápido',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
@@ -195,6 +313,8 @@ class PremiumScreen extends StatelessWidget {
     final description = item['description'] as String;
     final price = item['price'] as double;
     final currency = item['currency'] as String;
+    // El nombre legible se reutiliza en el diálogo de éxito.
+    final displayName = name;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -244,7 +364,8 @@ class PremiumScreen extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               ElevatedButton(
-                onPressed: () => _buyIndividual(context, id, price, currency),
+                onPressed: () =>
+                    _buyIndividual(context, id, displayName, price, currency),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryBlue,
                   foregroundColor: Colors.white,
@@ -254,7 +375,7 @@ class PremiumScreen extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  '${price.toStringAsFixed(2)}$currency',
+                  _priceFor(id, '${price.toStringAsFixed(2)}$currency'),
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -283,30 +404,36 @@ class PremiumScreen extends StatelessWidget {
     }
   }
 
-  void _buyIndividual(BuildContext context, String itemId, double price, String currency) async {
-    showDialog(
+  void _buyIndividual(BuildContext context, String itemId, String itemName, double price, String currency) async {
+    unawaited(showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const PopScope(
         canPop: false,
         child: Center(child: CircularProgressIndicator()),
       ),
-    );
+    ));
     try {
-      await IapService().purchase(itemId);
+      final result = await IapService().purchase(itemId);
       if (!context.mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Compra realizada con éxito'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (result == null) {
+        // User cancelled in the store sheet — not an error, not a success.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Compra cancelada')),
+        );
+        return;
+      }
+      unawaited(PurchaseSuccessDialog.show(
+        context,
+        productName: itemName,
+        message: 'Tu compra se ha activado correctamente en tu cuenta.',
+      ));
     } catch (e) {
       if (!context.mounted) return;
       Navigator.of(context).pop();
       final message = e.toString().replaceAll('Exception: ', '');
-      showDialog(
+      unawaited(showDialog(
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('No se pudo completar la compra'),
@@ -318,7 +445,7 @@ class PremiumScreen extends StatelessWidget {
             ),
           ],
         ),
-      );
+      ));
     }
   }
 
@@ -343,7 +470,7 @@ class PremiumScreen extends StatelessWidget {
                 child: _buildPlanCard(
                   context,
                   'Mensual',
-                  '9.99€',
+                  _priceFor('premium_monthly', '9.99€'),
                   '/mes',
                   false,
                   () => _subscribe(context, 'monthly'),
@@ -354,7 +481,7 @@ class PremiumScreen extends StatelessWidget {
                 child: _buildPlanCard(
                   context,
                   'Anual',
-                  '79.99€',
+                  _priceFor('premium_annual', '79.99€'),
                   '/año',
                   true,
                   () => _subscribe(context, 'yearly'),
@@ -471,6 +598,72 @@ class PremiumScreen extends StatelessWidget {
     );
   }
 
+  /// Guideline 3.1.2(c): the purchase flow must state that the plans are
+  /// auto-renewable subscriptions, their length and price, and include
+  /// functional links to the Terms of Use and Privacy Policy.
+  Widget _buildSubscriptionDisclosure() {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(24, 8, 24, 0),
+      child: Text(
+        'RoomMate Premium es una suscripción auto-renovable: el plan Mensual '
+        'se renueva cada mes y el Anual cada año al precio indicado. El cargo '
+        'se realiza en tu cuenta de Apple ID al confirmar la compra y se '
+        'renueva automáticamente salvo que la canceles al menos 24 horas antes '
+        'del fin del periodo en curso. Puedes gestionar o cancelar la '
+        'suscripción en los Ajustes de tu cuenta de App Store.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 12,
+          color: AppTheme.textLightSecondary,
+          height: 1.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLegalLinks(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TextButton(
+            onPressed: () => _openLegal(
+              context,
+              'Términos de Uso',
+              'assets/legal/terms_of_service.md',
+            ),
+            child: const Text(
+              'Términos de Uso',
+              style: TextStyle(fontSize: 13),
+            ),
+          ),
+          const Text('·',
+              style: TextStyle(color: AppTheme.textLightSecondary)),
+          TextButton(
+            onPressed: () => _openLegal(
+              context,
+              'Política de Privacidad',
+              'assets/legal/privacy_policy.md',
+            ),
+            child: const Text(
+              'Política de Privacidad',
+              style: TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openLegal(BuildContext context, String title, String assetPath) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LegalDocumentScreen(title: title, assetPath: assetPath),
+      ),
+    );
+  }
+
   Widget _buildFAQ(BuildContext context) {
     final faqs = [
       {
@@ -524,31 +717,81 @@ class PremiumScreen extends StatelessWidget {
     );
   }
 
-  void _subscribe(BuildContext context, String plan) async {
-    final planId = plan == 'yearly' ? 'premium_annual' : 'premium_monthly';
-    showDialog(
+  /// App Store guideline 3.1.1: users must be able to restore prior
+  /// purchases — also the recovery path when a purchase completed in the
+  /// store but delivery failed or the app was closed mid-flow.
+  Widget _buildRestorePurchases(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 32),
+      child: TextButton.icon(
+        icon: const Icon(Icons.restore, size: 18),
+        label: const Text('Restaurar compras'),
+        onPressed: () => _restorePurchases(context),
+      ),
+    );
+  }
+
+  void _restorePurchases(BuildContext context) async {
+    unawaited(showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const PopScope(
         canPop: false,
         child: Center(child: CircularProgressIndicator()),
       ),
-    );
+    ));
     try {
-      await IapService().purchase(planId);
+      await IapService().restorePurchases();
+      // The purchase stream re-delivers past purchases; delivery + store
+      // completion run in IapService._handlePurchase automatically.
+      await Future.delayed(const Duration(seconds: 2));
       if (!context.mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Suscripción activada'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Compras restauradas')),
       );
     } catch (e) {
       if (!context.mounted) return;
       Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text('No se pudieron restaurar las compras. Inténtalo de nuevo.')),
+      );
+    }
+  }
+
+  void _subscribe(BuildContext context, String plan) async {
+    final planId = plan == 'yearly' ? 'premium_annual' : 'premium_monthly';
+    unawaited(showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    ));
+    try {
+      final result = await IapService().purchase(planId);
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      if (result == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Suscripción cancelada')),
+        );
+        return;
+      }
+      unawaited(PurchaseSuccessDialog.show(
+        context,
+        productName: plan == 'yearly' ? 'Premium Anual' : 'Premium Mensual',
+        message:
+            'Tu suscripción Premium ya está activa. ¡Disfruta de todas las ventajas!',
+      ));
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
       final message = e.toString().replaceAll('Exception: ', '');
-      showDialog(
+      unawaited(showDialog(
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('No se pudo completar la compra'),
@@ -560,7 +803,33 @@ class PremiumScreen extends StatelessWidget {
             ),
           ],
         ),
-      );
+      ));
     }
+  }
+}
+
+/// Cápsula translúcida con el texto PREMIUM — mismo estilo que los
+/// banners de perfil y likes para mantener la identidad de marca.
+class _PremiumBadge extends StatelessWidget {
+  const _PremiumBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: const Text(
+        'PREMIUM',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+          letterSpacing: 0.6,
+        ),
+      ),
+    );
   }
 }

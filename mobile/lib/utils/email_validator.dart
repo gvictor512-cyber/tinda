@@ -1,7 +1,8 @@
 
 class EmailValidator {
-  // Simplified email regex pattern for web compatibility
-  static const String _emailPattern = r'^[\w\.\+\-]+\@[\w]+\.[\w]+$';
+  // Simplified email regex pattern for web compatibility.
+  // Allows multi-level domains (mail.co.uk) and hyphens.
+  static const String _emailPattern = r'^[\w\.\+\-]+\@([\w\-]+\.)+[\w\-]{2,}$';
   
   // Common disposable email domains
   static const List<String> DISPOSABLE_DOMAINS = [

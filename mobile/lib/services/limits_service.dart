@@ -46,13 +46,29 @@ class LimitsService {
     return subscription?.limits ?? UserLimits.basic;
   }
 
-  /// Check if user can swipe today
+  /// Check if user can swipe today.
+  /// Past the daily limit, swipes consume referral-granted freeLikes.
   Future<bool> canSwipe() async {
     final limits = await getUserLimits();
     if (limits.dailySwipes == -1) return true; // Unlimited
 
     final todaySwipes = await getTodaySwipes();
-    return todaySwipes < limits.dailySwipes;
+    if (todaySwipes < limits.dailySwipes) return true;
+
+    return (await _getFreeLikes()) > 0;
+  }
+
+  /// freeLikes earned via referrals (granted by the backend only).
+  Future<int> _getFreeLikes() async {
+    try {
+      final user = _authService.currentUser;
+      if (user == null) return 0;
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      return (doc.data()?['freeLikes'] as num?)?.toInt() ?? 0;
+    } catch (e) {
+      debugPrint('Error getting freeLikes: $e');
+      return 0;
+    }
   }
 
   /// Get number of swipes done today
@@ -92,6 +108,20 @@ class LimitsService {
         'isLike': isLike,
         'timestamp': FieldValue.serverTimestamp(),
       });
+
+      // If the daily limit was already exhausted this swipe consumed a
+      // freeLike — decrement it (rules allow decrease only).
+      try {
+        final limits = await getUserLimits();
+        if (limits.dailySwipes != -1) {
+          final todaySwipes = await getTodaySwipes();
+          if (todaySwipes > limits.dailySwipes) {
+            await _firestore.collection('users').doc(user.uid).update({
+              'freeLikes': FieldValue.increment(-1),
+            });
+          }
+        }
+      } catch (_) {}
     } catch (e) {
       debugPrint('Error recording swipe: $e');
     }
@@ -257,43 +287,10 @@ class LimitsService {
     return limits.prioritySupport;
   }
 
-  /// Upgrade user to premium
-  Future<void> upgradeToPremium({
-    required String stripeSubscriptionId,
-    required String stripeCustomerId,
-    required DateTime endDate,
-  }) async {
-    try {
-      final user = _authService.currentUser;
-      if (user == null) return;
-
-      final subscription = UserSubscription(
-        userId: user.uid,
-        planId: 'premium',
-        startDate: DateTime.now(),
-        endDate: endDate,
-        isActive: true,
-        stripeSubscriptionId: stripeSubscriptionId,
-        stripeCustomerId: stripeCustomerId,
-      );
-
-      await _firestore
-          .collection('subscriptions')
-          .doc(user.uid)
-          .set(subscription.toMap());
-
-      // Update user document
-      await _firestore.collection('users').doc(user.uid).update({
-        'planId': 'premium',
-        'isPremium': true,
-      });
-    } catch (e) {
-      debugPrint('Error upgrading to premium: $e');
-      rethrow;
-    }
-  }
-
-  /// Downgrade user to basic
+  /// Downgrade user to basic.
+  /// NOTE: premium grants are backend-only (Firestore rules block client
+  /// writes to planId/isPremium/subscriptions premium). The users doc is
+  /// updated by the backend when the entitlement changes.
   Future<void> downgradeToBasic() async {
     try {
       final user = _authService.currentUser;
@@ -309,12 +306,6 @@ class LimitsService {
           .collection('subscriptions')
           .doc(user.uid)
           .set(subscription.toMap());
-
-      // Update user document
-      await _firestore.collection('users').doc(user.uid).update({
-        'planId': 'basic',
-        'isPremium': false,
-      });
     } catch (e) {
       debugPrint('Error downgrading to basic: $e');
       rethrow;

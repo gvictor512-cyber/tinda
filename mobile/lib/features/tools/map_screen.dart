@@ -1,15 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/theme.dart';
 
-class MapScreen extends StatelessWidget {
+/// Browse real listings: landlord profiles expose an `apartment` map in the
+/// public `profiles` collection (synced by PublicProfileService).
+class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
-  final List<Map<String, String>> _markers = const [
-    {'title': 'Piso en Gracia', 'price': '650€', 'type': 'Piso'},
-    {'title': 'Habitación Eixample', 'price': '400€', 'type': 'Habitación'},
-    {'title': 'Ático Sants', 'price': '850€', 'type': 'Piso'},
-    {'title': 'Piso compartido', 'price': '350€', 'type': 'Habitación'},
-  ];
+  @override
+  State<MapScreen> createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  late Future<QuerySnapshot> _listingsFuture = _fetchListings();
+
+  Future<QuerySnapshot> _fetchListings() {
+    return FirebaseFirestore.instance
+        .collection('profiles')
+        .where('userType', isEqualTo: 'landlord')
+        .limit(50)
+        .get();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,118 +30,183 @@ class MapScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mapa de pisos'),
+        title: const Text('Pisos disponibles'),
       ),
-      body: Stack(
-        children: [
-          Container(
-            color: isDarkMode ? AppTheme.darkBackground : const Color(0xFFE0E7FF),
-            child: Center(
-              child: Icon(
-                Icons.map,
-                size: 120,
-                color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+      body: FutureBuilder<QuerySnapshot>(
+        future: _listingsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text('No se pudieron cargar los pisos.'),
               ),
-            ),
-          ),
-          Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
-            child: _buildFilters(isDarkMode),
-          ),
-          Positioned(
-            bottom: 16,
-            left: 16,
-            right: 16,
-            child: SizedBox(
-              height: 120,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _markers.length,
-                itemBuilder: (context, index) => _buildMarkerCard(_markers[index], isDarkMode),
+            );
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final listings = snapshot.data?.docs
+                  .where((d) =>
+                      (d.data() as Map<String, dynamic>)['apartment'] is Map)
+                  .toList() ??
+              [];
+
+          if (listings.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.home_work_outlined,
+                      size: 64,
+                      color: isDarkMode
+                          ? AppTheme.textLightSecondary
+                          : AppTheme.textDarkSecondary),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Aún no hay pisos publicados',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: isDarkMode
+                          ? AppTheme.textLightSecondary
+                          : AppTheme.textDarkSecondary,
+                    ),
+                  ),
+                ],
               ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() => _listingsFuture = _fetchListings());
+              await _listingsFuture;
+            },
+            child: ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: listings.length,
+              itemBuilder: (context, index) {
+                final data = listings[index].data() as Map<String, dynamic>;
+                final apartment =
+                    (data['apartment'] as Map).cast<String, dynamic>();
+                return _buildListingCard(data, apartment, isDarkMode);
+              },
             ),
-          ),
-          ..._buildMockPins(),
-        ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildFilters(bool isDarkMode) {
+  Widget _buildListingCard(Map<String, dynamic> profile,
+      Map<String, dynamic> apartment, bool isDarkMode) {
+    final photos = apartment['photos'] as List?;
+    final photoUrl =
+        photos != null && photos.isNotEmpty ? photos[0] as String : null;
+    final title = apartment['title']?.toString() ?? 'Piso compartido';
+    final location = apartment['location']?.toString() ?? '';
+    final price = apartment['price'];
+    final ownerName = profile['name']?.toString() ?? '';
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppTheme.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _buildFilterChip('Radio', Icons.radar),
-          const SizedBox(width: 8),
-          _buildFilterChip('Precio', Icons.euro),
-          const SizedBox(width: 8),
-          _buildFilterChip('Estancia', Icons.timelapse),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, IconData icon) {
-    return Chip(
-      avatar: Icon(icon, size: 18, color: AppTheme.primaryBlue),
-      label: Text(label),
-      backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-      side: BorderSide.none,
-    );
-  }
-
-  Widget _buildMarkerCard(Map<String, String> marker, bool isDarkMode) {
-    return Container(
-      width: 160,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDarkMode ? AppTheme.darkSurface : Colors.white,
+        color: isDarkMode ? AppTheme.darkSurface : AppTheme.lightSurface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.2 : 0.05),
             blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: Row(
         children: [
-          Text(
-            marker['title']!,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isDarkMode ? AppTheme.textLight : AppTheme.textDark,
-            ),
+          SizedBox(
+            width: 110,
+            height: 110,
+            child: photoUrl != null
+                ? CachedNetworkImage(
+                    imageUrl: photoUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => _placeholder(),
+                    errorWidget: (_, __, ___) => _placeholder(),
+                  )
+                : _placeholder(),
           ),
-          const SizedBox(height: 4),
-          Text(
-            marker['price']!,
-            style: const TextStyle(
-              color: AppTheme.primaryBlue,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            marker['type']!,
-            style: TextStyle(
-              fontSize: 12,
-              color: isDarkMode ? AppTheme.textLightSecondary : AppTheme.textDarkSecondary,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color:
+                          isDarkMode ? AppTheme.textLight : AppTheme.textDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  if (location.isNotEmpty)
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined,
+                            size: 14, color: AppTheme.primaryBlue),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            location,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDarkMode
+                                  ? AppTheme.textLightSecondary
+                                  : AppTheme.textDarkSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        price is num
+                            ? '${price.toStringAsFixed(0)}€/mes'
+                            : 'Consultar',
+                        style: const TextStyle(
+                          color: AppTheme.primaryBlue,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                      if (ownerName.isNotEmpty)
+                        Text(
+                          ownerName,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDarkMode
+                                ? AppTheme.textLightSecondary
+                                : AppTheme.textDarkSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -137,20 +214,12 @@ class MapScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildMockPins() {
-    return [
-      Positioned(top: 120, left: 80, child: _pinIcon()),
-      Positioned(top: 200, left: 220, child: _pinIcon()),
-      Positioned(top: 340, left: 140, child: _pinIcon()),
-      Positioned(top: 260, left: 300, child: _pinIcon()),
-    ];
-  }
-
-  Widget _pinIcon() {
-    return const Icon(
-      Icons.location_pin,
-      color: AppTheme.primaryBlue,
-      size: 36,
+  Widget _placeholder() {
+    return Container(
+      color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+      child: const Center(
+        child: Icon(Icons.home_outlined, color: AppTheme.primaryBlue, size: 36),
+      ),
     );
   }
 }

@@ -655,8 +655,8 @@ class IapService {
         transactionId: transactionId,
       ));
 
-      // Solicitar factura por email (no bloqueante). Se piden también en
-      // debug: una compra real de sandbox merece factura igual; solo se
+      // Solicitar resumen de compra por email (no bloqueante). Se piden
+      // también en debug: una compra real de sandbox merece email igual; se
       // omiten las simuladas internas (source == 'debug').
       if (purchase.verificationData.source != 'debug') {
         final product = _findProduct(purchase.productID);

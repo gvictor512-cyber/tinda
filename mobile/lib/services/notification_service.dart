@@ -59,7 +59,7 @@ class NotificationService {
     await _configureFirebaseMessaging();
 
     if (kDebugMode) {
-      print('Notification service initialized');
+      debugPrint('Notification service initialized');
     }
   }
 
@@ -77,7 +77,7 @@ class NotificationService {
     );
 
     if (kDebugMode) {
-      print('Notification permission status: ${settings.authorizationStatus}');
+      debugPrint('Notification permission status: ${settings.authorizationStatus}');
     }
 
     // Local notification permissions for Android 13+
@@ -93,7 +93,7 @@ class NotificationService {
     if (token != null) {
       await _saveFCMToken(token);
       if (kDebugMode) {
-        print('FCM Token: $token');
+        debugPrint('FCM Token: $token');
       }
     }
 
@@ -163,7 +163,7 @@ class NotificationService {
   void _handleNotificationResponse(NotificationResponse response) {
     // Handle notification tap logic
     if (kDebugMode) {
-      print('Notification tapped: ${response.payload}');
+      debugPrint('Notification tapped: ${response.payload}');
     }
   }
 
@@ -171,7 +171,7 @@ class NotificationService {
   void _handleNotificationTap(RemoteMessage message) {
     // Navigate to appropriate screen based on notification data
     if (kDebugMode) {
-      print('Notification opened: ${message.data}');
+      debugPrint('Notification opened: ${message.data}');
     }
   }
 
@@ -180,7 +180,7 @@ class NotificationService {
     try {
       await _firebaseMessaging.subscribeToTopic(topic);
       if (kDebugMode) {
-        print('Subscribed to topic: $topic');
+        debugPrint('Subscribed to topic: $topic');
       }
     } catch (e) {
       debugPrint('Error subscribing to topic: $e');
@@ -192,7 +192,7 @@ class NotificationService {
     try {
       await _firebaseMessaging.unsubscribeFromTopic(topic);
       if (kDebugMode) {
-        print('Unsubscribed from topic: $topic');
+        debugPrint('Unsubscribed from topic: $topic');
       }
     } catch (e) {
       debugPrint('Error unsubscribing from topic: $e');
@@ -381,7 +381,7 @@ class NotificationService {
     );
 
     if (kDebugMode) {
-      print('Re-engagement notification scheduled for $scheduledDate UTC');
+      debugPrint('Re-engagement notification scheduled for $scheduledDate UTC');
     }
   }
 }
