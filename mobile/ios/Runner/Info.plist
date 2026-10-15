@@ -60,6 +60,8 @@
 	<string>RoomMate Match necesita acceso a la cámara para que puedas añadir fotos de perfil y verificar tu identidad.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 RoomMate Match. All rights reserved.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>RoomMate Match puede usar tu ubicación para mostrarte perfiles cercanos incluso cuando la app no está activa.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Usamos tu ubicación para mostrarte compañeros y pisos cercanos según tus preferencias.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
