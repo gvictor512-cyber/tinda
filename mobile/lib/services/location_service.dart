@@ -214,8 +214,10 @@ class LocationService {
       }
     }
 
-    // Request background location permission (Android)
-    if (await Permission.locationAlways.isDenied) {
+    // Request background location permission (Android only — iOS would
+    // show an Always prompt the app doesn't need).
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        await Permission.locationAlways.isDenied) {
       await Permission.locationAlways.request();
     }
 

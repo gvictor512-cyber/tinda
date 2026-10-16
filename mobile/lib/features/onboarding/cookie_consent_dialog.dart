@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../utils/secure_storage_service.dart';
 import '../settings/legal_document_screen.dart';
@@ -14,6 +15,10 @@ class CookieConsentDialog extends StatelessWidget {
   }
 
   static Future<bool> showIfNeeded(BuildContext context) async {
+    // Las cookies solo existen en la build web. En iOS/Android la app no
+    // usa cookies ni trackea — mostrar este prompt provocó el rechazo de
+    // App Review (5.1.2(i): prompts de cookies sin ATT).
+    if (!kIsWeb) return true;
     if (await wasAccepted()) return true;
 
     if (!context.mounted) return false;

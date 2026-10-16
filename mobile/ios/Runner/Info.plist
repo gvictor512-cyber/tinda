@@ -64,6 +64,8 @@
 	<string>RoomMate Match puede usar tu ubicación para mostrarte perfiles cercanos incluso cuando la app no está activa.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Usamos tu ubicación para mostrarte compañeros y pisos cercanos según tus preferencias.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>RoomMate Match necesita acceso al micrófono para las videollamadas con otros usuarios.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>RoomMate Match necesita guardar fotos en tu galería cuando lo solicites.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

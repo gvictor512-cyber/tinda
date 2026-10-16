@@ -1067,6 +1067,14 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
+    // En sandbox (App Review, builds de desarrollo/TestFlight firmadas con
+    // sandbox) las suscripciones caducan a los ~5 minutos y Apple las
+    // renueva automáticamente. Exigir un expires_date_ms futuro — o usarlo
+    // como fin del entitlement — dejaba al usuario sin premium pese a
+    // haber pagado (rechazo 2.1(b)). En sandbox se concede el periodo
+    // completo del plan.
+    const isSandbox = body.environment === 'Sandbox';
+
     const isSubscription =
       planId === 'premium_monthly' || planId === 'premium_annual';
     const rawItems = body.latest_receipt_info ?? body.receipt?.in_app;
@@ -1085,10 +1093,10 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     }
     if (isSubscription) {
       const expiryMs = Number(match.expires_date_ms ?? 0);
-      if (expiryMs <= Date.now()) {
+      if (!isSandbox && expiryMs <= Date.now()) {
         throw new BadRequestException('Subscription expired');
       }
-      return { verified: true, expiryMs };
+      return { verified: true, expiryMs: isSandbox ? null : expiryMs };
     }
     return { verified: true, expiryMs: null };
   }
@@ -1134,6 +1142,19 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException('El producto no coincide con el recibo');
     }
 
+    // Sandbox (App Review): la expiresDate del JWS caduca a los ~5 minutos
+    // porque Apple renueva las suscripciones de prueba a intervalos
+    // acelerados. Un reintento de entrega posterior (cold start del
+    // backend, cola de entregas pendientes) encontraba el JWS "caducado" y
+    // premium nunca se activaba — y si se activaba, expiraba a los 5
+    // minutos. En sandbox concedemos el periodo completo del plan
+    // (expiryMs=null -> el grant usa la duración del plan).
+    if (payload.environment === 'Sandbox') {
+      this.logger.log(
+        `JWS verified (sandbox) product=${payload.productId} tx=${txId}`,
+      );
+      return { verified: true, expiryMs: null };
+    }
     const expiryMs =
       typeof payload.expiresDate === 'number' ? payload.expiresDate : null;
     if (expiryMs != null && expiryMs <= Date.now()) {

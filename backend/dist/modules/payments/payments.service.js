@@ -252,11 +252,11 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
                 transactionId: dto.transactionId,
             });
             if (!sent) {
-                this.logger.warn(`No se pudo enviar la factura ${invoiceNumber} a ${email}`);
+                this.logger.warn(`No se pudo enviar el resumen ${invoiceNumber} a ${email}`);
             }
         }
         else {
-            this.logger.warn(`Compra ${dto.transactionId} sin email asociado; factura ${invoiceNumber} no enviada`);
+            this.logger.warn(`Compra ${dto.transactionId} sin email asociado; resumen ${invoiceNumber} no enviado`);
         }
         if (sent && existing) {
             try {
@@ -781,6 +781,7 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         if (body == null || typeof body !== 'object' || body.status !== 0) {
             throw new common_1.BadRequestException(`Apple receipt invalid (status=${body?.status ?? 'malformed'})`);
         }
+        const isSandbox = body.environment === 'Sandbox';
         const isSubscription = planId === 'premium_monthly' || planId === 'premium_annual';
         const rawItems = body.latest_receipt_info ?? body.receipt?.in_app;
         const items = Array.isArray(rawItems) ? rawItems : [];
@@ -792,10 +793,10 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         }
         if (isSubscription) {
             const expiryMs = Number(match.expires_date_ms ?? 0);
-            if (expiryMs <= Date.now()) {
+            if (!isSandbox && expiryMs <= Date.now()) {
                 throw new common_1.BadRequestException('Subscription expired');
             }
-            return { verified: true, expiryMs };
+            return { verified: true, expiryMs: isSandbox ? null : expiryMs };
         }
         return { verified: true, expiryMs: null };
     }
@@ -819,6 +820,10 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
         if (payload.productId !== planId &&
             !payload.productId?.startsWith(planId)) {
             throw new common_1.BadRequestException('El producto no coincide con el recibo');
+        }
+        if (payload.environment === 'Sandbox') {
+            this.logger.log(`JWS verified (sandbox) product=${payload.productId} tx=${txId}`);
+            return { verified: true, expiryMs: null };
         }
         const expiryMs = typeof payload.expiresDate === 'number' ? payload.expiresDate : null;
         if (expiryMs != null && expiryMs <= Date.now()) {

@@ -45,8 +45,7 @@ export class MailService {
     // NIF del emisor: opcional en este resumen de compra (el documento fiscal
     // al consumidor lo emite la tienda). Se muestra solo si se configura.
     // Va por env var para no exponer datos fiscales personales en el repo.
-    this.sellerNif =
-      this.configService.get<string>('SELLER_NIF') || undefined;
+    this.sellerNif = this.configService.get<string>('SELLER_NIF') || undefined;
     this.enabled =
       Boolean(this.apiKey) && !this.apiKey.includes('YOUR_RESEND_API_KEY');
     if (!this.enabled) {

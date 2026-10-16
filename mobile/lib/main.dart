@@ -19,7 +19,6 @@ import 'features/legal/reconsent_screen.dart';
 import 'services/stripe_payment_service.dart';
 import 'services/iap_service.dart';
 import 'services/notification_service.dart';
-import 'services/att_service.dart';
 import 'services/rating_service.dart';
 import 'services/update_service.dart';
 import 'services/deep_link_service.dart';
@@ -283,7 +282,6 @@ class _RoomMateMatchAppState extends State<RoomMateMatchApp> {
   @override
   void initState() {
     super.initState();
-    AttService.requestIfNeeded();
     RatingService.trackAppOpen();
     DeepLinkService().init();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
