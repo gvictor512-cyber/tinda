@@ -253,8 +253,11 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    const email =
-      user?.email || tokenEmail || (await this._lookupUserEmail(firebaseUid));
+    // Resuelve el destinatario evitando el placeholder `<uid>@no-email.local`
+    // que se persiste cuando Firebase Auth no expone email.
+    const email = [user?.email, tokenEmail, await this._lookupUserEmail(
+      firebaseUid,
+    )].find((e) => e && !e.endsWith('@no-email.local'));
 
     const provider =
       dto.platform === 'ios'
@@ -726,8 +729,10 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
     // Record the payment (audit trail) — best-effort: the entitlement
     // already lives in Firestore, so a Postgres outage must not fail the
     // delivery and leave a paid transaction stuck in the store queue.
+    let user: User | null = null;
+    let payment: Payment | null = null;
     try {
-      let user = await this.userRepository.findOne({ where: { firebaseUid } });
+      user = await this.userRepository.findOne({ where: { firebaseUid } });
       if (!user) {
         // email is NOT NULL — pull it from Firebase Auth (a bare save with
         // only firebaseUid used to crash with a constraint violation).
@@ -742,8 +747,10 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
           }),
         );
       }
-      if (!existing) {
-        await this.paymentRepository.save({
+      if (existing) {
+        payment = existing;
+      } else {
+        payment = await this.paymentRepository.save({
           userId: user.id,
           amount: catalog.amountCents,
           currency: 'EUR',
@@ -769,7 +776,93 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
       `IAP granted uid=${firebaseUid} product=${planId} tx=${dto.transactionId} verifiedBy=${verifiedBy}`,
     );
 
+    // Send the purchase receipt server-side so it does not depend on the
+    // client's separate /payments/receipt call (fire-and-forget: it is
+    // silently lost if the app closes or the request drops right after
+    // paying). The endpoint stays as a retry path and dedupes via
+    // metadata.receiptSent. Debug-simulated purchases get no email.
+    if (!isDebugTransaction) {
+      await this._sendReceiptEmail(firebaseUid, user, payment, {
+        transactionId: dto.transactionId,
+        platform: dto.platform,
+        productName: catalog.name,
+        productDescription: catalog.description,
+        amountCents: catalog.amountCents,
+      });
+    }
+
     return { verified: true, verifiedBy, alreadyGranted: false };
+  }
+
+  /**
+   * Envia el resumen de compra al email del usuario tras un grant IAP.
+   * Best-effort y nunca lanza: la ventaja ya esta entregada, asi que una
+   * caida del proveedor de email no puede romper la verificacion. Marca
+   * metadata.receiptSent en el pago para que /payments/receipt deduplique.
+   */
+  private async _sendReceiptEmail(
+    firebaseUid: string,
+    user: User | null,
+    payment: Payment | null,
+    info: {
+      transactionId: string;
+      platform: string;
+      productName: string;
+      productDescription?: string;
+      amountCents: number;
+    },
+  ): Promise<void> {
+    try {
+      const email =
+        user?.email && !user.email.endsWith('@no-email.local')
+          ? user.email
+          : await this._lookupUserEmail(firebaseUid);
+      if (!email) {
+        this.logger.warn(
+          `receipt: sin email para uid=${firebaseUid} tx=${info.transactionId}`,
+        );
+        return;
+      }
+
+      const invoiceNumber =
+        (payment?.metadata as any)?.invoiceNumber ??
+        this.buildInvoiceNumber(info.transactionId);
+      const sent = await this.mailService.sendPurchaseReceipt({
+        to: email,
+        customerName: user?.displayName,
+        invoiceNumber,
+        purchaseDate: new Date(),
+        productName: info.productName,
+        productDescription: info.productDescription,
+        amountCents: info.amountCents,
+        currency: 'EUR',
+        platform: info.platform,
+        transactionId: info.transactionId,
+      });
+      if (!sent) {
+        this.logger.warn(`receipt: envio fallido ${invoiceNumber} a ${email}`);
+        return;
+      }
+
+      // Persiste la marca de deduplicacion (y el n.º de resumen) en el pago.
+      const row =
+        payment ??
+        (await this.paymentRepository
+          .findOne({ where: { providerPaymentId: info.transactionId } })
+          .catch(() => null));
+      if (row) {
+        row.metadata = {
+          ...(row.metadata ?? {}),
+          invoiceNumber,
+          receiptSent: true,
+        };
+        await this.paymentRepository.save(row);
+      }
+    } catch (e) {
+      this.logger.warn(
+        `receipt: fallo no critico tx=${info.transactionId}: ${e}`,
+      );
+    }
   }
 
   /** Grants a 7-day free trial once per account, server-validated. */

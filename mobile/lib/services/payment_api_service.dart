@@ -89,7 +89,13 @@ class PaymentApiService {
         if (amountCents != null) 'amountCents': amountCents,
         if (currency != null) 'currency': currency,
         if (platform != null) 'platform': platform,
-      });
+      },
+          // Mismos timeouts que verifyIapPurchase: un cold start del
+          // backend puede tardar ~50s y abortaba la peticion silenciosamente.
+          options: Options(
+            receiveTimeout: const Duration(seconds: 60),
+            sendTimeout: const Duration(seconds: 30),
+          ));
       return true;
     } catch (e) {
       debugPrint('No se pudo solicitar la factura por email: $e');
