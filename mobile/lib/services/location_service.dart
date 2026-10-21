@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
 import 'public_profile_service.dart';
+import 'matching_service.dart';
 
 class LocationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -136,6 +137,11 @@ class LocationService {
 
       for (var doc in usersSnapshot.docs) {
         final userData = doc.data() as Map<String, dynamic>;
+        // Seeded demo profiles only show for the demo/dev accounts.
+        if (!MatchingService.canSeeDemoContent &&
+            userData['isDemo'] == true) {
+          continue;
+        }
         final userLocation = userData['preferences']?['location'] as GeoPoint?;
 
         if (userLocation != null) {

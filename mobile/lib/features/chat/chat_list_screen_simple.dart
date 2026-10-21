@@ -12,6 +12,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../services/chat_service.dart';
 
+import '../../services/matching_service.dart';
+
 import '../../services/auth_service.dart';
 
 import '../profile/profile_details_screen.dart';
@@ -142,6 +144,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     // Perfil borrado o inexistente: se oculta la conversacion
                     // en vez de mostrar un tile vacio ("Usuario no encontrado").
                     if (userData == null) {
+                      return const SizedBox.shrink();
+                    }
+
+                    // Seeded demo conversations only show for the
+                    // demo/dev accounts — real users see organic chats.
+                    if (!MatchingService.canSeeDemoContent &&
+                        userData['isDemo'] == true) {
                       return const SizedBox.shrink();
                     }
 

@@ -18,6 +18,20 @@ class MatchingService {
   // Minimum compatibility threshold (percentage)
   static const double MIN_COMPATIBILITY_THRESHOLD = 50.0;
 
+  /// Whether this build/account may see seeded demo content
+  /// (`isDemo` profiles, likes, matches and chats). Debug builds
+  /// always do; release only the App Review demo account and the
+  /// developer's own account. Everyone else sees purely organic data.
+  static bool get canSeeDemoContent {
+    if (kDebugMode) return true;
+    const allowed = {
+      'demo@roommatematchapp.com',
+      'gvictor512@gmail.com',
+    };
+    final email = FirebaseAuth.instance.currentUser?.email?.toLowerCase();
+    return allowed.contains(email);
+  }
+
   // Budget tolerance percentage
   static const double BUDGET_TOLERANCE_PERCENTAGE = 0.2;
 
@@ -266,6 +280,9 @@ class MatchingService {
         if (candidateId == currentUser.uid) continue;
         if (userType != null && candidateData['userType'] == userType) continue;
         if (candidateData['banned'] == true) continue;
+        // Seeded demo profiles stay out of the deck for real users —
+        // only the demo/dev accounts (and debug builds) see them.
+        if (!canSeeDemoContent && candidateData['isDemo'] == true) continue;
 
         // Hard distance filter when both locations are known
         if (myLoc != null && maxDist != null) {
@@ -529,6 +546,9 @@ class MatchingService {
         if (otherUserDoc.exists) {
           final otherUserData = otherUserDoc.data();
           if (otherUserData != null) {
+            if (!canSeeDemoContent && otherUserData['isDemo'] == true) {
+              continue;
+            }
             otherUserData['matchId'] = matchDoc.id;
             otherUserData['matchTimestamp'] = matchDoc.data()['timestamp'];
             matches.add(otherUserData);
@@ -593,6 +613,7 @@ class MatchingService {
         if (userDoc.exists) {
           final userData = userDoc.data();
           if (userData != null) {
+            if (!canSeeDemoContent && userData['isDemo'] == true) continue;
             userData['swipeTimestamp'] = swipeDoc.data()['timestamp'];
             userData['swipeId'] = swipeDoc.id;
             likedByUsers.add(userData);

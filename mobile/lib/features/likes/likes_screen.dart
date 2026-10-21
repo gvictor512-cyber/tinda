@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/theme.dart';
 import '../../services/limits_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/matching_service.dart';
 import '../premium/premium_screen.dart';
 import '../profile/profile_details_screen.dart';
 
@@ -109,6 +110,10 @@ class _LikesScreenState extends State<LikesScreen> {
       final userDoc = userDocs[i];
       if (userDoc.exists) {
         final data = userDoc.data() as Map<String, dynamic>;
+        // Seeded demo likers only show for the demo/dev accounts.
+        if (!MatchingService.canSeeDemoContent && data['isDemo'] == true) {
+          continue;
+        }
         data['uid'] = swiperIds[i];
         data['swipeTimestamp'] = swipeDocsByUser[swiperIds[i]]!.data()['timestamp'];
         likers.add(data);
@@ -118,13 +123,19 @@ class _LikesScreenState extends State<LikesScreen> {
     return likers;
   }
 
-  /// Profiles used as blurred teasers for non-premium users. Prefers
-  /// seeded demo profiles; falls back to any profile. Failures are
+  /// Profiles used as blurred teasers for non-premium users. The demo
+  /// account prefers seeded demo profiles (they can't leak to real
+  /// users); everyone else sees real profiles only. Failures are
   /// non-fatal — the grid pads itself with placeholder cards.
   Future<List<Map<String, dynamic>>> _fetchTeaserProfiles() async {
     final user = _authService.currentUser;
     if (user == null) return [];
+    final canSeeDemo = MatchingService.canSeeDemoContent;
     try {
+      // Real users only ever see people who actually liked them — the grid
+      // fills with placeholder cards instead of pretending random profiles
+      // are likes. Only demo/dev accounts get seeded teaser profiles.
+      if (!canSeeDemo) return [];
       var snapshot = await _firestore
           .collection('profiles')
           .where('isDemo', isEqualTo: true)

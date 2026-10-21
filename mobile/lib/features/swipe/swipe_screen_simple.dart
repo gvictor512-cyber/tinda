@@ -63,18 +63,11 @@ class _SwipeScreenState extends State<SwipeScreen>
     _loadPotentialMatches();
   }
 
-  /// Whether this build may auto-seed demo data: debug builds always;
-  /// release only for the App Review demo account and the developer's
-  /// own account so manual testing always has data.
-  bool get _canAutoSeed {
-    if (kDebugMode) return true;
-    const allowed = {
-      'demo@roommatematchapp.com',
-      'gvictor512@gmail.com',
-    };
-    final email = FirebaseAuth.instance.currentUser?.email?.toLowerCase();
-    return allowed.contains(email);
-  }
+  /// Whether this build may auto-seed demo data. Same gate that decides
+  /// who can see seeded `isDemo` content: debug builds always; release
+  /// only for the App Review demo account and the developer's own
+  /// account so manual testing always has data.
+  bool get _canAutoSeed => MatchingService.canSeeDemoContent;
 
   @override
   void dispose() {

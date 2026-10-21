@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../config/theme.dart';
+import '../../services/matching_service.dart';
 
 /// Browse real listings: landlord profiles expose an `apartment` map in the
 /// public `profiles` collection (synced by PublicProfileService).
@@ -49,8 +50,15 @@ class _MapScreenState extends State<MapScreen> {
           }
 
           final listings = snapshot.data?.docs
-                  .where((d) =>
-                      (d.data() as Map<String, dynamic>)['apartment'] is Map)
+                  .where((d) {
+                    final data = d.data() as Map<String, dynamic>;
+                    // Seeded demo listings only show for demo/dev accounts.
+                    if (!MatchingService.canSeeDemoContent &&
+                        data['isDemo'] == true) {
+                      return false;
+                    }
+                    return data['apartment'] is Map;
+                  })
                   .toList() ??
               [];
 
